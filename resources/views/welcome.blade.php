@@ -38,9 +38,11 @@
 
     <div class="flex-grow max-w-3xl mx-auto w-full mt-8 px-4">
 
-        @if(session('success'))
+        {{-- ALERTS: Check for both 'success' (Post/Edit) and 'status' (Verification) --}}
+        @if(session('success') || session('status'))
             <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
-                <i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') }}
+                <i class='bx bx-check-circle text-xl mr-2'></i> 
+                {{ session('success') ?? session('status') }}
             </div>
         @endif
 
