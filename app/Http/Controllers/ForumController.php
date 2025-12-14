@@ -270,6 +270,10 @@ class ForumController extends Controller
             abort(403);
         }
 
+        if ($question->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
+        return redirect()->back()->with('error', 'Time limit exceeded.');
+      }
+
         // Fetch categories (Fixes the Undefined Variable error)
         $categories = Category::all(); 
 
@@ -281,6 +285,10 @@ class ForumController extends Controller
 
         if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { 
             abort(403); 
+        }
+
+        if ($question->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
+        return redirect()->back()->with('error', 'Time limit exceeded.');
         }
 
         // Validate everything, including new images

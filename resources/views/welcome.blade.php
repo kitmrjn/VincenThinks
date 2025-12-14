@@ -45,47 +45,67 @@
         @endif
 
         @auth
-        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200 relative overflow-hidden group">
-            <div class="absolute top-0 left-0 w-1 h-full bg-maroon-700"></div>
-            <h3 class="text-xl font-light text-gray-800 mb-4 flex items-center">
-                <i class='bx bx-edit text-2xl text-maroon-700 mr-2 font-thin'></i>
-                Ask the Community
-            </h3>
-            
-            <form action="{{ route('question.store') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <select name="category_id" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-sm font-light text-gray-600 cursor-pointer">
-                    <option value="" disabled selected>Select a Category...</option>
-                    @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                    @endforeach
-                </select>
+            @if (Auth::user()->hasVerifiedEmail())
+                {{-- DISPLAY FORM: Only for Verified Users --}}
+                <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-maroon-700"></div>
+                    <h3 class="text-xl font-light text-gray-800 mb-4 flex items-center">
+                        <i class='bx bx-edit text-2xl text-maroon-700 mr-2 font-thin'></i>
+                        Ask the Community
+                    </h3>
+                    
+                    <form action="{{ route('question.store') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <select name="category_id" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-sm font-light text-gray-600 cursor-pointer">
+                            <option value="" disabled selected>Select a Category...</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
 
-                <input type="text" name="title" placeholder="What's your question?" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-lg font-normal transition-colors placeholder-gray-400">
-                
-                <div class="mb-4">
-                    <x-trix-editor name="content" placeholder="Type your question here..." />
-                    @error('content')
-                        <p class="text-red-500 text-xs mt-1 font-bold flex items-center">
-                            <i class='bx bx-error-circle mr-1'></i> {{ $message }}
-                        </p>
-                    @enderror
-                </div>
+                        <input type="text" name="title" placeholder="What's your question?" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-lg font-normal transition-colors placeholder-gray-400">
+                        
+                        <div class="mb-4">
+                            <x-trix-editor name="content" placeholder="Type your question here..." />
+                            @error('content')
+                                <p class="text-red-500 text-xs mt-1 font-bold flex items-center">
+                                    <i class='bx bx-error-circle mr-1'></i> {{ $message }}
+                                </p>
+                            @enderror
+                        </div>
 
-                <div class="mb-4 flex items-center">
-                    <label class="cursor-pointer flex items-center text-xs text-gray-500 hover:text-maroon-700 transition">
-                        <i class='bx bx-images text-lg mr-1'></i> Add Images (Optional)
-                        <input type="file" name="images[]" multiple class="hidden" 
-                            onchange="document.getElementById('img-preview-count').innerText = this.files.length + ' files selected'">
-                    </label>
-                    <span id="img-preview-count" class="ml-3 text-xs text-maroon-700 font-bold"></span>
-                </div>
+                        <div class="mb-4 flex items-center">
+                            <label class="cursor-pointer flex items-center text-xs text-gray-500 hover:text-maroon-700 transition">
+                                <i class='bx bx-images text-lg mr-1'></i> Add Images (Optional)
+                                <input type="file" name="images[]" multiple class="hidden" 
+                                    onchange="document.getElementById('img-preview-count').innerText = this.files.length + ' files selected'">
+                            </label>
+                            <span id="img-preview-count" class="ml-3 text-xs text-maroon-700 font-bold"></span>
+                        </div>
 
-                <div class="text-right">
-                    <button type="submit" class="bg-maroon-700 text-white px-6 py-2 rounded-lg font-normal hover:bg-maroon-800 transition shadow-sm flex items-center ml-auto tracking-wide"><i class='bx bx-send mr-2'></i> Post Question</button>
+                        <div class="text-right">
+                            <button type="submit" class="bg-maroon-700 text-white px-6 py-2 rounded-lg font-normal hover:bg-maroon-800 transition shadow-sm flex items-center ml-auto tracking-wide"><i class='bx bx-send mr-2'></i> Post Question</button>
+                        </div>
+                    </form>
                 </div>
-            </form>
-        </div>
+            @else
+                {{-- DISPLAY MESSAGE: For Unverified Users --}}
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-6 mb-8 rounded-lg shadow-sm flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class='bx bxs-lock text-3xl mr-4 font-thin'></i>
+                        <div>
+                            <p class="font-normal text-lg text-gray-800">Action Blocked: Email Verification Required</p>
+                            <p class="text-sm font-light mt-1 text-gray-600">You must verify your email address before you can post new questions.</p>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ route('verification.send') }}">
+                        @csrf
+                        <button type="submit" class="bg-red-700 text-white px-4 py-2 rounded-lg font-normal hover:bg-red-800 transition shadow-sm flex items-center tracking-wide">
+                            <i class='bx bx-mail-send mr-2'></i> Resend Verification Link
+                        </button>
+                    </form>
+                </div>
+            @endif
         @else
         <div class="bg-white border-l-4 border-blue-400 text-gray-600 p-6 mb-8 rounded-lg shadow-sm flex items-center">
             <i class='bx bx-info-circle text-3xl text-blue-400 mr-4 font-thin'></i>
@@ -173,7 +193,7 @@
                                 @if($q->images->count() > 0)
                                     <div class="mt-2 rounded-lg overflow-hidden h-72 w-full border border-gray-200 relative bg-gray-100 flex justify-center items-center">
                                         <img src="{{ asset('storage/' . $q->images->first()->image_path) }}" 
-                                             class="w-full h-full object-contain">
+                                                class="w-full h-full object-contain">
                                         @if($q->images->count() > 1)
                                             <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm">
                                                 <i class='bx bx-images mr-1.5 text-sm'></i> +{{ $q->images->count() - 1 }}

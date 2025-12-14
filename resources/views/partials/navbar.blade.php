@@ -84,3 +84,24 @@
         });
     </script>
 </nav>
+
+{{-- NEW: EMAIL VERIFICATION BANNER --}}
+@auth
+    @if (!Auth::user()->hasVerifiedEmail())
+        <div class="bg-red-500 text-white text-sm font-medium py-2 shadow-inner">
+            <div class="max-w-4xl mx-auto px-4 flex justify-between items-center">
+                <p class="flex items-center">
+                    <i class='bx bxs-error-circle text-xl mr-2'></i>
+                    Your email address is **not verified**. Please check your inbox (and spam folder) for the verification link.
+                </p>
+                <form method="POST" action="{{ route('verification.send') }}">
+                    @csrf
+                    {{-- Note: This route is defined by Laravel's built-in authentication scaffolding --}}
+                    <button type="submit" class="bg-white/20 hover:bg-white/40 px-3 py-1 rounded text-xs font-bold transition">
+                        Resend Link
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
+@endauth

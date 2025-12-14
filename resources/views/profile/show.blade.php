@@ -71,10 +71,21 @@
                             <i class='bx bx-calendar mr-1'></i> Joined {{ $user->created_at->format('M Y') }}
                         </p>
                         
-                        <div class="mt-3">
+                        <div class="mt-3 flex items-center justify-center gap-2">
                             <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full {{ $user->is_admin ? 'bg-maroon-100 text-maroon-800' : 'bg-gray-100 text-gray-600' }}">
                                 {{ $user->is_admin ? 'Administrator' : 'Community Member' }}
                             </span>
+                            
+                            {{-- NEW: EMAIL VERIFICATION BADGE --}}
+                            @if ($user->hasVerifiedEmail())
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class='bx bx-check-circle mr-1'></i> Verified
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <i class='bx bx-time mr-1'></i> Unverified
+                                </span>
+                            @endif
                         </div>
                     </div>
 
@@ -108,7 +119,7 @@
 
             {{-- RIGHT CONTENT --}}
             <div class="w-full lg:w-2/3" 
-                 x-data="{ activeTab: '{{ request('answers_page') ? 'answers' : 'questions' }}' }">
+                x-data="{ activeTab: '{{ request('answers_page') ? 'answers' : 'questions' }}' }">
                 
                 <div class="flex border-b border-gray-200 mb-6 overflow-x-auto">
                     <button @click="activeTab = 'questions'" 

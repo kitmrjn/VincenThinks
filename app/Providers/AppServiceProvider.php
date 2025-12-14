@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Config;
+use App\Models\Setting;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +23,46 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // 1. Keep your existing Pagination style
         Paginator::useTailwind();
+
+        // 2. Add Dynamic Email Configuration
+        // Check if table exists to avoid errors during initial migration
+        if (Schema::hasTable('settings')) {
+            
+            // Get all mail settings in one query
+            $settings = Setting::whereIn('key', [
+                'mail_mailer', 'mail_host', 'mail_port', 
+                'mail_username', 'mail_password', 'mail_encryption', 
+                'mail_from_address', 'mail_from_name'
+            ])->pluck('value', 'key');
+
+            // If we have settings in DB, override the config
+            if ($settings->isNotEmpty()) {
+                Config::set('mail.default', $settings['mail_mailer'] ?? 'smtp');
+                
+                if (isset($settings['mail_host'])) {
+                    Config::set('mail.mailers.smtp.host', $settings['mail_host']);
+                }
+                if (isset($settings['mail_port'])) {
+                    Config::set('mail.mailers.smtp.port', $settings['mail_port']);
+                }
+                if (isset($settings['mail_username'])) {
+                    Config::set('mail.mailers.smtp.username', $settings['mail_username']);
+                }
+                if (isset($settings['mail_password'])) {
+                    Config::set('mail.mailers.smtp.password', $settings['mail_password']);
+                }
+                if (isset($settings['mail_encryption'])) {
+                    Config::set('mail.mailers.smtp.encryption', $settings['mail_encryption']);
+                }
+                if (isset($settings['mail_from_address'])) {
+                    Config::set('mail.from.address', $settings['mail_from_address']);
+                }
+                if (isset($settings['mail_from_name'])) {
+                    Config::set('mail.from.name', $settings['mail_from_name']);
+                }
+            }
+        }
     }
 }
