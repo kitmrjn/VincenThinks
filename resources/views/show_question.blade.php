@@ -23,21 +23,37 @@
         pre { border-radius: 0.5rem; }
         [x-cloak] { display: none !important; }
 
-        /* --- PRO IMAGE STYLING --- */
+        /* --- BASE IMAGE (Question & Main Answers) --- */
+        /* Default: Big and clear */
         .prose img {
-            max-width: 100%;       /* Never wider than container */
-            max-height: 500px;     /* Never taller than 500px */
-            width: auto;           /* Keep aspect ratio */
+            max-width: 100%;
+            max-height: 500px;     /* Standard Height */
+            width: auto;
             height: auto;
-            display: block;        /* Center it */
-            margin: 1.5rem auto;   /* Add breathing room */
-            border-radius: 8px;    /* Smooth corners */
-            border: 1px solid #e5e7eb; /* Subtle border */
-            background-color: #f9fafb; /* Light gray bg for transparent PNGs */
-            object-fit: contain;   /* Ensure image isn't cropped */
-            cursor: zoom-in;       /* Visual cue that it's clickable */
+            display: block;
+            margin: 1.5rem auto;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+            object-fit: contain;
+            cursor: zoom-in;
+            transition: all 0.2s ease; /* Smooth transition */
         }
-        
+
+        /* --- LEVEL 1: REPLIES (Smaller) --- */
+        /* Target images inside the first indentation level */
+        .ml-11 .prose img {
+            max-height: 350px !important; /* Shrink to 350px */
+            max-width: 80%;               /* Take up less width */
+        }
+
+        /* --- LEVEL 2+: NESTED REPLIES (Smallest) --- */
+        /* Target images inside a reply to a reply */
+        .ml-11 .ml-11 .prose img {
+            max-height: 200px !important; /* Shrink to 200px (Thumbnail size) */
+            max-width: 60%;               
+        }
+
         /* Lightbox Zoom Animation */
         @keyframes zoom-in {
             from { transform: scale(0.95); opacity: 0; }

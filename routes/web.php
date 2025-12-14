@@ -39,6 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/answer/{id}', [ForumController::class, 'destroyAnswer'])->name('answer.destroy');
     Route::post('/answer/{id}/reply', [ForumController::class, 'storeReply'])->name('reply.store');
     Route::get('/notifications/{id}/read', [App\Http\Controllers\ForumController::class, 'markNotification'])->name('notifications.read_one');
+    Route::delete('/reply/{id}', [\App\Http\Controllers\ForumController::class, 'destroyReply'])->name('reply.destroy');
     // EDIT ROUTES
     Route::get('/question/{id}/edit', [App\Http\Controllers\ForumController::class, 'editQuestion'])->name('question.edit');
     Route::put('/question/{id}', [App\Http\Controllers\ForumController::class, 'updateQuestion'])->name('question.update');

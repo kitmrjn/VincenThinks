@@ -10,6 +10,11 @@
     <script>
         tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000', 900: '#400000' } } } } }
     </script>
+    <style>
+        /* Custom styles to prevent prose from messing up margins in previews */
+        .prose p { margin-top: 0; margin-bottom: 0.5em; }
+        .prose img { margin-top: 0.5em; margin-bottom: 0.5em; }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal min-h-screen flex flex-col">
 
@@ -32,6 +37,7 @@
 
         <div class="flex flex-col lg:flex-row gap-8">
 
+            {{-- LEFT SIDEBAR --}}
             <div class="w-full lg:w-1/3 flex-shrink-0">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
                     
@@ -100,6 +106,7 @@
                 </div>
             </div>
 
+            {{-- RIGHT CONTENT --}}
             <div class="w-full lg:w-2/3" 
                  x-data="{ activeTab: '{{ request('answers_page') ? 'answers' : 'questions' }}' }">
                 
@@ -116,6 +123,7 @@
                     </button>
                 </div>
 
+                {{-- QUESTIONS TAB --}}
                 <div x-show="activeTab === 'questions'" class="space-y-4" style="display: none;">
                     @forelse($questions_list as $q)
                         <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative">
@@ -154,21 +162,23 @@
                                         <h3 class="text-lg font-normal text-gray-800 leading-tight">{{ $q->title }}</h3>
                                     </a>
                                     
+                                    {{-- IMAGE GRID (Corrected) --}}
                                     @if($q->images->count() > 0)
-                                        <div class="mb-3 mt-2 grid grid-cols-2 gap-1 rounded overflow-hidden {{ $q->images->count() == 1 ? 'h-48 w-fit' : 'h-32' }}">
+                                        <div class="mb-3 mt-2 grid grid-cols-2 gap-1 rounded-lg overflow-hidden {{ $q->images->count() == 1 ? 'h-64 w-fit max-w-full border border-gray-200' : 'h-32 w-full' }}">
                                             @if($q->images->count() == 1)
-                                                <div class="col-span-2 h-full">
-                                                    <img src="{{ asset('storage/' . $q->images->first()->image_path) }}" class="w-full h-full object-cover rounded border border-gray-200" alt="Question Image">
+                                                <div class="col-span-2 h-full relative">
+                                                    <img src="{{ asset('storage/' . $q->images->first()->image_path) }}" class="h-full w-auto max-w-full object-cover" alt="Question Image">
                                                 </div>
                                             @else
-                                                <div class="h-full">
-                                                    <img src="{{ asset('storage/' . $q->images[0]->image_path) }}" class="w-full h-full object-cover" alt="Image 1">
+                                                <div class="h-full relative w-full bg-gray-100">
+                                                    <img src="{{ asset('storage/' . $q->images[0]->image_path) }}" class="absolute inset-0 w-full h-full object-cover" alt="Image 1">
                                                 </div>
-                                                <div class="h-full relative">
-                                                    <img src="{{ asset('storage/' . $q->images[1]->image_path) }}" class="w-full h-full object-cover" alt="Image 2">
+                                                <div class="h-full relative w-full bg-gray-100">
+                                                    <img src="{{ asset('storage/' . $q->images[1]->image_path) }}" class="absolute inset-0 w-full h-full object-cover" alt="Image 2">
+                                                    
                                                     @if($q->images->count() > 2)
-                                                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                            <span class="text-white font-bold text-lg">+{{ $q->images->count() - 2 }}</span>
+                                                        <div class="absolute inset-0 bg-gray-900/60 flex items-center justify-center backdrop-blur-[2px] transition hover:bg-gray-900/50 cursor-pointer">
+                                                            <span class="text-white font-bold text-xl drop-shadow-md">+{{ $q->images->count() - 2 }}</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -176,8 +186,9 @@
                                         </div>
                                     @endif
 
+                                    {{-- QUESTION CONTENT: With Styles & Line Clamp --}}
                                     <div class="prose prose-sm prose-stone text-gray-500 line-clamp-3">
-                                        {!! Str::markdown($q->content) !!}
+                                        {!! $q->content !!}
                                     </div>
                                     
                                     <div class="mt-4 flex items-center justify-between">
@@ -205,12 +216,13 @@
                     </div>
                 </div>
 
+                {{-- ANSWERS TAB --}}
                 <div x-show="activeTab === 'answers'" class="space-y-4" style="display: none;">
                     @forelse($answers_list as $answer)
                         @php
                             $myScore = $answer->ratings->avg('score') ?? 0;
                             $isTopRated = false;
-                            $isBest = $answer->id === $answer->question->best_answer_id;
+                            $isBest = $answer->question && $answer->id === $answer->question->best_answer_id;
                             
                             if ($myScore > 0 && $answer->question) {
                                 $isTopRated = true;
@@ -255,8 +267,9 @@
                                 </div>
                             </div>
                             
-                            <div class="text-gray-600 text-sm font-light mb-4 line-clamp-3 bg-gray-50 p-3 rounded-lg italic border border-gray-100">
-                                "{{ Str::limit($answer->content, 200) }}"
+                            {{-- ANSWER CONTENT: Render HTML correctly + Styles + Line Clamp --}}
+                            <div class="prose prose-sm prose-stone text-gray-600 mb-4 line-clamp-3">
+                                {!! $answer->content !!}
                             </div>
                             
                             <div class="flex items-center">
@@ -278,7 +291,6 @@
                 </div>
 
             </div>
-
         </div>
     </div>
 

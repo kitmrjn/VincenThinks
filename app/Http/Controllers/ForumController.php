@@ -12,6 +12,7 @@ use App\Models\Report;
 use App\Models\QuestionImage;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\NewActivity;
+use Illuminate\Support\Facades\Storage;
 
 class ForumController extends Controller
 {
@@ -32,13 +33,12 @@ class ForumController extends Controller
         return view('welcome', compact('questions', 'categories'));
     }
 
-    // 2. STORE QUESTION (FIXED: Checks for empty HTML)
+    // 2. STORE QUESTION
     public function storeQuestion(Request $request) {
         $request->validate([
             'title' => 'required',
             'category_id' => 'required|exists:categories,id',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:3072',
-            // CUSTOM RULE: Strip HTML tags to ensure it's not just empty space
             'content' => ['required', function ($attribute, $value, $fail) {
                 if (trim(strip_tags($value)) === '') {
                     $fail('The question content cannot be empty.');
@@ -106,7 +106,7 @@ class ForumController extends Controller
         return view('show_question', compact('question', 'topRatedAnswerId'));
     }
     
-    // 4. STORE ANSWER (FIXED: Checks for empty HTML)
+    // 4. STORE ANSWER
     public function storeAnswer(Request $request, $id) {
         $question = Question::findOrFail($id);
 
@@ -143,7 +143,7 @@ class ForumController extends Controller
         return redirect()->back()->with('success', 'Answer posted!');
     }
 
-    // 5. STORE REPLY (FIXED: Checks for empty HTML)
+    // 5. STORE REPLY
     public function storeReply(Request $request, $answerId) {
         $request->validate([
             'parent_id' => 'nullable|exists:replies,id',
@@ -259,19 +259,35 @@ class ForumController extends Controller
         return redirect($notification->data['url'] ?? route('home'));
     }
 
-    // 11. EDIT & UPDATE QUESTION (FIXED: Checks for empty HTML)
-    public function editQuestion($id) {
-        $question = Question::findOrFail($id);
-        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
-        if ($question->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-            return redirect()->back()->with('error', 'Time limit exceeded.');
+    // 11. EDIT & UPDATE QUESTION (FIXED AND WORKING)
+    public function editQuestion($id)
+    {
+        // We load the existing images relationship
+        $question = Question::with('images')->findOrFail($id);
+        
+        // Security check
+        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) {
+            abort(403);
         }
-        return view('edit_question', compact('question'));
+
+        // Fetch categories (Fixes the Undefined Variable error)
+        $categories = Category::all(); 
+
+        return view('edit_question', compact('question', 'categories'));
     }
 
     public function updateQuestion(Request $request, $id) {
+        $question = Question::findOrFail($id);
+
+        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { 
+            abort(403); 
+        }
+
+        // Validate everything, including new images
         $request->validate([
-            'title' => 'required',
+            'title' => 'required|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120',
             'content' => ['required', function ($attribute, $value, $fail) {
                 if (trim(strip_tags($value)) === '') {
                     $fail('The question content cannot be empty.');
@@ -279,16 +295,37 @@ class ForumController extends Controller
             }]
         ]);
         
-        $question = Question::findOrFail($id);
-        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
-        if ($question->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-            return redirect()->back()->with('error', 'Time limit exceeded.');
+        // Update Text
+        $question->update([
+            'title' => $request->title,
+            'content' => $request->content,
+            'category_id' => $request->category_id
+        ]);
+
+        // A. Handle Image Deletion
+        if ($request->has('delete_images')) {
+            foreach ($request->delete_images as $imageId) {
+                $image = QuestionImage::find($imageId);
+                // Ensure image belongs to this question
+                if ($image && $image->question_id == $question->id) {
+                    Storage::disk('public')->delete($image->image_path);
+                    $image->delete();
+                }
+            }
         }
-        $question->update(['title' => $request->title, 'content' => $request->content]);
+
+        // B. Handle New Image Uploads
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $imageFile) {
+                $path = $imageFile->store('question_images', 'public');
+                $question->images()->create(['image_path' => $path]);
+            }
+        }
+
         return redirect()->route('question.show', $id)->with('success', 'Question updated.');
     }
 
-    // 12. EDIT & UPDATE ANSWER (FIXED: Checks for empty HTML)
+    // 12. EDIT & UPDATE ANSWER
     public function editAnswer($id) {
         $answer = Answer::findOrFail($id);
         if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
@@ -316,7 +353,7 @@ class ForumController extends Controller
         return redirect()->route('question.show', $answer->question_id)->with('success', 'Answer updated.');
     }
 
-    // 13. EDIT & UPDATE REPLY (FIXED: Checks for empty HTML)
+    // 13. EDIT & UPDATE REPLY
     public function editReply($id) {
         $reply = Reply::findOrFail($id);
         if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
@@ -367,5 +404,18 @@ class ForumController extends Controller
         
         $question->save();
         return redirect()->back()->with('success', 'Best answer updated!');
+    }
+
+    // 15. DELETE REPLY
+    public function destroyReply($id) {
+        $reply = Reply::findOrFail($id);
+        
+        // Security check: Only owner or admin can delete
+        if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { 
+            abort(403); 
+        }
+        
+        $reply->delete();
+        return redirect()->back()->with('success', 'Reply deleted.');
     }
 }

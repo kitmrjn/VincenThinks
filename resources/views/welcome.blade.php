@@ -19,13 +19,12 @@
     </script>
     <style>
         .line-clamp-3 pre { overflow: hidden; }
-
         /* HOME PAGE IMAGE RULES */
         .prose img {
             display: block;
             max-width: 100%;
-            max-height: 300px; /* Smaller limit for home page */
-            width: auto;       /* Maintain aspect ratio */
+            max-height: 300px;
+            width: auto;
             height: auto;
             margin: 10px 0;
             border-radius: 6px;
@@ -66,8 +65,6 @@
                 
                 <div class="mb-4">
                     <x-trix-editor name="content" placeholder="Type your question here..." />
-                    
-                    {{-- FIXED: Show validation error message --}}
                     @error('content')
                         <p class="text-red-500 text-xs mt-1 font-bold flex items-center">
                             <i class='bx bx-error-circle mr-1'></i> {{ $message }}
@@ -119,6 +116,7 @@
             @forelse($questions as $q)
                 <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative">
                     <div class="flex items-start">
+                        {{-- Avatar --}}
                         <div class="flex-shrink-0 mr-4">
                             @if($q->user->avatar)
                                 <img src="{{ asset('storage/' . $q->user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200" alt="{{ $q->user->name }}">
@@ -129,7 +127,9 @@
                             @endif
                         </div>
                         
+                        {{-- Content --}}
                         <div class="flex-grow min-w-0">
+                            {{-- Header --}}
                             <div class="flex justify-between items-start mb-3">
                                 <div class="flex items-center text-xs text-gray-400 font-light">
                                     <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 mr-2 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
@@ -141,11 +141,26 @@
                                     @endif
                                 </div>
 
-                                @if($q->best_answer_id)
-                                    <span class="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center border border-green-200 shadow-sm ml-2">
-                                        <i class='bx bx-check mr-1 text-base'></i> Solved
-                                    </span>
-                                @endif
+                                {{-- RIGHT SIDE: Solved Badge & Delete Button --}}
+                                <div class="flex items-center space-x-2">
+                                    @if($q->best_answer_id)
+                                        <span class="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center border border-green-200 shadow-sm">
+                                            <i class='bx bx-check mr-1 text-base'></i> Solved
+                                        </span>
+                                    @endif
+
+                                    {{-- DELETE BUTTON (FIXED: REMOVED TIME LIMIT CHECK) --}}
+                                    @auth
+                                        @if(Auth::id() === $q->user_id || Auth::user()->is_admin)
+                                            <form action="{{ route('question.destroy', $q->id) }}" method="POST" onsubmit="return confirm('Delete this question?');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="text-gray-300 hover:text-red-500 transition" title="Delete Question">
+                                                    <i class='bx bx-trash text-lg'></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endauth
+                                </div>
                             </div>
 
                             <a href="{{ route('question.show', $q->id) }}" class="block group-hover:text-maroon-700 transition-colors">
@@ -177,17 +192,6 @@
                                         <i class='bx bx-show mr-1 text-lg'></i> {{ $q->views ?? 0 }} Views
                                     </span>
                                 </div>
-
-                                @auth
-                                    @if((Auth::id() === $q->user_id || Auth::user()->is_admin) && $q->created_at > now()->subSeconds(150))
-                                        <form action="{{ route('question.destroy', $q->id) }}" method="POST" onsubmit="return confirm('Delete this question?');">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="text-gray-300 hover:text-red-500 transition" title="Delete Question">
-                                                <i class='bx bx-trash text-lg'></i>
-                                            </button>
-                                        </form>
-                                    @endif
-                                @endauth
                             </div>
                         </div>
                     </div>
