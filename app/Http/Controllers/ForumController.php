@@ -32,13 +32,18 @@ class ForumController extends Controller
         return view('welcome', compact('questions', 'categories'));
     }
 
-    // 2. STORE QUESTION
+    // 2. STORE QUESTION (FIXED: Checks for empty HTML)
     public function storeQuestion(Request $request) {
         $request->validate([
             'title' => 'required',
-            'content' => 'required',
             'category_id' => 'required|exists:categories,id',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:3072'
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:3072',
+            // CUSTOM RULE: Strip HTML tags to ensure it's not just empty space
+            'content' => ['required', function ($attribute, $value, $fail) {
+                if (trim(strip_tags($value)) === '') {
+                    $fail('The question content cannot be empty.');
+                }
+            }],
         ]);
 
         $question = Question::create([
@@ -61,7 +66,7 @@ class ForumController extends Controller
         return redirect()->back()->with('success', 'Question Posted!');
     }
 
-    // 3. SHOW QUESTION (View Counter & Logic)
+    // 3. SHOW QUESTION
     public function show($id) {
         $question = Question::with([
             'user', 
@@ -72,15 +77,13 @@ class ForumController extends Controller
             'answers.replies.children'
         ])->findOrFail($id);
 
-        // --- VIEW COUNTER ---
-        // Prevents spamming refresh to increase views
         $sessionKey = 'viewed_question_' . $id;
         if (!session()->has($sessionKey)) {
             $question->increment('views');
             session()->put($sessionKey, true);
         }
 
-        // SORTING: Best Answer -> High Rating -> Newest
+        // Sort Answers
         $sortedAnswers = $question->answers->sortByDesc(function($answer) use ($question) {
             $isBest = $answer->id === $question->best_answer_id ? 1000000 : 0;
             $rating = $answer->ratings->avg('score') ?? 0;
@@ -89,7 +92,7 @@ class ForumController extends Controller
 
         $question->setRelation('answers', $sortedAnswers);
 
-        // Find Top Rated ID
+        // Find Top Rated
         $topRatedAnswerId = null;
         $highestScore = 0;
         foreach ($question->answers as $answer) {
@@ -103,7 +106,7 @@ class ForumController extends Controller
         return view('show_question', compact('question', 'topRatedAnswerId'));
     }
     
-    // 4. STORE ANSWER
+    // 4. STORE ANSWER (FIXED: Checks for empty HTML)
     public function storeAnswer(Request $request, $id) {
         $question = Question::findOrFail($id);
 
@@ -111,12 +114,17 @@ class ForumController extends Controller
             return redirect()->back()->with('error', 'You cannot answer your own question.');
         }
 
-        // Prevent answering if solved (Optional double-check)
         if ($question->best_answer_id) {
             return redirect()->back()->with('error', 'This question is solved.');
         }
 
-        $request->validate(['content' => 'required']);
+        $request->validate([
+            'content' => ['required', function ($attribute, $value, $fail) {
+                if (trim(strip_tags($value)) === '') {
+                    $fail('The answer content cannot be empty.');
+                }
+            }]
+        ]);
         
         Answer::create([
             'user_id' => Auth::id(),
@@ -135,11 +143,15 @@ class ForumController extends Controller
         return redirect()->back()->with('success', 'Answer posted!');
     }
 
-    // 5. STORE REPLY
+    // 5. STORE REPLY (FIXED: Checks for empty HTML)
     public function storeReply(Request $request, $answerId) {
         $request->validate([
-            'content' => 'required|max:500',
-            'parent_id' => 'nullable|exists:replies,id'
+            'parent_id' => 'nullable|exists:replies,id',
+            'content' => ['required', function ($attribute, $value, $fail) {
+                if (trim(strip_tags($value)) === '') {
+                    $fail('The reply content cannot be empty.');
+                }
+            }]
         ]);
 
         $reply = Reply::create([
@@ -177,7 +189,6 @@ class ForumController extends Controller
             ['score' => $request->score]
         );
 
-        // --- CHECK TOP RATED STATUS ---
         $answer->load('ratings', 'question.answers.ratings');
         $myScore = $answer->ratings->avg('score');
         $question = $answer->question;
@@ -248,7 +259,7 @@ class ForumController extends Controller
         return redirect($notification->data['url'] ?? route('home'));
     }
 
-    // 11. EDIT & UPDATE QUESTION
+    // 11. EDIT & UPDATE QUESTION (FIXED: Checks for empty HTML)
     public function editQuestion($id) {
         $question = Question::findOrFail($id);
         if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
@@ -259,7 +270,15 @@ class ForumController extends Controller
     }
 
     public function updateQuestion(Request $request, $id) {
-        $request->validate(['title' => 'required', 'content' => 'required']);
+        $request->validate([
+            'title' => 'required',
+            'content' => ['required', function ($attribute, $value, $fail) {
+                if (trim(strip_tags($value)) === '') {
+                    $fail('The question content cannot be empty.');
+                }
+            }]
+        ]);
+        
         $question = Question::findOrFail($id);
         if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
         if ($question->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
@@ -269,7 +288,7 @@ class ForumController extends Controller
         return redirect()->route('question.show', $id)->with('success', 'Question updated.');
     }
 
-    // 12. EDIT & UPDATE ANSWER
+    // 12. EDIT & UPDATE ANSWER (FIXED: Checks for empty HTML)
     public function editAnswer($id) {
         $answer = Answer::findOrFail($id);
         if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
@@ -280,7 +299,14 @@ class ForumController extends Controller
     }
 
     public function updateAnswer(Request $request, $id) {
-        $request->validate(['content' => 'required']);
+        $request->validate([
+            'content' => ['required', function ($attribute, $value, $fail) {
+                if (trim(strip_tags($value)) === '') {
+                    $fail('The content cannot be empty.');
+                }
+            }]
+        ]);
+
         $answer = Answer::findOrFail($id);
         if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
         if ($answer->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
@@ -290,7 +316,7 @@ class ForumController extends Controller
         return redirect()->route('question.show', $answer->question_id)->with('success', 'Answer updated.');
     }
 
-    // 13. EDIT & UPDATE REPLY
+    // 13. EDIT & UPDATE REPLY (FIXED: Checks for empty HTML)
     public function editReply($id) {
         $reply = Reply::findOrFail($id);
         if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
@@ -301,7 +327,14 @@ class ForumController extends Controller
     }
 
     public function updateReply(Request $request, $id) {
-        $request->validate(['content' => 'required']);
+        $request->validate([
+            'content' => ['required', function ($attribute, $value, $fail) {
+                if (trim(strip_tags($value)) === '') {
+                    $fail('The content cannot be empty.');
+                }
+            }]
+        ]);
+
         $reply = Reply::findOrFail($id);
         if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
         if ($reply->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {

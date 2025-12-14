@@ -1,7 +1,8 @@
-@props(['reply', 'depth' => 0])
+@props(['reply', 'depth' => 0, 'question'])
 
 <div class="mb-2 {{ $depth > 0 ? 'mt-2' : '' }}">
     
+    {{-- REPLY CARD --}}
     <div class="relative transition-all 
         {{ $depth == 0 ? 'bg-white border border-gray-200 shadow-sm p-4 rounded-lg' : '' }}
         {{ $depth > 0 ? 'bg-gray-50 border-l-4 border-gray-300 p-3 rounded-r-lg' : '' }}
@@ -11,6 +12,7 @@
             <div class="absolute -left-3 top-4 w-3 h-0.5 bg-gray-300"></div>
         @endif
 
+        {{-- Header --}}
         <div class="flex justify-between items-start mb-1">
             <div class="flex items-center">
                 @if($reply->user->avatar)
@@ -32,15 +34,20 @@
             </span>
         </div>
 
+        {{-- Content (HTML Safe) --}}
         <div class="prose prose-sm prose-stone text-gray-700 font-light leading-relaxed {{ $depth == 0 ? 'text-sm' : 'text-xs' }}">
-            {!! Str::markdown($reply->content) !!}
+            {!! $reply->content !!}
         </div>
         
+        {{-- Footer Actions --}}
         @auth
             <div class="mt-2 flex items-center space-x-3">
-                <button onclick="toggleReplyForm('reply-form-{{ $reply->id }}')" class="text-[10px] font-bold text-gray-400 hover:text-maroon-700 uppercase tracking-wide flex items-center cursor-pointer transition">
-                    <i class='bx bx-reply mr-1 text-sm'></i> Reply
-                </button>
+                {{-- ONLY SHOW REPLY BUTTON IF NOT SOLVED --}}
+                @if(!$question->best_answer_id)
+                    <button onclick="toggleReplyForm('reply-form-{{ $reply->id }}')" class="text-[10px] font-bold text-gray-400 hover:text-maroon-700 uppercase tracking-wide flex items-center cursor-pointer transition">
+                        <i class='bx bx-reply mr-1 text-sm'></i> Reply
+                    </button>
+                @endif
                 
                 @if((Auth::id() === $reply->user->id || Auth::user()->is_admin) && $reply->created_at > now()->subSeconds(150))
                     <a href="{{ route('reply.edit', $reply->id) }}" class="text-[10px] font-bold text-gray-400 hover:text-blue-600 uppercase tracking-wide flex items-center cursor-pointer transition">
@@ -51,18 +58,35 @@
         @endauth
     </div>
 
+    {{-- NESTED REPLY FORM (Updated with Editor + Solved Check) --}}
     @auth
-        <form id="reply-form-{{ $reply->id }}" action="{{ route('reply.store', $reply->answer_id) }}" method="POST" class="hidden mt-2 ml-4 fade-enter-active relative z-10">
-            @csrf
-            <input type="hidden" name="parent_id" value="{{ $reply->id }}">
-            <div class="flex items-start gap-2">
-                <div class="absolute -left-4 top-4 w-4 h-0.5 bg-gray-300"></div>
-                <input type="text" name="content" required placeholder="Reply to {{ $reply->user->name }} (Markdown works)..." class="w-full bg-white border border-gray-300 rounded px-3 py-2 text-xs focus:outline-none focus:border-maroon-700 font-light shadow-sm">
-                <button type="submit" class="bg-gray-700 text-white px-3 py-2 rounded text-xs font-bold hover:bg-gray-800 transition">Post</button>
-            </div>
-        </form>
+        @if(!$question->best_answer_id)
+            <form id="reply-form-{{ $reply->id }}" action="{{ route('reply.store', $reply->answer_id) }}" method="POST" class="hidden mt-4 ml-4 fade-enter-active relative z-10 mb-4">
+                @csrf
+                <input type="hidden" name="parent_id" value="{{ $reply->id }}">
+                
+                <div class="space-y-3 relative">
+                    {{-- Connector Line --}}
+                    <div class="absolute -left-4 top-4 w-4 h-0.5 bg-gray-300"></div>
+
+                    {{-- Editor Component --}}
+                    <x-trix-editor name="content" placeholder="Reply to {{ $reply->user->name }}..." />
+
+                    {{-- Action Buttons --}}
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" onclick="toggleReplyForm('reply-form-{{ $reply->id }}')" class="px-3 py-1.5 text-gray-500 hover:text-gray-700 text-xs font-bold uppercase tracking-wide transition">
+                            Cancel
+                        </button>
+                        <button type="submit" class="bg-maroon-700 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-maroon-800 transition shadow-sm uppercase tracking-wide">
+                            Reply
+                        </button>
+                    </div>
+                </div>
+            </form>
+        @endif
     @endauth
 
+    {{-- CHILDREN REPLIES --}}
     @if($reply->children->count() > 0)
         <div class="{{ $depth < 3 ? 'ml-6' : 'ml-0 border-l-2 border-gray-200 pl-2 mt-2' }} relative">
              @if($depth < 3)
@@ -81,7 +105,8 @@
 
             <div id="children-container-{{ $reply->id }}" class="hidden mt-2">
                 @foreach($reply->children as $child)
-                    @include('partials.reply', ['reply' => $child, 'depth' => $depth + 1])
+                    {{-- IMPORTANT: Pass $question down recursively --}}
+                    @include('partials.reply', ['reply' => $child, 'depth' => $depth + 1, 'question' => $question])
                 @endforeach
             </div>
         </div>

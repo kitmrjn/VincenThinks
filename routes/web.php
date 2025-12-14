@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserProfileController;
 use App\Notifications\NewActivity;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ImageUploadController;
 
 Route::get('/user/{id}', [UserProfileController::class, 'show'])->name('user.profile');
 
@@ -50,6 +51,25 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/user/avatar', [App\Http\Controllers\UserProfileController::class, 'updateAvatar'])->name('user.avatar.update');
     // Best Answer Route
     Route::post('/answer/{id}/best', [App\Http\Controllers\ForumController::class, 'markAsBest'])->name('answer.best');
+    // The endpoint for the editor to upload images
+    // SAFEST DIRECT UPLOAD ROUTE
+    Route::post('/upload-editor-image', function (\Illuminate\Http\Request $request) {
+        try {
+            $request->validate([
+                'image' => 'required|image|max:5120', // 5MB Max
+            ]);
+
+            if ($request->hasFile('image')) {
+                $path = $request->file('image')->store('uploads', 'public');
+                return response()->json(['url' => asset('storage/' . $path)]);
+            }
+
+            return response()->json(['message' => 'No image found'], 400);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    })->name('editor.image.upload')->middleware('auth');
     Route::post('/notifications/mark-as-read', function () {
         auth()->user()->unreadNotifications->markAsRead();
         return back();

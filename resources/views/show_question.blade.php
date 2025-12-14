@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $question->title }} - VincenThinks</title>
     
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
@@ -12,13 +13,37 @@
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
     <script>
-        tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000' } } } } }
+        tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000', 900: '#400000' } } } } }
     </script>
     <style>
         .fade-enter-active { transition: all 0.3s ease; }
         .prose { max-width: none; }
         pre { border-radius: 0.5rem; }
+        [x-cloak] { display: none !important; }
+
+        /* --- PRO IMAGE STYLING --- */
+        .prose img {
+            max-width: 100%;       /* Never wider than container */
+            max-height: 500px;     /* Never taller than 500px */
+            width: auto;           /* Keep aspect ratio */
+            height: auto;
+            display: block;        /* Center it */
+            margin: 1.5rem auto;   /* Add breathing room */
+            border-radius: 8px;    /* Smooth corners */
+            border: 1px solid #e5e7eb; /* Subtle border */
+            background-color: #f9fafb; /* Light gray bg for transparent PNGs */
+            object-fit: contain;   /* Ensure image isn't cropped */
+            cursor: zoom-in;       /* Visual cue that it's clickable */
+        }
+        
+        /* Lightbox Zoom Animation */
+        @keyframes zoom-in {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-zoom-in { animation: zoom-in 0.2s ease-out forwards; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans min-h-screen relative">
@@ -47,10 +72,11 @@
 
     <div class="max-w-3xl mx-auto px-4 pb-12">
 
+        {{-- QUESTION CARD --}}
         <div class="bg-white rounded-xl shadow-sm p-8 mb-8 border border-gray-200 relative">
             
+            {{-- HEADER --}}
             <div class="flex justify-between items-start mb-6">
-                
                 <div class="flex items-center">
                     <div class="flex-shrink-0 mr-3">
                         @if($question->user->avatar)
@@ -75,12 +101,17 @@
                             <span class="flex items-center text-gray-400">
                                 <i class='bx bx-show mr-1'></i> {{ $question->views ?? 0 }} Views
                             </span>
+                            @if($question->category)
+                                <span class="mx-2 text-gray-300">|</span>
+                                <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200">
+                                    {{ $question->category->name }}
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center space-x-3">
-                    
                     @if($question->best_answer_id)
                         <span class="bg-green-100 text-green-700 border border-green-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center shadow-sm">
                             <i class='bx bx-check mr-1 text-base'></i> Solved
@@ -109,56 +140,79 @@
                 </div>
             </div>
 
-            <div class="mb-4">
-                @if($question->category)
-                    <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200 mb-2 inline-block">
-                        {{ $question->category->name }}
-                    </span>
-                @endif
-                <h1 class="text-3xl font-light text-gray-900 leading-tight">{{ $question->title }}</h1>
+            {{-- TITLE --}}
+            <div class="mb-6">
+                <h1 class="text-3xl font-bold text-gray-900 leading-tight tracking-tight">{{ $question->title }}</h1>
             </div>
 
+            {{-- CONTENT --}}
+            <div class="prose prose-lg prose-stone max-w-none text-gray-800 leading-relaxed mb-8
+                prose-a:text-maroon-700 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
+                prose-headings:font-bold prose-headings:text-gray-900 
+                prose-blockquote:border-l-4 prose-blockquote:border-maroon-700 prose-blockquote:bg-gray-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic
+                prose-code:text-maroon-700 prose-code:bg-gray-100 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:before:content-none prose-code:after:content-none
+                prose-pre:bg-[#0d1117] prose-pre:rounded-xl prose-pre:shadow-md prose-pre:border prose-pre:border-gray-700">
+                {!! $question->content !!}
+            </div>
+
+            {{-- ATTACHMENTS (Legacy Support) --}}
             @if($question->images->count() > 0)
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
-                    @foreach($question->images as $img)
-                        <a href="{{ asset('storage/' . $img->image_path) }}" target="_blank" class="block w-full aspect-square">
-                            <img src="{{ asset('storage/' . $img->image_path) }}" class="w-full h-full object-cover rounded border border-gray-200 hover:opacity-90 transition" alt="Question Image">
-                        </a>
-                    @endforeach
+                <div class="mb-8">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center">
+                        <i class='bx bx-paperclip mr-1 text-lg'></i> Attachments ({{ $question->images->count() }})
+                    </h4>
+                    <div class="overflow-hidden rounded-xl border border-gray-200 w-full">
+                        @if($question->images->count() == 1)
+                            <div class="w-full bg-gray-100 flex justify-center">
+                                <a href="{{ asset('storage/' . $question->images->first()->image_path) }}" target="_blank">
+                                    <img src="{{ asset('storage/' . $question->images->first()->image_path) }}" class="w-full h-auto max-h-[800px] object-contain" alt="Question Image">
+                                </a>
+                            </div>
+                        @elseif($question->images->count() == 2)
+                            <div class="grid grid-cols-2 gap-1 aspect-[3/2] w-full">
+                                @foreach($question->images as $img)
+                                    <a href="{{ asset('storage/' . $img->image_path) }}" target="_blank" class="block h-full w-full relative">
+                                        <img src="{{ asset('storage/' . $img->image_path) }}" class="w-full h-full object-cover">
+                                    </a>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="grid grid-cols-3 gap-1">
+                                @foreach($question->images as $img)
+                                    <a href="{{ asset('storage/' . $img->image_path) }}" target="_blank" class="block w-full aspect-square relative">
+                                        <img src="{{ asset('storage/' . $img->image_path) }}" class="w-full h-full object-cover">
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                 </div>
             @endif
-
-            <div class="prose prose-stone prose-a:text-maroon-700 hover:prose-a:text-maroon-800 text-gray-800 leading-relaxed mb-6">
-                {!! Str::markdown($question->content) !!}
-            </div>
         </div>
 
+        {{-- ANSWERS LIST --}}
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-light text-gray-800 flex items-center"><i class='bx bx-message-alt-detail mr-2 text-maroon-700 font-thin'></i> {{ $question->answers->count() }} Answers</h3>
             <div class="h-px bg-gray-200 flex-grow ml-4"></div>
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-8">
         @foreach($question->answers as $answer)
             @php 
                 $isBest = $question->best_answer_id === $answer->id;
                 $isTopRated = isset($topRatedAnswerId) && $topRatedAnswerId === $answer->id;
-                
-                // Border Logic: Green for Best, Gold for Top Rated, or Gray
-                $borderClass = $isBest 
-                    ? 'border-green-500 ring-1 ring-green-500 bg-green-50/10' 
-                    : ($isTopRated ? 'border-yellow-400 ring-1 ring-yellow-400' : 'border-gray-200');
+                $borderClass = $isBest ? 'border-green-500 ring-1 ring-green-500 bg-green-50/10' : ($isTopRated ? 'border-yellow-400 ring-1 ring-yellow-400' : 'border-gray-200');
             @endphp
 
-            <div class="bg-white rounded-xl shadow-sm p-6 border {{ $borderClass }} relative group transition-all">
+            <div class="bg-white rounded-xl shadow-sm p-6 border {{ $borderClass }} relative group transition-all mt-4">
                 
-                <div class="absolute -top-3 left-6 flex space-x-2">
+                {{-- Badges --}}
+                <div class="absolute -top-3 left-6 flex space-x-2 z-10">
                     @if($isBest)
                         <div class="bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full border border-green-300 shadow-sm flex items-center">
                             <i class='bx bx-check-circle text-base mr-1'></i> Accepted Solution
                         </div>
                     @endif
-
                     @if($isTopRated)
                         <div class="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-3 py-1 rounded-full border border-yellow-300 shadow-sm flex items-center">
                             <i class='bx bxs-trophy text-base mr-1'></i> Top Rated
@@ -166,23 +220,18 @@
                     @endif
                 </div>
 
+                {{-- Action Buttons --}}
                 <div class="absolute top-4 right-4 flex items-center space-x-1">
                     @auth
                         @if(Auth::id() === $question->user_id)
                             <form action="{{ route('answer.best', $answer->id) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="p-1 rounded-full transition {{ $isBest ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-gray-300 hover:text-green-600 hover:bg-gray-50' }}" title="{{ $isBest ? 'Unmark as Solution' : 'Mark as Accepted Solution' }}">
-                                    <i class='bx bx-check text-2xl'></i>
-                                </button>
+                                <button type="submit" class="p-1 rounded-full transition {{ $isBest ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-gray-300 hover:text-green-600 hover:bg-gray-50' }}" title="{{ $isBest ? 'Unmark as Solution' : 'Mark as Accepted Solution' }}"><i class='bx bx-check text-2xl'></i></button>
                             </form>
                         @endif
-                    
                         @if((Auth::id() === $answer->user_id || Auth::user()->is_admin) && $answer->created_at > now()->subSeconds(150))
-                            <a href="{{ route('answer.edit', $answer->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit Answer">
-                                <i class='bx bx-pencil text-xl'></i>
-                            </a>
+                            <a href="{{ route('answer.edit', $answer->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit Answer"><i class='bx bx-pencil text-xl'></i></a>
                         @endif
-
                         @if(Auth::id() === $answer->user_id || Auth::user()->is_admin)
                             <form action="{{ route('answer.destroy', $answer->id) }}" method="POST" onsubmit="return confirm('Delete answer?');" class="opacity-0 group-hover:opacity-100 transition">
                                 @csrf @method('DELETE')
@@ -192,7 +241,8 @@
                     @endauth
                 </div>
 
-                <div class="flex justify-between items-start mb-4">
+                {{-- User Info --}}
+                <div class="flex justify-between items-start mb-4 mt-2">
                     <div class="flex items-center">
                          @if($answer->user->avatar)
                             <img src="{{ asset('storage/' . $answer->user->avatar) }}" class="w-8 h-8 rounded-full object-cover border border-gray-200 mr-3" alt="{{ $answer->user->name }}">
@@ -203,18 +253,18 @@
                             <a href="{{ route('user.profile', $answer->user->id) }}" class="block font-medium text-gray-800 text-sm hover:underline">{{ $answer->user->name }}</a>
                             <span class="text-xs text-gray-400 font-light">
                                 {{ $answer->created_at->diffForHumans() }}
-                                @if($answer->created_at != $answer->updated_at)
-                                    <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span>
-                                @endif
+                                @if($answer->created_at != $answer->updated_at) <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span> @endif
                             </span>
                         </div>
                     </div>
                 </div>
                 
+                {{-- Answer Content --}}
                 <div class="prose prose-sm prose-stone mb-4 ml-11">
-                    {!! Str::markdown($answer->content) !!}
+                    {!! $answer->content !!}
                 </div>
                 
+                {{-- Ratings --}}
                 <div class="ml-11 flex items-center mb-4">
                     <div class="flex items-center bg-gray-50 rounded-lg p-2 inline-flex border border-gray-200 mr-4">
                         <div class="flex items-center text-yellow-500 font-bold mr-3"><i class='bx bxs-star mr-1 text-lg'></i><span class="text-gray-700">{{ number_format($answer->ratings->avg('score'), 1) }}</span></div>
@@ -236,58 +286,65 @@
                             @endif
                         @endauth
                     </div>
+                    
                     @auth
-                        <button onclick="toggleReplyForm('main-reply-form-{{ $answer->id }}')" class="text-gray-400 hover:text-maroon-700 text-xs font-medium flex items-center transition"><i class='bx bx-reply mr-1 text-base'></i> Reply</button>
+                        @if(!$question->best_answer_id)
+                            <button onclick="toggleReplyForm('main-reply-form-{{ $answer->id }}')" class="text-gray-400 hover:text-maroon-700 text-xs font-medium flex items-center transition"><i class='bx bx-reply mr-1 text-base'></i> Reply</button>
+                        @endif
                     @endauth
                 </div>
 
                 @auth
-                    <form id="main-reply-form-{{ $answer->id }}" action="{{ route('reply.store', $answer->id) }}" method="POST" class="hidden ml-11 mb-4">
-                        @csrf
-                        <div class="flex items-start gap-2">
-                            <input type="text" name="content" required placeholder="Write a reply (Markdown supported)..." class="w-full bg-white border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-maroon-700 font-light shadow-sm">
-                            <button type="submit" class="bg-maroon-700 text-white px-3 py-2 rounded text-xs font-bold hover:bg-maroon-800 transition">Post</button>
-                        </div>
-                    </form>
+                    @if(!$question->best_answer_id)
+                        <form id="main-reply-form-{{ $answer->id }}" action="{{ route('reply.store', $answer->id) }}" method="POST" class="hidden ml-11 mb-6 mt-4">
+                            @csrf
+                            <div class="space-y-3">
+                                {{-- ANSWER REPLY EDITOR (Limit: 1 Image) --}}
+                                <x-trix-editor name="content" placeholder="Write a reply..." max-images="1" />
+                                
+                                @error('content')
+                                    <p class="text-red-500 text-xs mt-1 font-bold flex items-center"><i class='bx bx-error-circle mr-1'></i> {{ $message }}</p>
+                                @enderror
+
+                                <div class="flex justify-end space-x-2">
+                                    <button type="button" onclick="toggleReplyForm('main-reply-form-{{ $answer->id }}')" class="px-3 py-1.5 text-gray-500 hover:text-gray-700 text-xs font-bold uppercase tracking-wide transition">Cancel</button>
+                                    <button type="submit" class="bg-maroon-700 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-maroon-800 transition shadow-sm uppercase tracking-wide">Reply</button>
+                                </div>
+                            </div>
+                        </form>
+                    @endif
                 @endauth
 
+                {{-- Threaded Replies --}}
                 <div class="ml-11 mt-4">
                     @php 
                         $topLevelReplies = $answer->replies->where('parent_id', null);
                         $limit = 2; 
                         $count = 0;
                     @endphp
-
                     @foreach($topLevelReplies as $reply)
                         @php $count++; @endphp
-                        
                         <div class="{{ $count > $limit ? 'hidden-main-reply-' . $answer->id . ' hidden' : '' }}">
-                            @include('partials.reply', ['reply' => $reply])
+                            @include('partials.reply', ['reply' => $reply, 'question' => $question])
                         </div>
                     @endforeach
-
                     @if($topLevelReplies->count() > $limit)
-                        <button onclick="toggleMainReplies('{{ $answer->id }}', this)" 
-                                data-count="{{ $topLevelReplies->count() - $limit }}"
-                                class="text-xs text-maroon-700 font-bold hover:underline mt-2 flex items-center">
-                            <i class='bx bx-down-arrow-alt mr-1'></i> 
-                            <span class="text-label">View {{ $topLevelReplies->count() - $limit }} more replies</span>
+                        <button onclick="toggleMainReplies('{{ $answer->id }}', this)" data-count="{{ $topLevelReplies->count() - $limit }}" class="text-xs text-maroon-700 font-bold hover:underline mt-2 flex items-center">
+                            <i class='bx bx-down-arrow-alt mr-1'></i> <span class="text-label">View {{ $topLevelReplies->count() - $limit }} more replies</span>
                         </button>
                     @endif
                 </div>
-
             </div>
         @endforeach
         </div>
 
+        {{-- NEW ANSWER FORM --}}
         <div class="mt-10">
             @if($question->best_answer_id)
                 <div class="bg-green-50 border border-green-200 rounded-xl p-8 text-center shadow-sm">
-                    <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3 text-green-600">
-                        <i class='bx bx-check-circle text-3xl'></i>
-                    </div>
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3 text-green-600"><i class='bx bx-check-circle text-3xl'></i></div>
                     <h3 class="text-xl font-medium text-gray-800">This question is solved</h3>
-                    <p class="text-gray-500 font-light mt-2">The question owner has accepted a solution. New answers are no longer being accepted.</p>
+                    <p class="text-gray-500 font-light mt-2">The question owner has accepted a solution. New answers and replies are no longer being accepted.</p>
                 </div>
             @else
                 @auth
@@ -296,16 +353,21 @@
                             <h3 class="text-lg font-normal text-gray-800 mb-4 flex items-center"><i class='bx bx-edit mr-2 text-maroon-700 font-thin'></i> Post your Answer</h3>
                             <form action="{{ route('answer.store', $question->id) }}" method="POST">
                                 @csrf
-                                <textarea name="content" required rows="4" class="w-full bg-white border border-gray-300 rounded-lg p-4 mb-3 focus:ring-1 focus:ring-maroon-700 focus:border-maroon-700 focus:outline-none transition resize-none font-light" placeholder="Write a helpful answer (Markdown supported: **bold**, `code`)..."></textarea>
-                                <div class="flex justify-end">
-                                    <button type="submit" class="bg-maroon-700 text-white px-6 py-2 rounded-lg font-normal hover:bg-maroon-800 transition shadow-sm flex items-center tracking-wide"><i class='bx bx-send mr-2'></i> Submit Answer</button>
+                                <div class="mb-4">
+                                    {{-- NEW ANSWER EDITOR (Limit: 1 Image) --}}
+                                    <x-trix-editor name="content" placeholder="Write a helpful answer..." max-images="1" />
+                                    
+                                    @error('content')
+                                        <p class="text-red-500 text-xs mt-1 font-bold flex items-center">
+                                            <i class='bx bx-error-circle mr-1'></i> {{ $message }}
+                                        </p>
+                                    @enderror
                                 </div>
+                                <div class="flex justify-end"><button type="submit" class="bg-maroon-700 text-white px-6 py-2 rounded-lg font-normal hover:bg-maroon-800 transition shadow-sm flex items-center tracking-wide"><i class='bx bx-send mr-2'></i> Submit Answer</button></div>
                             </form>
                         </div>
                     @else
-                        <div class="text-center p-6 bg-yellow-50 rounded-xl border border-yellow-200 text-yellow-800">
-                            <p class="font-light text-sm"><i class='bx bx-info-circle mr-1'></i> You asked this question, so you cannot answer it directly. You can reply to others' answers above.</p>
-                        </div>
+                        <div class="text-center p-6 bg-yellow-50 rounded-xl border border-yellow-200 text-yellow-800"><p class="font-light text-sm"><i class='bx bx-info-circle mr-1'></i> You asked this question, so you cannot answer it directly. You can reply to others' answers above.</p></div>
                     @endif
                 @else
                     <div class="mt-8 text-center p-8 bg-white rounded-xl shadow-sm border border-gray-200">
@@ -317,6 +379,7 @@
         </div>
     </div>
 
+    {{-- REPORT MODAL --}}
     <div id="reportModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50 px-4 backdrop-blur-sm">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-bounce-in relative transform transition-all">
             <div class="flex items-center mb-4 text-red-600"><i class='bx bx-error-circle text-2xl mr-2 font-thin'></i><h2 class="text-xl font-bold text-gray-800">Report Question</h2></div>
@@ -335,75 +398,68 @@
         </div>
     </div>
 
+    {{-- LIGHTBOX (FULL SCREEN IMAGE VIEWER) --}}
+    <div x-data="{ 
+            open: false, 
+            imgSrc: '', 
+            init() {
+                // Attach click listeners to all post images
+                document.querySelectorAll('.prose img').forEach(img => {
+                    img.addEventListener('click', () => {
+                        this.imgSrc = img.src;
+                        this.open = true;
+                    });
+                });
+            }
+        }" 
+        @keydown.escape.window="open = false"
+    >
+        <div x-show="open" 
+             x-transition.opacity 
+             class="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+             style="display: none;"
+             x-cloak>
+            
+            <button @click="open = false" class="absolute top-4 right-4 text-white/80 hover:text-white z-50 transition">
+                <i class='bx bx-x text-5xl'></i>
+            </button>
+
+            <img :src="imgSrc" 
+                 @click.outside="open = false"
+                 class="max-w-full max-h-[90vh] object-contain rounded shadow-2xl animate-zoom-in">
+        </div>
+    </div>
+
+    {{-- SCRIPTS --}}
     <script>
         function openReportModal() { document.getElementById('reportModal').classList.remove('hidden'); }
         function closeReportModal() { document.getElementById('reportModal').classList.add('hidden'); resetModalForm(); }
         function resetModalForm() { document.querySelector('#reportModal form').reset(); toggleOtherInput(); }
-        
-        function toggleOtherInput() {
-            const otherRadio = document.getElementById('otherRadio'); 
-            const otherInputContainer = document.getElementById('otherInputContainer'); 
-            const otherTextarea = otherInputContainer.querySelector('textarea');
-            if (otherRadio.checked) { 
-                otherInputContainer.classList.remove('hidden'); 
-                otherTextarea.setAttribute('required', 'required'); 
-            } else { 
-                otherInputContainer.classList.add('hidden'); 
-                otherTextarea.removeAttribute('required'); 
-            }
+        function toggleOtherInput() { const o = document.getElementById('otherRadio'), c = document.getElementById('otherInputContainer'), t = c.querySelector('textarea'); if(o.checked){c.classList.remove('hidden');t.setAttribute('required','required')}else{c.classList.add('hidden');t.removeAttribute('required')} }
+        window.onclick = function(e) { if(e.target == document.getElementById('reportModal')) closeReportModal(); }
+        function toggleReplyForm(id) { document.getElementById(id).classList.toggle('hidden'); }
+        function toggleMainReplies(answerId, btn) {
+            const h = document.querySelectorAll('.hidden-main-reply-'+answerId), l = btn.querySelector('.text-label'), i = btn.querySelector('i'), c = btn.getAttribute('data-count');
+            let isH = h.length > 0 && h[0].classList.contains('hidden');
+            h.forEach(e => e.classList.toggle('hidden'));
+            l.innerText = isH ? "Hide replies" : "View " + c + " more replies";
+            i.className = isH ? 'bx bx-up-arrow-alt mr-1' : 'bx bx-down-arrow-alt mr-1';
         }
-        window.onclick = function(event) { let modal = document.getElementById('reportModal'); if (event.target == modal) { closeReportModal(); } }
-
-        function toggleReplyForm(id) {
-            const form = document.getElementById(id);
-            form.classList.toggle('hidden');
-        }
-
         function toggleChildReplies(containerId, btn) {
             const container = document.getElementById(containerId);
-            const count = btn.getAttribute('data-count');
-            const textLabel = btn.querySelector('.text-label');
-            const icon = btn.querySelector('.icon-indicator');
-
             container.classList.toggle('hidden');
-            const isNowOpen = !container.classList.contains('hidden');
-
-            if (isNowOpen) {
-                textLabel.innerText = "Hide replies";
-                icon.classList.remove('bx-subdirectory-right');
-                icon.classList.add('bx-chevron-up');
-            } else {
-                textLabel.innerText = "View " + count + " replies";
-                icon.classList.remove('bx-chevron-up');
-                icon.classList.add('bx-subdirectory-right');
-            }
-        }
-
-        // FIXED FUNCTION: Toggles replies instead of removing the button
-        function toggleMainReplies(answerId, btn) {
-            const hiddenElements = document.querySelectorAll('.hidden-main-reply-' + answerId);
-            const textLabel = btn.querySelector('.text-label');
-            const icon = btn.querySelector('i');
+            const isHidden = container.classList.contains('hidden');
+            const label = btn.querySelector('.text-label');
+            const icon = btn.querySelector('.icon-indicator');
             const count = btn.getAttribute('data-count');
-            
-            // Check state based on the first hidden element
-            let isHidden = true;
-            if(hiddenElements.length > 0) {
-                isHidden = hiddenElements[0].classList.contains('hidden');
-            }
-
-            hiddenElements.forEach(el => {
-                el.classList.toggle('hidden');
-            });
-
             if (isHidden) {
-                textLabel.innerText = "Hide replies";
-                icon.classList.remove('bx-down-arrow-alt');
-                icon.classList.add('bx-up-arrow-alt');
-            } else {
-                textLabel.innerText = "View " + count + " more replies";
+                label.innerText = "View " + count + " replies";
                 icon.classList.remove('bx-up-arrow-alt');
-                icon.classList.add('bx-down-arrow-alt');
+                icon.classList.add('bx-subdirectory-right');
+            } else {
+                label.innerText = "Hide replies";
+                icon.classList.remove('bx-subdirectory-right');
+                icon.classList.add('bx-up-arrow-alt');
             }
         }
     </script>

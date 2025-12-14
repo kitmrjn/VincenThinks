@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>VincenThinks - Home</title>
     
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
@@ -18,6 +19,18 @@
     </script>
     <style>
         .line-clamp-3 pre { overflow: hidden; }
+
+        /* HOME PAGE IMAGE RULES */
+        .prose img {
+            display: block;
+            max-width: 100%;
+            max-height: 300px; /* Smaller limit for home page */
+            width: auto;       /* Maintain aspect ratio */
+            height: auto;
+            margin: 10px 0;
+            border-radius: 6px;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal flex flex-col min-h-screen">
@@ -51,13 +64,22 @@
 
                 <input type="text" name="title" placeholder="What's your question?" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-lg font-normal transition-colors placeholder-gray-400">
                 
-                <textarea name="content" placeholder="Type here... Use ``` for code blocks!" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2 h-24 focus:outline-none focus:ring-1 focus:ring-maroon-700 focus:border-maroon-700 transition resize-none text-sm font-light"></textarea>
-                
+                <div class="mb-4">
+                    <x-trix-editor name="content" placeholder="Type your question here..." />
+                    
+                    {{-- FIXED: Show validation error message --}}
+                    @error('content')
+                        <p class="text-red-500 text-xs mt-1 font-bold flex items-center">
+                            <i class='bx bx-error-circle mr-1'></i> {{ $message }}
+                        </p>
+                    @enderror
+                </div>
+
                 <div class="mb-4 flex items-center">
                     <label class="cursor-pointer flex items-center text-xs text-gray-500 hover:text-maroon-700 transition">
                         <i class='bx bx-images text-lg mr-1'></i> Add Images (Optional)
                         <input type="file" name="images[]" multiple class="hidden" 
-                               onchange="document.getElementById('img-preview-count').innerText = this.files.length + ' files selected'">
+                            onchange="document.getElementById('img-preview-count').innerText = this.files.length + ' files selected'">
                     </label>
                     <span id="img-preview-count" class="ml-3 text-xs text-maroon-700 font-bold"></span>
                 </div>
@@ -77,6 +99,7 @@
         </div>
         @endauth
 
+        {{-- SEARCH & LIST SECTION --}}
         <div class="flex flex-col sm:flex-row items-center justify-between mb-6 space-y-4 sm:space-y-0">
             <h2 class="text-2xl font-light text-gray-800 flex items-center"><i class='bx bx-message-square-dots text-maroon-700 mr-2 font-thin'></i> Recent Discussions</h2>
             <form action="/" method="GET" class="relative w-full sm:w-64">
@@ -107,7 +130,7 @@
                         </div>
                         
                         <div class="flex-grow min-w-0">
-                            <div class="flex justify-between items-start mb-2">
+                            <div class="flex justify-between items-start mb-3">
                                 <div class="flex items-center text-xs text-gray-400 font-light">
                                     <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 mr-2 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
                                     <span class="mx-1">•</span>
@@ -119,41 +142,30 @@
                                 </div>
 
                                 @if($q->best_answer_id)
-                                    <span class="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center border border-green-200">
-                                        <i class='bx bx-check mr-1'></i> Solved
+                                    <span class="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center border border-green-200 shadow-sm ml-2">
+                                        <i class='bx bx-check mr-1 text-base'></i> Solved
                                     </span>
                                 @endif
                             </div>
 
                             <a href="{{ route('question.show', $q->id) }}" class="block group-hover:text-maroon-700 transition-colors">
+                                <h3 class="text-lg font-bold text-gray-900 leading-tight mb-2 group-hover:text-maroon-700 transition-colors">{{ $q->title }}</h3>
                                 
-                                <h3 class="text-lg font-normal text-gray-800 leading-tight mb-2">{{ $q->title }}</h3>
-                                
+                                <div class="prose prose-sm prose-stone text-gray-600 line-clamp-3 mb-4">
+                                    {!! Str::markdown($q->content) !!}
+                                </div>
+
                                 @if($q->images->count() > 0)
-                                    <div class="mb-3 mt-2 rounded overflow-hidden h-48 w-full border border-gray-200">
-                                        @if($q->images->count() == 1)
-                                            <img src="{{ asset('storage/' . $q->images->first()->image_path) }}" class="w-full h-full object-cover" alt="Question Image">
-                                        @else
-                                            <div class="grid grid-cols-2 gap-0.5 h-full">
-                                                <div class="h-full">
-                                                    <img src="{{ asset('storage/' . $q->images[0]->image_path) }}" class="w-full h-full object-cover" alt="Image 1">
-                                                </div>
-                                                <div class="h-full relative">
-                                                    <img src="{{ asset('storage/' . $q->images[1]->image_path) }}" class="w-full h-full object-cover" alt="Image 2">
-                                                    @if($q->images->count() > 2)
-                                                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                            <span class="text-white font-bold text-lg">+{{ $q->images->count() - 2 }}</span>
-                                                        </div>
-                                                    @endif
-                                                </div>
+                                    <div class="mt-2 rounded-lg overflow-hidden h-72 w-full border border-gray-200 relative bg-gray-100 flex justify-center items-center">
+                                        <img src="{{ asset('storage/' . $q->images->first()->image_path) }}" 
+                                             class="w-full h-full object-contain">
+                                        @if($q->images->count() > 1)
+                                            <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm">
+                                                <i class='bx bx-images mr-1.5 text-sm'></i> +{{ $q->images->count() - 1 }}
                                             </div>
                                         @endif
                                     </div>
                                 @endif
-
-                                <div class="prose prose-sm prose-stone text-gray-500 line-clamp-3">
-                                    {!! Str::markdown($q->content) !!}
-                                </div>
                             </a>
                             
                             <div class="mt-4 flex items-center justify-between">
@@ -169,8 +181,7 @@
                                 @auth
                                     @if((Auth::id() === $q->user_id || Auth::user()->is_admin) && $q->created_at > now()->subSeconds(150))
                                         <form action="{{ route('question.destroy', $q->id) }}" method="POST" onsubmit="return confirm('Delete this question?');">
-                                            @csrf
-                                            @method('DELETE')
+                                            @csrf @method('DELETE')
                                             <button type="submit" class="text-gray-300 hover:text-red-500 transition" title="Delete Question">
                                                 <i class='bx bx-trash text-lg'></i>
                                             </button>
@@ -189,6 +200,5 @@
             @endforelse
         </div>
     </div>
-
 </body>
 </html>
