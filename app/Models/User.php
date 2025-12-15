@@ -24,6 +24,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'avatar', 
+        'member_type', // student, teacher
+        'student_number',
+        'course_id',
     ];
 
     /**
@@ -49,13 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    public function questions()
-    {
-        return $this->hasMany(Question::class);
-    }
-
-    public function answers()
-    {
-        return $this->hasMany(Answer::class);
-    }
+    public function questions(){ return $this->hasMany(Question::class);}
+    public function answers(){ return $this->hasMany(Answer::class);}
+    public function course() { return $this->belongsTo(Course::class); }
 }

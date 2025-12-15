@@ -18,11 +18,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::delete('/admin/question/{id}/delete', [AdminController::class, 'deleteQuestion'])->name('admin.delete_question');
     Route::delete('/admin/report/{id}/dismiss', [AdminController::class, 'dismissReport'])->name('admin.dismiss_report');
-    
     // Categories
     Route::get('/admin/categories', [AdminController::class, 'categories'])->name('admin.categories');
     Route::post('/admin/category', [AdminController::class, 'storeCategory'])->name('admin.category.store');
     Route::delete('/admin/category/{id}', [AdminController::class, 'deleteCategory'])->name('admin.category.delete');
+    // Courses & Strands Management
+    Route::get('/admin/courses', [AdminController::class, 'courses'])->name('admin.courses');
+    Route::post('/admin/course', [AdminController::class, 'storeCourse'])->name('admin.course.store');
+    Route::delete('/admin/course/{id}', [AdminController::class, 'deleteCourse'])->name('admin.course.delete');
 
     // NEW SEPARATED SETTINGS
     Route::prefix('admin/settings')->name('admin.settings.')->group(function() {
