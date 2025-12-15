@@ -6,37 +6,14 @@
     <title>Admin - Categories</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000', 900: '#400000' } } } } }
     </script>
 </head>
 <body class="bg-gray-100 font-sans text-gray-600 antialiased min-h-screen flex">
 
-    <aside class="w-64 bg-maroon-700 text-white flex flex-col fixed h-full shadow-xl z-10">
-        <div class="h-16 flex items-center px-6 border-b border-maroon-800">
-            <i class='bx bx-grid-alt mr-3 text-2xl'></i>
-            <span class="font-bold text-lg tracking-wide">Administrator</span>
-        </div>
-
-        <nav class="flex-1 px-4 py-6 space-y-2">
-            <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-3 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition">
-                <i class='bx bx-error-circle mr-3 text-xl'></i>
-                <span class="font-medium">Reports</span>
-            </a>
-
-            <a href="{{ route('admin.categories') }}" class="flex items-center px-4 py-3 bg-white/10 text-white rounded-lg transition">
-                <i class='bx bx-category mr-3 text-xl'></i>
-                <span class="font-medium">Categories</span>
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-maroon-800">
-            <a href="/" class="flex items-center px-4 py-2 text-red-200 hover:text-white transition">
-                <i class='bx bx-log-out-circle mr-3 text-xl'></i>
-                <span>Back to Site</span>
-            </a>
-        </div>
-    </aside>
+    @include('admin.partials.sidebar')
 
     <main class="flex-1 ml-64 p-8">
         

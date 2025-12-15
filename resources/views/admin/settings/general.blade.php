@@ -13,38 +13,7 @@
 </head>
 <body class="bg-gray-100 font-sans text-gray-600 antialiased min-h-screen flex">
 
-    {{-- SIDEBAR --}}
-    <aside class="w-64 bg-maroon-700 text-white flex flex-col fixed h-full shadow-xl z-10">
-        <div class="h-16 flex items-center px-6 border-b border-maroon-800">
-            <i class='bx bx-grid-alt mr-3 text-2xl'></i>
-            <span class="font-bold text-lg tracking-wide">Administrator</span>
-        </div>
-        <nav class="flex-1 px-4 py-6 space-y-2">
-            <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-3 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition">
-                <i class='bx bx-error-circle mr-3 text-xl'></i><span class="font-medium">Reports</span>
-            </a>
-            <a href="{{ route('admin.categories') }}" class="flex items-center px-4 py-3 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition">
-                <i class='bx bx-category mr-3 text-xl'></i><span class="font-medium">Categories</span>
-            </a>
-            
-            {{-- DROPDOWN MENU --}}
-            <div x-data="{ open: true }">
-                <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3 text-white bg-white/10 rounded-lg transition focus:outline-none">
-                    <div class="flex items-center"><i class='bx bx-cog mr-3 text-xl'></i><span class="font-medium">Settings</span></div>
-                    <i class='bx bx-chevron-down transition-transform' :class="open ? 'rotate-180' : ''"></i>
-                </button>
-                <div x-show="open" class="pl-12 space-y-1 mt-1">
-                    <a href="{{ route('admin.settings.general') }}" class="block py-2 text-sm text-white font-bold border-l-2 border-white pl-2">General Rules</a>
-                    <a href="{{ route('admin.settings.email') }}" class="block py-2 text-sm text-gray-400 hover:text-white pl-2">Email Server</a>
-                </div>
-            </div>
-        </nav>
-        <div class="p-4 border-t border-maroon-800">
-            <a href="/" class="flex items-center px-4 py-2 text-red-200 hover:text-white transition">
-                <i class='bx bx-log-out-circle mr-3 text-xl'></i><span>Back to Site</span>
-            </a>
-        </div>
-    </aside>
+    @include('admin.partials.sidebar')
 
     {{-- MAIN CONTENT --}}
     <main class="flex-1 ml-64 p-8">
