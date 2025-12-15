@@ -71,9 +71,9 @@
                             <i class='bx bx-calendar mr-1'></i> Joined {{ $user->created_at->format('M Y') }}
                         </p>
                         
-                        {{-- UPDATED: Badges Container (Removed generic "Community Member") --}}
+                        {{-- Badges Container --}}
                         <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-                            {{-- Admin Badge: Only show if they ARE an admin --}}
+                            {{-- Admin Badge --}}
                             @if($user->is_admin)
                                 <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-maroon-100 text-maroon-800 border border-maroon-200">
                                     <i class='bx bxs-shield-alt-2 mr-1'></i> Administrator
@@ -94,7 +94,7 @@
 
                         {{-- Academic Details Section --}}
                         <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
-                            {{-- Member Type (Student/Teacher) --}}
+                            {{-- Member Type --}}
                             @if($user->member_type === 'teacher')
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
                                     <i class='bx bxs-briefcase-alt-2 mr-1'></i> Teacher
@@ -105,7 +105,7 @@
                                 </span>
                             @endif
 
-                            {{-- Course Badge (Color Coded) --}}
+                            {{-- Course Badge --}}
                             @if($user->member_type === 'student' && $user->course)
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border cursor-help
                                     {{ $user->course->type == 'College' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
@@ -260,8 +260,9 @@
                         </div>
                     @endforelse
 
+                    {{-- UPDATED: Uses Custom Pagination --}}
                     <div class="mt-4">
-                        {{ $questions_list->appends(request()->except('questions_page'))->links() }}
+                        {{ $questions_list->appends(request()->except('questions_page'))->links('partials.pagination') }}
                     </div>
                 </div>
 
@@ -334,8 +335,9 @@
                         </div>
                     @endforelse
 
+                    {{-- UPDATED: Uses Custom Pagination --}}
                     <div class="mt-4">
-                        {{ $answers_list->appends(request()->except('answers_page'))->links() }}
+                        {{ $answers_list->appends(request()->except('answers_page'))->links('partials.pagination') }}
                     </div>
                 </div>
 

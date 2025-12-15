@@ -25,9 +25,13 @@ class ForumController extends Controller
     // 1. HOME PAGE
     public function index(Request $request) {
         $categories = Category::all();
-        $query = Question::with(['user', 'category', 'images', 'answers'])->latest();
+        
+        $query = Question::with(['user', 'category', 'images'])
+                         ->withCount('answers')
+                         ->latest();
 
-        if ($request->has('search')) {
+        // Search Logic
+        if ($request->has('search') && $request->search != '') {
             $search = $request->get('search');
             $query->where(function($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
@@ -35,7 +39,13 @@ class ForumController extends Controller
             });
         }
 
-        $questions = $query->get();
+        // --- NEW: Category Filter Logic ---
+        if ($request->has('category') && $request->category != '') {
+            $query->where('category_id', $request->category);
+        }
+
+        $questions = $query->paginate(10)->onEachSide(1);
+        
         return view('welcome', compact('questions', 'categories'));
     }
 
