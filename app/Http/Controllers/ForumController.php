@@ -10,12 +10,18 @@ use App\Models\Rating;
 use App\Models\Reply;
 use App\Models\Report;
 use App\Models\QuestionImage;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\NewActivity;
 use Illuminate\Support\Facades\Storage;
 
 class ForumController extends Controller
 {
+    // --- HELPER: Get Dynamic Time Limit ---
+    private function getEditLimit() {
+        return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
+    }
+
     // 1. HOME PAGE
     public function index(Request $request) {
         $categories = Category::all();
@@ -79,7 +85,11 @@ class ForumController extends Controller
 
         $sessionKey = 'viewed_question_' . $id;
         if (!session()->has($sessionKey)) {
+            // FIX: Disable timestamps so 'updated_at' doesn't change when view count increases
+            $question->timestamps = false;
             $question->increment('views');
+            $question->timestamps = true;
+            
             session()->put($sessionKey, true);
         }
 
@@ -259,24 +269,21 @@ class ForumController extends Controller
         return redirect($notification->data['url'] ?? route('home'));
     }
 
-    // 11. EDIT & UPDATE QUESTION (FIXED AND WORKING)
+    // 11. EDIT & UPDATE QUESTION
     public function editQuestion($id)
     {
-        // We load the existing images relationship
         $question = Question::with('images')->findOrFail($id);
         
-        // Security check
         if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) {
             abort(403);
         }
 
-        if ($question->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-        return redirect()->back()->with('error', 'Time limit exceeded.');
-      }
+        $limit = $this->getEditLimit();
+        if ($question->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
+            return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
+        }
 
-        // Fetch categories (Fixes the Undefined Variable error)
         $categories = Category::all(); 
-
         return view('edit_question', compact('question', 'categories'));
     }
 
@@ -287,11 +294,11 @@ class ForumController extends Controller
             abort(403); 
         }
 
-        if ($question->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-        return redirect()->back()->with('error', 'Time limit exceeded.');
+        $limit = $this->getEditLimit();
+        if ($question->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
+            return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
         }
 
-        // Validate everything, including new images
         $request->validate([
             'title' => 'required|max:255',
             'category_id' => 'required|exists:categories,id',
@@ -303,18 +310,15 @@ class ForumController extends Controller
             }]
         ]);
         
-        // Update Text
         $question->update([
             'title' => $request->title,
             'content' => $request->content,
             'category_id' => $request->category_id
         ]);
 
-        // A. Handle Image Deletion
         if ($request->has('delete_images')) {
             foreach ($request->delete_images as $imageId) {
                 $image = QuestionImage::find($imageId);
-                // Ensure image belongs to this question
                 if ($image && $image->question_id == $question->id) {
                     Storage::disk('public')->delete($image->image_path);
                     $image->delete();
@@ -322,7 +326,6 @@ class ForumController extends Controller
             }
         }
 
-        // B. Handle New Image Uploads
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $imageFile) {
                 $path = $imageFile->store('question_images', 'public');
@@ -337,8 +340,10 @@ class ForumController extends Controller
     public function editAnswer($id) {
         $answer = Answer::findOrFail($id);
         if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
-        if ($answer->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-            return redirect()->back()->with('error', 'Time limit exceeded.');
+        
+        $limit = $this->getEditLimit();
+        if ($answer->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
+            return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
         }
         return view('edit_answer', compact('answer'));
     }
@@ -354,8 +359,10 @@ class ForumController extends Controller
 
         $answer = Answer::findOrFail($id);
         if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
-        if ($answer->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-            return redirect()->back()->with('error', 'Time limit exceeded.');
+        
+        $limit = $this->getEditLimit();
+        if ($answer->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
+            return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
         }
         $answer->update(['content' => $request->content]);
         return redirect()->route('question.show', $answer->question_id)->with('success', 'Answer updated.');
@@ -365,8 +372,10 @@ class ForumController extends Controller
     public function editReply($id) {
         $reply = Reply::findOrFail($id);
         if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
-        if ($reply->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-            return redirect()->back()->with('error', 'Time limit exceeded.');
+        
+        $limit = $this->getEditLimit();
+        if ($reply->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
+            return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
         }
         return view('edit_reply', compact('reply'));
     }
@@ -382,8 +391,10 @@ class ForumController extends Controller
 
         $reply = Reply::findOrFail($id);
         if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
-        if ($reply->created_at < now()->subSeconds(150) && !Auth::user()->is_admin) {
-            return redirect()->back()->with('error', 'Time limit exceeded.');
+        
+        $limit = $this->getEditLimit();
+        if ($reply->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
+            return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
         }
         $reply->update(['content' => $request->content]);
         return redirect()->route('question.show', $reply->answer->question_id)->with('success', 'Reply updated.');
@@ -410,7 +421,10 @@ class ForumController extends Controller
             }
         }
         
+        // FIX: Disable timestamps so marking as best doesn't mark question as "edited"
+        $question->timestamps = false;
         $question->save();
+        
         return redirect()->back()->with('success', 'Best answer updated!');
     }
 
@@ -418,7 +432,6 @@ class ForumController extends Controller
     public function destroyReply($id) {
         $reply = Reply::findOrFail($id);
         
-        // Security check: Only owner or admin can delete
         if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { 
             abort(403); 
         }

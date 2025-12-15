@@ -64,6 +64,11 @@
 </head>
 <body class="bg-gray-100 font-sans min-h-screen relative">
 
+    {{-- NEW: Fetch Edit Limit from DB (Defaults to 150 if not set) --}}
+    @php
+        $editLimit = (int) (\App\Models\Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
+    @endphp
+
     @include('partials.navbar')
 
     <div class="max-w-3xl mx-auto mt-6 px-4">
@@ -135,7 +140,8 @@
                     @endif
 
                     @auth
-                        @if((Auth::id() === $question->user_id || Auth::user()->is_admin) && $question->created_at > now()->subSeconds(150))
+                        {{-- UPDATED: Use $editLimit variable --}}
+                        @if((Auth::id() === $question->user_id || Auth::user()->is_admin) && $question->created_at > now()->subSeconds($editLimit))
                             <a href="{{ route('question.edit', $question->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit">
                                 <i class='bx bx-pencil text-2xl font-thin'></i>
                             </a>
@@ -245,9 +251,12 @@
                                 <button type="submit" class="p-1 rounded-full transition {{ $isBest ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-gray-300 hover:text-green-600 hover:bg-gray-50' }}" title="{{ $isBest ? 'Unmark as Solution' : 'Mark as Accepted Solution' }}"><i class='bx bx-check text-2xl'></i></button>
                             </form>
                         @endif
-                        @if((Auth::id() === $answer->user_id || Auth::user()->is_admin) && $answer->created_at > now()->subSeconds(150))
+                        
+                        {{-- UPDATED: Use $editLimit variable --}}
+                        @if((Auth::id() === $answer->user_id || Auth::user()->is_admin) && $answer->created_at > now()->subSeconds($editLimit))
                             <a href="{{ route('answer.edit', $answer->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit Answer"><i class='bx bx-pencil text-xl'></i></a>
                         @endif
+                        
                         @if(Auth::id() === $answer->user_id || Auth::user()->is_admin)
                             <form action="{{ route('answer.destroy', $answer->id) }}" method="POST" onsubmit="return confirm('Delete answer?');" class="opacity-0 group-hover:opacity-100 transition">
                                 @csrf @method('DELETE')
@@ -341,7 +350,8 @@
                     @foreach($topLevelReplies as $reply)
                         @php $count++; @endphp
                         <div class="{{ $count > $limit ? 'hidden-main-reply-' . $answer->id . ' hidden' : '' }}">
-                            @include('partials.reply', ['reply' => $reply, 'question' => $question])
+                            {{-- UPDATED: Pass editLimit to partial --}}
+                            @include('partials.reply', ['reply' => $reply, 'question' => $question, 'editLimit' => $editLimit])
                         </div>
                     @endforeach
                     @if($topLevelReplies->count() > $limit)

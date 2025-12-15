@@ -25,7 +25,8 @@
         {{-- TOP RIGHT ACTION BUTTONS (Edit/Delete) --}}
         @auth
             <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                @if((Auth::id() === $reply->user_id || Auth::user()->is_admin) && $reply->created_at > now()->subSeconds(150))
+                {{-- UPDATED: Use dynamic $editLimit --}}
+                @if((Auth::id() === $reply->user_id || Auth::user()->is_admin) && $reply->created_at > now()->subSeconds($editLimit ?? 150))
                     <a href="{{ route('reply.edit', $reply->id) }}" class="text-gray-300 hover:text-blue-600" title="Edit Reply">
                         <i class='bx bx-pencil text-sm'></i>
                     </a>
@@ -93,7 +94,8 @@
             {{-- 2. THE HIDDEN CONTAINER --}}
             <div id="children-container-{{ $reply->id }}" class="hidden">
                 @foreach($reply->children as $child)
-                    @include('partials.reply', ['reply' => $child, 'question' => $question])
+                    {{-- UPDATED: Pass $editLimit recursively --}}
+                    @include('partials.reply', ['reply' => $child, 'question' => $question, 'editLimit' => $editLimit ?? 150])
                 @endforeach
             </div>
         </div>
