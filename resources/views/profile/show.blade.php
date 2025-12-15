@@ -11,7 +11,6 @@
         tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000', 900: '#400000' } } } } }
     </script>
     <style>
-        /* Custom styles to prevent prose from messing up margins in previews */
         .prose p { margin-top: 0; margin-bottom: 0.5em; }
         .prose img { margin-top: 0.5em; margin-bottom: 0.5em; }
     </style>
@@ -41,6 +40,7 @@
             <div class="w-full lg:w-1/3 flex-shrink-0">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
                     
+                    {{-- Avatar Section --}}
                     <div class="text-center mb-6" x-data="{ avatarPreview: '{{ $user->avatar ? asset('storage/' . $user->avatar) : '' }}' }">
                         <div class="relative inline-block">
                             @if($user->avatar)
@@ -71,22 +71,60 @@
                             <i class='bx bx-calendar mr-1'></i> Joined {{ $user->created_at->format('M Y') }}
                         </p>
                         
-                        <div class="mt-3 flex items-center justify-center gap-2">
-                            <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full {{ $user->is_admin ? 'bg-maroon-100 text-maroon-800' : 'bg-gray-100 text-gray-600' }}">
-                                {{ $user->is_admin ? 'Administrator' : 'Community Member' }}
-                            </span>
+                        {{-- UPDATED: Badges Container (Removed generic "Community Member") --}}
+                        <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                            {{-- Admin Badge: Only show if they ARE an admin --}}
+                            @if($user->is_admin)
+                                <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-maroon-100 text-maroon-800 border border-maroon-200">
+                                    <i class='bx bxs-shield-alt-2 mr-1'></i> Administrator
+                                </span>
+                            @endif
                             
-                            {{-- NEW: EMAIL VERIFICATION BADGE --}}
+                            {{-- Email Verified Badge --}}
                             @if ($user->hasVerifiedEmail())
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
                                     <i class='bx bx-check-circle mr-1'></i> Verified
                                 </span>
                             @else
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
                                     <i class='bx bx-time mr-1'></i> Unverified
                                 </span>
                             @endif
                         </div>
+
+                        {{-- Academic Details Section --}}
+                        <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+                            {{-- Member Type (Student/Teacher) --}}
+                            @if($user->member_type === 'teacher')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                    <i class='bx bxs-briefcase-alt-2 mr-1'></i> Teacher
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                    <i class='bx bxs-school mr-1'></i> Student
+                                </span>
+                            @endif
+
+                            {{-- Course Badge (Color Coded) --}}
+                            @if($user->member_type === 'student' && $user->course)
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border cursor-help
+                                    {{ $user->course->type == 'College' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                                      ($user->course->type == 'SHS' ? 'bg-orange-50 text-orange-700 border-orange-200' : 
+                                      ($user->course->type == 'JHS' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                      'bg-purple-50 text-purple-700 border-purple-200')) }}" 
+                                      title="{{ $user->course->name }}">
+                                    {{ $user->course->acronym }}
+                                </span>
+                            @endif
+                        </div>
+
+                        {{-- Student Number --}}
+                        @if($user->member_type === 'student' && $user->student_number)
+                            <div class="mt-2 text-xs text-gray-500 font-mono bg-gray-50 inline-block px-2 py-1 rounded border border-gray-200">
+                                ID: {{ $user->student_number }}
+                            </div>
+                        @endif
+
                     </div>
 
                     <hr class="border-gray-100 my-6">
@@ -173,7 +211,7 @@
                                         <h3 class="text-lg font-normal text-gray-800 leading-tight">{{ $q->title }}</h3>
                                     </a>
                                     
-                                    {{-- IMAGE GRID (Corrected) --}}
+                                    {{-- IMAGE GRID --}}
                                     @if($q->images->count() > 0)
                                         <div class="mb-3 mt-2 grid grid-cols-2 gap-1 rounded-lg overflow-hidden {{ $q->images->count() == 1 ? 'h-64 w-fit max-w-full border border-gray-200' : 'h-32 w-full' }}">
                                             @if($q->images->count() == 1)
@@ -197,7 +235,7 @@
                                         </div>
                                     @endif
 
-                                    {{-- QUESTION CONTENT: With Styles & Line Clamp --}}
+                                    {{-- QUESTION CONTENT --}}
                                     <div class="prose prose-sm prose-stone text-gray-500 line-clamp-3">
                                         {!! $q->content !!}
                                     </div>
@@ -278,7 +316,7 @@
                                 </div>
                             </div>
                             
-                            {{-- ANSWER CONTENT: Render HTML correctly + Styles + Line Clamp --}}
+                            {{-- ANSWER CONTENT --}}
                             <div class="prose prose-sm prose-stone text-gray-600 mb-4 line-clamp-3">
                                 {!! $answer->content !!}
                             </div>
@@ -304,6 +342,5 @@
             </div>
         </div>
     </div>
-
 </body>
 </html>

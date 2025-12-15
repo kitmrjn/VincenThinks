@@ -6,12 +6,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
+use Illuminate\Support\Str; // Added Str import for the view logic if needed here, but mostly used in blade
 
 class UserProfileController extends Controller
 {
     public function show($id)
     {
-        $user = User::with(['answers.question.answers.ratings'])->findOrFail($id);
+        // UPDATED: Eager load 'course' alongside existing relations
+        $user = User::with(['course', 'answers.question.answers.ratings'])->findOrFail($id);
 
         // --- STATS LOGIC ---
         $solvedCount = \App\Models\Question::whereIn('best_answer_id', $user->answers->pluck('id'))->count();
@@ -34,14 +36,11 @@ class UserProfileController extends Controller
         }
 
         // --- PAGINATION ---
-        
-        // 1. Questions: Load 'category' AND 'images' for the full card design
         $questions_list = $user->questions()
-                               ->with(['category', 'images']) // Added 'images' here
+                               ->with(['category', 'images'])
                                ->latest()
                                ->paginate(5, ['*'], 'questions_page');
 
-        // 2. Answers
         $answers_list = $user->answers()
                              ->with(['question.answers.ratings', 'ratings'])
                              ->latest()
