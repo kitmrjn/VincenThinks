@@ -27,6 +27,8 @@ class LoginRequest extends FormRequest
         return [
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
+            // Add validation for the new role selector
+            'login_type' => ['required', 'string', 'in:student,teacher'],
         ];
     }
 
@@ -39,15 +41,18 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // 1. Get the login input
         $login = $this->input('login');
+        $type = $this->input('login_type');
 
-        // 2. Check if input is an Email or Student Number
-        // If it's a valid email format, assume 'email'. Otherwise, assume 'student_number'.
-        $fieldType = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'student_number';
+        // Determine which column to check based on input format and role
+        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
+            $fieldType = 'email';
+        } elseif ($type === 'teacher') {
+            $fieldType = 'teacher_number';
+        } else {
+            $fieldType = 'student_number';
+        }
 
-        // 3. Prepare credentials for Auth::attempt
-        // We map the generic 'login' input to the correct database column ($fieldType)
         $credentials = [
             $fieldType => $login,
             'password' => $this->input('password')
@@ -92,7 +97,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        // Use 'login' input instead of 'email' for the throttle key
         return Str::transliterate(Str::lower($this->input('login')).'|'.$this->ip());
     }
 }

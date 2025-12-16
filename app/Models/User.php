@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail; // This was already there, which is good
+use Illuminate\Contracts\Auth\MustVerifyEmail; 
 use App\Models\Question;
 use App\Models\Answer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +27,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'member_type', // student, teacher
         'student_number',
         'course_id',
+        'department', 
+        'teacher_number',
     ];
 
     /**
