@@ -39,6 +39,21 @@ class ForumController extends Controller
             });
         }
 
+        // --- NEW: Status Filter Logic (Solved/Unsolved) ---
+        if ($request->has('filter')) {
+            switch ($request->filter) {
+                case 'solved':
+                    $query->whereNotNull('best_answer_id');
+                    break;
+                case 'unsolved':
+                    $query->whereNull('best_answer_id');
+                    break;
+                case 'no_answers':
+                    $query->doesntHave('answers');
+                    break;
+            }
+        }
+
         // --- NEW: Category Filter Logic ---
         if ($request->has('category') && $request->category != '') {
             $query->where('category_id', $request->category);

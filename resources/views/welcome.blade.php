@@ -167,7 +167,7 @@
             @endauth
 
             {{-- Feed Header --}}
-            <div class="flex flex-col sm:flex-row items-center justify-between mb-6 space-y-4 sm:space-y-0">
+            <div class="flex flex-col sm:flex-row items-center justify-between mb-4 space-y-4 sm:space-y-0">
                 <h2 class="text-2xl font-light text-gray-800 flex items-center">
                     <i class='bx bx-message-square-dots text-maroon-700 mr-2 font-thin'></i> 
                     @if(request('category'))
@@ -183,6 +183,36 @@
                 </form>
             </div>
             
+            {{-- NEW: Filter Tabs --}}
+            <div class="flex items-center space-x-2 mb-6 overflow-x-auto custom-scrollbar pb-2">
+                @php
+                    $currentFilter = request('filter');
+                    $baseClasses = "px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap";
+                    $activeClasses = "bg-maroon-700 text-white border-maroon-700 shadow-sm";
+                    $inactiveClasses = "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700";
+                @endphp
+
+                <a href="{{ route('home', array_merge(request()->except('filter'), ['page' => 1])) }}"
+                   class="{{ $baseClasses }} {{ !$currentFilter ? $activeClasses : $inactiveClasses }}">
+                   All
+                </a>
+
+                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'solved', 'page' => 1])) }}"
+                   class="{{ $baseClasses }} {{ $currentFilter === 'solved' ? $activeClasses : $inactiveClasses }}">
+                   <i class='bx bx-check-circle mr-1'></i> Solved
+                </a>
+
+                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}"
+                   class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}">
+                   <i class='bx bx-question-mark mr-1'></i> Unsolved
+                </a>
+
+                 <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}"
+                   class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}">
+                   <i class='bx bx-message-square-x mr-1'></i> No Answers
+                </a>
+            </div>
+
             @if(request('search'))
                 <div class="mb-4 text-sm text-gray-500 font-light flex items-center">
                     <span>Showing results for: <strong>"{{ request('search') }}"</strong></span>
