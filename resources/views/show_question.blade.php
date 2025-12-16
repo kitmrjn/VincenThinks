@@ -24,7 +24,6 @@
         [x-cloak] { display: none !important; }
 
         /* --- BASE IMAGE (Question & Main Answers) --- */
-        /* Default: Big and clear */
         .prose img {
             max-width: 100%;
             max-height: 500px;     /* Standard Height */
@@ -41,16 +40,14 @@
         }
 
         /* --- LEVEL 1: REPLIES (Smaller) --- */
-        /* Target images inside the first indentation level */
         .ml-11 .prose img {
-            max-height: 350px !important; /* Shrink to 350px */
-            max-width: 80%;               /* Take up less width */
+            max-height: 350px !important; 
+            max-width: 80%;              
         }
 
         /* --- LEVEL 2+: NESTED REPLIES (Smallest) --- */
-        /* Target images inside a reply to a reply */
         .ml-11 .ml-11 .prose img {
-            max-height: 200px !important; /* Shrink to 200px (Thumbnail size) */
+            max-height: 200px !important; 
             max-width: 60%;               
         }
 
@@ -64,7 +61,6 @@
 </head>
 <body class="bg-gray-100 font-sans min-h-screen relative">
 
-    {{-- NEW: Fetch Edit Limit from DB (Defaults to 150 if not set) --}}
     @php
         $editLimit = (int) (\App\Models\Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     @endphp
@@ -109,9 +105,17 @@
                         @endif
                     </div>
                     <div class="text-sm">
-                        <a href="{{ route('user.profile', $question->user->id) }}" class="font-bold text-gray-800 hover:text-maroon-700 hover:underline transition">
-                            {{ $question->user->name }}
-                        </a>
+                        <div class="flex items-center">
+                            <a href="{{ route('user.profile', $question->user->id) }}" class="font-bold text-gray-800 hover:text-maroon-700 hover:underline transition">
+                                {{ $question->user->name }}
+                            </a>
+                            {{-- QUESTION AUTHOR FLAIR --}}
+                            @if($question->user->member_type === 'student' && $question->user->course)
+                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $question->user->course->name }}">{{ $question->user->course->acronym }}</span>
+                            @elseif($question->user->member_type === 'teacher' && $question->user->department)
+                                <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $question->user->department }}</span>
+                            @endif
+                        </div>
                         <div class="text-xs text-gray-500 font-light flex items-center flex-wrap">
                             <span>{{ $question->created_at->diffForHumans() }}</span>
                             @if($question->created_at != $question->updated_at)
@@ -140,7 +144,6 @@
                     @endif
 
                     @auth
-                        {{-- UPDATED: Use $editLimit variable --}}
                         @if((Auth::id() === $question->user_id || Auth::user()->is_admin) && $question->created_at > now()->subSeconds($editLimit))
                             <a href="{{ route('question.edit', $question->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit">
                                 <i class='bx bx-pencil text-2xl font-thin'></i>
@@ -252,7 +255,6 @@
                             </form>
                         @endif
                         
-                        {{-- UPDATED: Use $editLimit variable --}}
                         @if((Auth::id() === $answer->user_id || Auth::user()->is_admin) && $answer->created_at > now()->subSeconds($editLimit))
                             <a href="{{ route('answer.edit', $answer->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit Answer"><i class='bx bx-pencil text-xl'></i></a>
                         @endif
@@ -275,7 +277,15 @@
                             <div class="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold mr-3">{{ substr($answer->user->name, 0, 1) }}</div>
                          @endif
                         <div>
-                            <a href="{{ route('user.profile', $answer->user->id) }}" class="block font-medium text-gray-800 text-sm hover:underline">{{ $answer->user->name }}</a>
+                            <div class="flex items-center">
+                                <a href="{{ route('user.profile', $answer->user->id) }}" class="block font-medium text-gray-800 text-sm hover:underline">{{ $answer->user->name }}</a>
+                                {{-- ANSWER AUTHOR FLAIR --}}
+                                @if($answer->user->member_type === 'student' && $answer->user->course)
+                                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $answer->user->course->name }}">{{ $answer->user->course->acronym }}</span>
+                                @elseif($answer->user->member_type === 'teacher' && $answer->user->department)
+                                    <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $answer->user->department }}</span>
+                                @endif
+                            </div>
                             <span class="text-xs text-gray-400 font-light">
                                 {{ $answer->created_at->diffForHumans() }}
                                 @if($answer->created_at != $answer->updated_at) <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span> @endif
@@ -324,13 +334,10 @@
                         <form id="main-reply-form-{{ $answer->id }}" action="{{ route('reply.store', $answer->id) }}" method="POST" class="hidden ml-11 mb-6 mt-4">
                             @csrf
                             <div class="space-y-3">
-                                {{-- ANSWER REPLY EDITOR (Limit: 1 Image) --}}
                                 <x-trix-editor name="content" placeholder="Write a reply..." max-images="1" />
-                                
                                 @error('content')
                                     <p class="text-red-500 text-xs mt-1 font-bold flex items-center"><i class='bx bx-error-circle mr-1'></i> {{ $message }}</p>
                                 @enderror
-
                                 <div class="flex justify-end space-x-2">
                                     <button type="button" onclick="toggleReplyForm('main-reply-form-{{ $answer->id }}')" class="px-3 py-1.5 text-gray-500 hover:text-gray-700 text-xs font-bold uppercase tracking-wide transition">Cancel</button>
                                     <button type="submit" class="bg-maroon-700 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-maroon-800 transition shadow-sm uppercase tracking-wide">Reply</button>
@@ -350,7 +357,6 @@
                     @foreach($topLevelReplies as $reply)
                         @php $count++; @endphp
                         <div class="{{ $count > $limit ? 'hidden-main-reply-' . $answer->id . ' hidden' : '' }}">
-                            {{-- UPDATED: Pass editLimit to partial --}}
                             @include('partials.reply', ['reply' => $reply, 'question' => $question, 'editLimit' => $editLimit])
                         </div>
                     @endforeach
@@ -380,9 +386,7 @@
                             <form action="{{ route('answer.store', $question->id) }}" method="POST">
                                 @csrf
                                 <div class="mb-4">
-                                    {{-- NEW ANSWER EDITOR (Limit: 1 Image) --}}
                                     <x-trix-editor name="content" placeholder="Write a helpful answer..." max-images="1" />
-                                    
                                     @error('content')
                                         <p class="text-red-500 text-xs mt-1 font-bold flex items-center">
                                             <i class='bx bx-error-circle mr-1'></i> {{ $message }}

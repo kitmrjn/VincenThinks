@@ -15,6 +15,13 @@
                 <a href="{{ route('user.profile', $reply->user->id) }}" class="text-xs font-bold text-gray-700 hover:text-maroon-700 mr-2">
                     {{ $reply->user->name }}
                 </a>
+                {{-- REPLY AUTHOR FLAIR --}}
+                @if($reply->user->member_type === 'student' && $reply->user->course)
+                    <span class="text-[9px] font-bold text-blue-600 bg-blue-50 px-1 py-0.5 rounded border border-blue-100 mr-2" title="{{ $reply->user->course->name }}">{{ $reply->user->course->acronym }}</span>
+                @elseif($reply->user->member_type === 'teacher' && $reply->user->department)
+                    <span class="text-[9px] font-bold text-purple-600 bg-purple-50 px-1 py-0.5 rounded border border-purple-100 mr-2">{{ $reply->user->department }}</span>
+                @endif
+
                 <span class="text-[10px] text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>
                 @if($reply->created_at != $reply->updated_at)
                     <span class="text-[10px] text-gray-300 italic ml-1">(edited)</span>
@@ -25,7 +32,6 @@
         {{-- TOP RIGHT ACTION BUTTONS (Edit/Delete) --}}
         @auth
             <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                {{-- UPDATED: Use dynamic $editLimit --}}
                 @if((Auth::id() === $reply->user_id || Auth::user()->is_admin) && $reply->created_at > now()->subSeconds($editLimit ?? 150))
                     <a href="{{ route('reply.edit', $reply->id) }}" class="text-gray-300 hover:text-blue-600" title="Edit Reply">
                         <i class='bx bx-pencil text-sm'></i>

@@ -26,7 +26,8 @@ class ForumController extends Controller
     public function index(Request $request) {
         $categories = Category::all();
         
-        $query = Question::with(['user', 'category', 'images'])
+        // UPDATED: Eager load 'user.course' so we can show [BSCS] without extra DB queries
+        $query = Question::with(['user.course', 'category', 'images'])
                          ->withCount('answers')
                          ->latest();
 
@@ -99,13 +100,14 @@ class ForumController extends Controller
 
     // 3. SHOW QUESTION
     public function show($id) {
+        // UPDATED: Eager load 'user.course' for Question, Answers, and Replies
         $question = Question::with([
-            'user', 
+            'user.course', 
             'images',
-            'answers.user', 
+            'answers.user.course', 
             'answers.ratings', 
-            'answers.replies.user', 
-            'answers.replies.children'
+            'answers.replies.user.course', 
+            'answers.replies.children.user.course' // Handle 2nd level nesting
         ])->findOrFail($id);
 
         $sessionKey = 'viewed_question_' . $id;
