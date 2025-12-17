@@ -47,6 +47,60 @@
             @endif
         </div>
 
+        {{-- DYNAMIC FIELDS BASED ON ROLE --}}
+        
+        {{-- FOR STUDENTS --}}
+        @if($user->member_type === 'student')
+            <div>
+                <x-input-label for="student_number" :value="__('Student Number')" />
+                <x-text-input id="student_number" name="student_number" type="text" class="mt-1 block w-full" :value="old('student_number', $user->student_number)" placeholder="e.g. AY2023-00123" />
+                <x-input-error class="mt-2" :messages="$errors->get('student_number')" />
+            </div>
+
+            <div>
+                <x-input-label for="course_id" :value="__('Course / Strand')" />
+                <select id="course_id" name="course_id" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                    <option value="" disabled {{ !$user->course_id ? 'selected' : '' }}>Select your course...</option>
+                    @php $courses = \App\Models\Course::all()->groupBy('type'); @endphp
+                    @foreach($courses as $type => $group)
+                        <optgroup label="{{ $type }}">
+                            @foreach($group as $course)
+                                <option value="{{ $course->id }}" {{ old('course_id', $user->course_id) == $course->id ? 'selected' : '' }}>
+                                    {{ $course->acronym }} - {{ $course->name }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+                <x-input-error class="mt-2" :messages="$errors->get('course_id')" />
+            </div>
+        @endif
+
+        {{-- FOR TEACHERS --}}
+        @if($user->member_type === 'teacher')
+            <div>
+                <x-input-label for="teacher_number" :value="__('Teacher Number')" />
+                <x-text-input id="teacher_number" name="teacher_number" type="text" class="mt-1 block w-full" :value="old('teacher_number', $user->teacher_number)" placeholder="e.g. AY2023-00123" />
+                <x-input-error class="mt-2" :messages="$errors->get('teacher_number')" />
+            </div>
+
+            <div>
+                <x-input-label for="department" :value="__('Department / Faculty')" />
+                <select id="department" name="department" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                    <option value="" disabled {{ !$user->department ? 'selected' : '' }}>Select Department...</option>
+                    <option value="Math Dept" {{ old('department', $user->department) == 'Math Dept' ? 'selected' : '' }}>Mathematics Department</option>
+                    <option value="Science Dept" {{ old('department', $user->department) == 'Science Dept' ? 'selected' : '' }}>Science Department</option>
+                    <option value="English Dept" {{ old('department', $user->department) == 'English Dept' ? 'selected' : '' }}>English Department</option>
+                    <option value="Filipino Dept" {{ old('department', $user->department) == 'Filipino Dept' ? 'selected' : '' }}>Filipino Department</option>
+                    <option value="Social Sciences" {{ old('department', $user->department) == 'Social Sciences' ? 'selected' : '' }}>Social Sciences</option>
+                    <option value="IT / CS Dept" {{ old('department', $user->department) == 'IT / CS Dept' ? 'selected' : '' }}>IT / Computer Science</option>
+                    <option value="MAPEH Dept" {{ old('department', $user->department) == 'MAPEH Dept' ? 'selected' : '' }}>MAPEH Department</option>
+                    <option value="Senior High Faculty" {{ old('department', $user->department) == 'Senior High Faculty' ? 'selected' : '' }}>Senior High School Faculty</option>
+                </select>
+                <x-input-error class="mt-2" :messages="$errors->get('department')" />
+            </div>
+        @endif
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

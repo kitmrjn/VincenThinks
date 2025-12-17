@@ -16,6 +16,8 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        // We might not need this anymore if we are using the profile page, 
+        // but keeping it for safety or direct access.
         return view('profile.edit', [
             'user' => $request->user(),
         ]);
@@ -26,15 +28,24 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $user->fill($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($user->isDirty('email')) {
+            // 1. Reset verification status
+            $user->email_verified_at = null;
+            
+            // 2. Save the new email to database FIRST
+            $user->save();
+            
+            // 3. Send the email immediately
+            $user->sendEmailVerificationNotification();
+        } else {
+            $user->save();
         }
 
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::route('user.profile', ['id' => $user->id, 'tab' => 'settings'])
+                        ->with('status', 'profile-updated');
     }
 
     /**
