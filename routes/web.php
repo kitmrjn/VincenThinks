@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ForumController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserProfileController;
-// ADDED: Import the ProfileController for settings/editing
 use App\Http\Controllers\ProfileController; 
 use App\Notifications\NewActivity;
 use Illuminate\Support\Facades\Auth;
@@ -20,10 +19,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::delete('/admin/question/{id}/delete', [AdminController::class, 'deleteQuestion'])->name('admin.delete_question');
     Route::delete('/admin/report/{id}/dismiss', [AdminController::class, 'dismissReport'])->name('admin.dismiss_report');
+
+    // --- NEW: User Management Routes ---
+    Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
+    Route::post('/admin/users/{id}/ban', [AdminController::class, 'toggleUserBan'])->name('admin.users.ban');
+    Route::post('/admin/users/{id}/verify', [AdminController::class, 'verifyUser'])->name('admin.users.verify');
+    Route::post('/admin/users/{id}/promote', [AdminController::class, 'promoteToAdmin'])->name('admin.users.promote');
+    Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+
     // Categories
     Route::get('/admin/categories', [AdminController::class, 'categories'])->name('admin.categories');
     Route::post('/admin/category', [AdminController::class, 'storeCategory'])->name('admin.category.store');
     Route::delete('/admin/category/{id}', [AdminController::class, 'deleteCategory'])->name('admin.category.delete');
+
     // Courses & Strands Management
     Route::get('/admin/courses', [AdminController::class, 'courses'])->name('admin.courses');
     Route::post('/admin/course', [AdminController::class, 'storeCourse'])->name('admin.course.store');

@@ -27,7 +27,6 @@ class LoginRequest extends FormRequest
         return [
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
-            // Add validation for the new role selector
             'login_type' => ['required', 'string', 'in:student,teacher'],
         ];
     }
@@ -58,11 +57,22 @@ class LoginRequest extends FormRequest
             'password' => $this->input('password')
         ];
 
+        // 1. Attempt the standard Laravel authentication
         if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'login' => trans('auth.failed'),
+            ]);
+        }
+
+        // 2. IMMEDIATE BAN CHECK: Slam the door if the account is suspended
+        $user = Auth::user();
+        if ($user->is_banned) {
+            Auth::logout(); // Log them out instantly so no session is created
+
+            throw ValidationException::withMessages([
+                'login' => 'Your account has been suspended. Please contact the administrator.',
             ]);
         }
 

@@ -11,13 +11,19 @@
             <i class='bx bx-error-circle mr-3 text-xl'></i><span class="font-medium">Reports</span>
         </a>
 
+        {{-- NEW: Users Link --}}
+        <a href="{{ route('admin.users') }}" 
+           class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('admin.users') ? 'bg-white/10 text-white font-bold' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+            <i class='bx bxs-user-account mr-3 text-xl'></i><span class="font-medium">Users</span>
+        </a>
+
         {{-- Categories Link --}}
         <a href="{{ route('admin.categories') }}" 
            class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('admin.categories') ? 'bg-white/10 text-white font-bold' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
             <i class='bx bx-category mr-3 text-xl'></i><span class="font-medium">Categories</span>
         </a>
 
-        {{-- NEW: Courses Link --}}
+        {{-- Courses Link --}}
         <a href="{{ route('admin.courses') }}" 
            class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('admin.courses') ? 'bg-white/10 text-white font-bold' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
             <i class='bx bxs-graduation mr-3 text-xl'></i><span class="font-medium">Courses</span>
@@ -34,11 +40,11 @@
             <div x-show="open" class="pl-12 space-y-1 mt-1">
                 <a href="{{ route('admin.settings.general') }}" 
                    class="block py-2 text-sm pl-2 transition {{ request()->routeIs('admin.settings.general') ? 'text-white font-bold border-l-2 border-white' : 'text-gray-400 hover:text-white' }}">
-                   General Rules
+                    General Rules
                 </a>
                 <a href="{{ route('admin.settings.email') }}" 
                    class="block py-2 text-sm pl-2 transition {{ request()->routeIs('admin.settings.email') ? 'text-white font-bold border-l-2 border-white' : 'text-gray-400 hover:text-white' }}">
-                   Email Server
+                    Email Server
                 </a>
             </div>
         </div>

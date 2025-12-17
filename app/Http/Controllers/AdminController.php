@@ -7,7 +7,8 @@ use App\Models\Report;
 use App\Models\Question;
 use App\Models\Category;
 use App\Models\Setting;
-use App\Models\Course; 
+use App\Models\Course;
+use App\Models\User; // <--- ADDED THIS IMPORT
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -54,13 +55,10 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'acronym' => 'required|string|max:20', 
-            // UPDATED: Allow 'Other' in the validation list
             'type' => 'required|in:College,SHS,JHS,Other',
-            // UPDATED: Require 'other_type' input if type is 'Other'
             'other_type' => 'required_if:type,Other|nullable|string|max:50',
         ]);
 
-        // Logic: If type is 'Other', use the text input value. Otherwise use the dropdown value.
         $finalType = $request->type === 'Other' ? $request->other_type : $request->type;
 
         Course::create([
@@ -124,5 +122,72 @@ class AdminController extends Controller
             Setting::updateOrCreate(['key' => $key], ['value' => $request->input($key)]);
         }
         return redirect()->back()->with('success', 'Email configuration updated.');
+    }
+
+    // --- NEW: USER MANAGEMENT ---
+    public function users(Request $request) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+
+        $query = User::with(['course'])->withCount(['questions', 'answers']);
+
+        // Search Logic
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('student_number', 'like', "%{$search}%")
+                  ->orWhere('teacher_number', 'like', "%{$search}%");
+            });
+        }
+
+        // Role Filter
+        if ($request->has('role')) {
+            if ($request->role === 'admin') $query->where('is_admin', true);
+            elseif ($request->role === 'teacher') $query->where('member_type', 'teacher');
+            elseif ($request->role === 'student') $query->where('member_type', 'student');
+            elseif ($request->role === 'banned') $query->where('is_banned', true);
+        }
+
+        $users = $query->latest()->paginate(10);
+        return view('admin.users', compact('users'));
+    }
+
+    public function toggleUserBan($id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        // Prevent banning yourself
+        if (Auth::id() == $id) return back()->with('error', 'You cannot ban yourself.');
+        
+        $user = User::findOrFail($id);
+        $user->is_banned = !$user->is_banned;
+        $user->save();
+        
+        $status = $user->is_banned ? 'banned' : 'activated';
+        return back()->with('success', "User has been {$status}.");
+    }
+
+    public function verifyUser($id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        $user = User::findOrFail($id);
+        $user->email_verified_at = now();
+        $user->save();
+        return back()->with('success', 'User email verified manually.');
+    }
+
+    public function promoteToAdmin($id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        $user = User::findOrFail($id);
+        $user->is_admin = true;
+        $user->save();
+        return back()->with('success', 'User promoted to Administrator.');
+    }
+
+    public function deleteUser($id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        if (Auth::id() == $id) return back()->with('error', 'You cannot delete yourself.');
+        
+        $user = User::findOrFail($id);
+        $user->delete();
+        return back()->with('success', 'User deleted successfully.');
     }
 }

@@ -11,6 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // --- ADDED: Run Ban Check on every web request ---
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureUserIsNotBanned::class,
+        ]);
+
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureCustomVerification::class,
         ]);
