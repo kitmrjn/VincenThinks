@@ -254,14 +254,25 @@ class AdminController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
+            // Email must be unique, but ignore this current user's ID
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'student_number' => 'nullable|string|max:50',
-            'teacher_number' => 'nullable|string|max:50',
+            
+            // Student Number must be unique, but ignore this current user's ID
+            'student_number' => 'nullable|string|max:50|unique:users,student_number,' . $user->id,
+            
+            // Teacher Number must be unique, but ignore this current user's ID
+            'teacher_number' => 'nullable|string|max:50|unique:users,teacher_number,' . $user->id,
+            
             'course_id' => 'nullable|exists:courses,id',
-            'department_id' => 'nullable|exists:departments,id', // Validates against DB
+            'department_id' => 'nullable|exists:departments,id',
+        ], [
+            // Custom error messages to make it clear why it failed
+            'student_number.unique' => 'This Student Number is already assigned to another user.',
+            'teacher_number.unique' => 'This Teacher Number is already assigned to another user.',
+            'email.unique' => 'This email address is already in use by another account.',
         ]);
 
-        // Update the user using department_id instead of string
+        // Update the user using only the validated fields
         $user->update($request->only([
             'name', 'email', 'student_number', 'teacher_number', 'course_id', 'department_id'
         ]));
@@ -276,7 +287,7 @@ class AdminController extends Controller
 
         return back()->with('success', 'User information updated successfully.');
     }
-
+    
     public function resetUserPassword(Request $request, $id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
