@@ -55,7 +55,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($users as $user)
-                        <tr class="hover:bg-gray-50 transition">
+                        <tr class="hover:bg-gray-50 transition" x-data="{ editModal: false, passwordModal: false }">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10">
@@ -117,7 +117,6 @@
                                             <i class='bx bx-dots-vertical-rounded text-xl'></i>
                                         </button>
                                         
-                                        {{-- FIXED: Smart positioning (pop up for last 3 rows) --}}
                                         <div x-show="open" 
                                              x-transition:enter="transition ease-out duration-100"
                                              x-transition:enter-start="transform opacity-0 scale-95"
@@ -128,6 +127,14 @@
                                              class="absolute right-0 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-100 
                                              {{ $loop->iteration >= $loop->count - 2 ? 'bottom-full mb-2 origin-bottom-right' : 'mt-2 origin-top-right' }}" 
                                              style="display: none;">
+
+                                            <button @click="editModal = true; open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition">
+                                                <i class='bx bx-edit-alt mr-2 text-blue-600'></i> Edit Info
+                                            </button>
+
+                                            <button @click="passwordModal = true; open = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition">
+                                                <i class='bx bx-key mr-2 text-orange-600'></i> Reset Password
+                                            </button>
 
                                             @if(!$user->email_verified_at)
                                                 <form method="POST" action="{{ route('admin.users.verify', $user->id) }}">
@@ -152,6 +159,80 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                {{-- MODAL: EDIT USER --}}
+                                <template x-if="editModal">
+                                    <div class="fixed inset-0 z-[100] overflow-y-auto">
+                                        <div class="flex items-center justify-center min-h-screen px-4">
+                                            <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="editModal = false"></div>
+                                            <div class="bg-white rounded-xl shadow-xl transform transition-all sm:max-w-lg sm:w-full z-[110] overflow-hidden">
+                                                <form method="POST" action="{{ route('admin.users.update', $user->id) }}" class="p-6 text-left">
+                                                    @csrf
+                                                    <h3 class="text-lg font-bold text-gray-900 mb-4">Edit Profile: {{ $user->name }}</h3>
+                                                    <div class="space-y-4">
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                                                            <input type="text" name="name" value="{{ $user->name }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-700">Email</label>
+                                                            <input type="email" name="email" value="{{ $user->email }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
+                                                        </div>
+                                                        @if($user->member_type === 'student')
+                                                            <div>
+                                                                <label class="block text-sm font-medium text-gray-700">Student Number</label>
+                                                                <input type="text" name="student_number" value="{{ $user->student_number }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
+                                                            </div>
+                                                        @else
+                                                            <div>
+                                                                <label class="block text-sm font-medium text-gray-700">Teacher Number</label>
+                                                                <input type="text" name="teacher_number" value="{{ $user->teacher_number }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
+                                                            </div>
+                                                            <div>
+                                                                <label class="block text-sm font-medium text-gray-700">Department</label>
+                                                                <input type="text" name="department" value="{{ $user->department }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    <div class="mt-6 flex justify-end gap-3">
+                                                        <button type="button" @click="editModal = false" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Cancel</button>
+                                                        <button type="submit" class="px-4 py-2 bg-maroon-700 text-white rounded-lg font-bold">Save Changes</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                {{-- MODAL: RESET PASSWORD --}}
+                                <template x-if="passwordModal">
+                                    <div class="fixed inset-0 z-[100] overflow-y-auto">
+                                        <div class="flex items-center justify-center min-h-screen px-4">
+                                            <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="passwordModal = false"></div>
+                                            <div class="bg-white rounded-xl shadow-xl transform transition-all sm:max-w-md sm:w-full z-[110] overflow-hidden">
+                                                <form method="POST" action="{{ route('admin.users.reset_password', $user->id) }}" class="p-6 text-left">
+                                                    @csrf
+                                                    <h3 class="text-lg font-bold text-gray-900 mb-2 text-orange-600">Reset Password</h3>
+                                                    <p class="text-sm text-gray-500 mb-4">Set a new password for {{ $user->name }}.</p>
+                                                    <div class="space-y-4">
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-700">New Password</label>
+                                                            <input type="password" name="password" required class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                                                            <input type="password" name="password_confirmation" required class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-6 flex justify-end gap-3">
+                                                        <button type="button" @click="passwordModal = false" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Cancel</button>
+                                                        <button type="submit" class="px-4 py-2 bg-orange-600 text-white rounded-lg font-bold">Update Password</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
                             </td>
                         </tr>
                     @empty

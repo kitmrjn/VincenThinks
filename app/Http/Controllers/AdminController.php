@@ -8,7 +8,8 @@ use App\Models\Question;
 use App\Models\Category;
 use App\Models\Setting;
 use App\Models\Course;
-use App\Models\User; // <--- ADDED THIS IMPORT
+use App\Models\User;
+use App\Models\AuditLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -22,6 +23,13 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('reports', 'categoryCount'));
     }
 
+    // --- AUDIT LOGS VIEW ---
+    public function auditLogs() {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        $logs = AuditLog::with('admin')->latest()->paginate(20);
+        return view('admin.audit-logs', compact('logs'));
+    }
+
     // --- CATEGORIES ---
     public function categories() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
@@ -32,13 +40,21 @@ class AdminController extends Controller
     public function storeCategory(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $request->validate(['name' => 'required|unique:categories,name']);
-        Category::create(['name' => $request->name, 'slug' => Str::slug($request->name)]);
+        $category = Category::create(['name' => $request->name, 'slug' => Str::slug($request->name)]);
+        
+        $this->logAction('Created Category', null, "Category Name: {$category->name}");
+        
         return redirect()->route('admin.categories')->with('success', 'Category created successfully!');
     }
 
     public function deleteCategory($id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
-        Category::destroy($id);
+        $category = Category::findOrFail($id);
+        $name = $category->name;
+        $category->delete();
+
+        $this->logAction('Deleted Category', null, "Category Name: {$name}");
+
         return redirect()->route('admin.categories')->with('success', 'Category deleted.');
     }
 
@@ -61,11 +77,13 @@ class AdminController extends Controller
 
         $finalType = $request->type === 'Other' ? $request->other_type : $request->type;
 
-        Course::create([
+        $course = Course::create([
             'name' => $request->name,
             'acronym' => strtoupper($request->acronym),
             'type' => $finalType
         ]);
+
+        $this->logAction('Created Course', null, "Course: {$course->acronym}");
 
         return redirect()->route('admin.courses')->with('success', 'Course/Strand added successfully!');
     }
@@ -73,7 +91,11 @@ class AdminController extends Controller
     public function deleteCourse($id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $course = Course::findOrFail($id);
+        $acronym = $course->acronym;
         $course->delete(); 
+
+        $this->logAction('Deleted Course', null, "Course: {$acronym}");
+
         return redirect()->route('admin.courses')->with('success', 'Course deleted.');
     }
 
@@ -81,7 +103,12 @@ class AdminController extends Controller
     public function deleteQuestion($id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $question = Question::findOrFail($id);
+        $title = $question->title;
+        $owner = $question->user;
         $question->delete(); 
+
+        $this->logAction('Deleted Question', $owner, "Title: {$title}");
+
         return redirect()->back()->with('success', 'Question deleted successfully.');
     }
 
@@ -106,6 +133,9 @@ class AdminController extends Controller
         if ($request->has('edit_time_limit')) {
             Setting::updateOrCreate(['key' => 'edit_time_limit'], ['value' => $request->edit_time_limit]);
         }
+
+        $this->logAction('Updated General Settings');
+
         return redirect()->back()->with('success', 'General settings updated.');
     }
 
@@ -121,16 +151,18 @@ class AdminController extends Controller
         foreach ($keys as $key) {
             Setting::updateOrCreate(['key' => $key], ['value' => $request->input($key)]);
         }
+
+        $this->logAction('Updated Email SMTP Settings');
+
         return redirect()->back()->with('success', 'Email configuration updated.');
     }
 
-    // --- NEW: USER MANAGEMENT ---
+    // --- USER MANAGEMENT ---
     public function users(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
         $query = User::with(['course'])->withCount(['questions', 'answers']);
 
-        // Search Logic
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -141,7 +173,6 @@ class AdminController extends Controller
             });
         }
 
-        // Role Filter
         if ($request->has('role')) {
             if ($request->role === 'admin') $query->where('is_admin', true);
             elseif ($request->role === 'teacher') $query->where('member_type', 'teacher');
@@ -155,13 +186,15 @@ class AdminController extends Controller
 
     public function toggleUserBan($id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
-        // Prevent banning yourself
         if (Auth::id() == $id) return back()->with('error', 'You cannot ban yourself.');
         
         $user = User::findOrFail($id);
         $user->is_banned = !$user->is_banned;
         $user->save();
         
+        $actionName = $user->is_banned ? 'Banned User' : 'Unbanned User';
+        $this->logAction($actionName, $user);
+
         $status = $user->is_banned ? 'banned' : 'activated';
         return back()->with('success', "User has been {$status}.");
     }
@@ -171,6 +204,9 @@ class AdminController extends Controller
         $user = User::findOrFail($id);
         $user->email_verified_at = now();
         $user->save();
+
+        $this->logAction('Manually Verified User', $user);
+
         return back()->with('success', 'User email verified manually.');
     }
 
@@ -179,6 +215,9 @@ class AdminController extends Controller
         $user = User::findOrFail($id);
         $user->is_admin = true;
         $user->save();
+
+        $this->logAction('Promoted to Admin', $user);
+
         return back()->with('success', 'User promoted to Administrator.');
     }
 
@@ -187,7 +226,60 @@ class AdminController extends Controller
         if (Auth::id() == $id) return back()->with('error', 'You cannot delete yourself.');
         
         $user = User::findOrFail($id);
+        $userName = $user->name;
         $user->delete();
+
+        $this->logAction('Permanently Deleted User Account', null, "Target Name: {$userName}");
+
         return back()->with('success', 'User deleted successfully.');
+    }
+
+    public function updateUser(Request $request, $id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'student_number' => 'nullable|string|max:50',
+            'teacher_number' => 'nullable|string|max:50',
+            'department' => 'nullable|string|max:100',
+        ]);
+
+        $user->update($request->only([
+            'name', 'email', 'student_number', 'teacher_number', 'department'
+        ]));
+
+        $this->logAction('Updated User Profile Info', $user);
+
+        return back()->with('success', 'User information updated successfully.');
+    }
+
+    public function resetUserPassword(Request $request, $id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        $user->save();
+
+        $this->logAction('Forced Password Reset', $user);
+
+        return back()->with('success', 'Password has been reset successfully.');
+    }
+
+    private function logAction($action, $targetUser = null, $details = null) 
+    {
+        AuditLog::create([
+            'admin_id' => Auth::id(),
+            'action' => $action,
+            'target_user_name' => $targetUser ? $targetUser->name : 'N/A',
+            'details' => $details,
+            'ip_address' => request()->ip(),
+        ]);
     }
 }

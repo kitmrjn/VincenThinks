@@ -11,10 +11,16 @@
             <i class='bx bx-error-circle mr-3 text-xl'></i><span class="font-medium">Reports</span>
         </a>
 
-        {{-- NEW: Users Link --}}
+        {{-- Users Link --}}
         <a href="{{ route('admin.users') }}" 
            class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('admin.users') ? 'bg-white/10 text-white font-bold' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
             <i class='bx bxs-user-account mr-3 text-xl'></i><span class="font-medium">Users</span>
+        </a>
+
+        {{-- NEW: Audit Logs Link --}}
+        <a href="{{ route('admin.audit_logs') }}" 
+           class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('admin.audit_logs') ? 'bg-white/10 text-white font-bold' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+            <i class='bx bx-list-ul mr-3 text-xl'></i><span class="font-medium">Audit Logs</span>
         </a>
 
         {{-- Categories Link --}}
