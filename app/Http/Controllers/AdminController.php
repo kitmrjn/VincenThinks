@@ -193,7 +193,10 @@ class AdminController extends Controller
         $user->save();
         
         $actionName = $user->is_banned ? 'Banned User' : 'Unbanned User';
-        $this->logAction($actionName, $user);
+        // --- NEW: Better description ---
+        $detailText = $user->is_banned ? 'Access suspended indefinitely.' : 'Access restored.';
+
+        $this->logAction($actionName, $user, $detailText);
 
         $status = $user->is_banned ? 'banned' : 'activated';
         return back()->with('success', "User has been {$status}.");
@@ -205,7 +208,8 @@ class AdminController extends Controller
         $user->email_verified_at = now();
         $user->save();
 
-        $this->logAction('Manually Verified User', $user);
+        // --- NEW: Better description ---
+        $this->logAction('Manually Verified User', $user, 'Marked email as verified.');
 
         return back()->with('success', 'User email verified manually.');
     }
@@ -216,7 +220,8 @@ class AdminController extends Controller
         $user->is_admin = true;
         $user->save();
 
-        $this->logAction('Promoted to Admin', $user);
+        // --- NEW: Better description ---
+        $this->logAction('Promoted to Admin', $user, 'Granted Administrator privileges.');
 
         return back()->with('success', 'User promoted to Administrator.');
     }
@@ -226,10 +231,11 @@ class AdminController extends Controller
         if (Auth::id() == $id) return back()->with('error', 'You cannot delete yourself.');
         
         $user = User::findOrFail($id);
-        $userName = $user->name;
+        $userName = $user->name; // 1. Capture the name BEFORE deleting
         $user->delete();
 
-        $this->logAction('Permanently Deleted User Account', null, "Target Name: {$userName}");
+        // 2. Pass $userName directly as the 2nd argument so it shows in the main column
+        $this->logAction('Deleted User', $userName, 'Account permanently removed.');
 
         return back()->with('success', 'User deleted successfully.');
     }
@@ -247,11 +253,23 @@ class AdminController extends Controller
             'department' => 'nullable|string|max:100',
         ]);
 
+        // Update the user
         $user->update($request->only([
             'name', 'email', 'student_number', 'teacher_number', 'department'
         ]));
 
-        $this->logAction('Updated User Profile Info', $user);
+        // --- NEW: Detect exactly what changed ---
+        $changes = $user->getChanges(); // Gets an array of changed fields
+        
+        // Remove 'updated_at' from the list because it always changes
+        unset($changes['updated_at']); 
+
+        if (!empty($changes)) {
+            // Create a string like: "Changed: name, email"
+            $details = "Changed: " . implode(', ', array_keys($changes));
+            $this->logAction('Updated Profile', $user, $details);
+        }
+        // ----------------------------------------
 
         return back()->with('success', 'User information updated successfully.');
     }
@@ -267,17 +285,30 @@ class AdminController extends Controller
         $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
         $user->save();
 
-        $this->logAction('Forced Password Reset', $user);
+        // --- NEW: Better description ---
+        $this->logAction('Forced Password Reset', $user, 'Admin forced a password reset.');
 
         return back()->with('success', 'Password has been reset successfully.');
     }
 
-    private function logAction($action, $targetUser = null, $details = null) 
+    private function logAction($action, $target = null, $details = null) 
     {
+        // Default to N/A
+        $targetName = 'N/A';
+
+        // Check if $target is a User Object (Database Model)
+        if ($target instanceof User) {
+            $targetName = $target->name;
+        } 
+        // Check if $target is just a simple String (Text) - For deleted users
+        elseif (is_string($target)) {
+            $targetName = $target;
+        }
+
         AuditLog::create([
             'admin_id' => Auth::id(),
             'action' => $action,
-            'target_user_name' => $targetUser ? $targetUser->name : 'N/A',
+            'target_user_name' => $targetName,
             'details' => $details,
             'ip_address' => request()->ip(),
         ]);

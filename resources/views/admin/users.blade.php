@@ -249,7 +249,8 @@
         
         {{-- Pagination --}}
         <div class="mt-4">
-            {{ $users->appends(request()->query())->links() }}
+            {{-- UPDATED TO USE CUSTOM PAGINATION --}}
+            {{ $users->appends(request()->query())->links('partials.pagination') }}
         </div>
     </div>
 </x-admin-layout>

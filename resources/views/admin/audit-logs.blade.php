@@ -61,15 +61,19 @@
                             </td>
 
                             {{-- Date & IP Column --}}
-                            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                                <div class="flex items-center text-gray-700 font-semibold">
-                                    <i class='bx bx-calendar mr-1'></i> {{ $log->created_at->format('M d, Y') }}
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                {{-- Date and Time --}}
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ $log->created_at->format('M d, Y') }}
                                 </div>
-                                <div class="flex items-center mt-0.5 text-gray-400">
-                                    <i class='bx bx-time-five mr-1'></i> {{ $log->created_at->format('h:i A') }}
-                                    <span class="mx-1">•</span>
-                                    <span class="font-mono">{{ $log->ip_address }}</span>
+                                <div class="text-xs text-gray-500 mb-1">
+                                    {{ $log->created_at->format('h:i A') }}
                                 </div>
+
+                                {{-- IP Badge --}}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 font-mono border border-gray-200">
+                                    {{ $log->ip_address }}
+                                </span>
                             </td>
                         </tr>
                     @empty
@@ -89,7 +93,8 @@
 
         {{-- Pagination --}}
         <div class="mt-4">
-            {{ $logs->links() }}
+            {{-- UPDATED TO USE CUSTOM PAGINATION --}}
+            {{ $logs->links('partials.pagination') }}
         </div>
     </div>
 </x-admin-layout>
