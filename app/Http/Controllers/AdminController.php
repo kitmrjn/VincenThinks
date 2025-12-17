@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\Category;
 use App\Models\Setting;
 use App\Models\Course;
+use App\Models\Department;
 use App\Models\User;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Auth;
@@ -161,7 +162,8 @@ class AdminController extends Controller
     public function users(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
-        $query = User::with(['course'])->withCount(['questions', 'answers']);
+        // Eager load 'course' and 'department' for the table and modals
+        $query = User::with(['course', 'department'])->withCount(['questions', 'answers']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -181,7 +183,12 @@ class AdminController extends Controller
         }
 
         $users = $query->latest()->paginate(10);
-        return view('admin.users', compact('users'));
+        
+        // --- NEW: Fetch these for the Edit Modals ---
+        $allDepartments = Department::orderBy('name')->get();
+        $courses = Course::orderBy('name')->get();
+
+        return view('admin.users', compact('users', 'allDepartments', 'courses'));
     }
 
     public function toggleUserBan($id) {
@@ -250,26 +257,22 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'student_number' => 'nullable|string|max:50',
             'teacher_number' => 'nullable|string|max:50',
-            'department' => 'nullable|string|max:100',
+            'course_id' => 'nullable|exists:courses,id',
+            'department_id' => 'nullable|exists:departments,id', // Validates against DB
         ]);
 
-        // Update the user
+        // Update the user using department_id instead of string
         $user->update($request->only([
-            'name', 'email', 'student_number', 'teacher_number', 'department'
+            'name', 'email', 'student_number', 'teacher_number', 'course_id', 'department_id'
         ]));
 
-        // --- NEW: Detect exactly what changed ---
-        $changes = $user->getChanges(); // Gets an array of changed fields
-        
-        // Remove 'updated_at' from the list because it always changes
+        $changes = $user->getChanges();
         unset($changes['updated_at']); 
 
         if (!empty($changes)) {
-            // Create a string like: "Changed: name, email"
             $details = "Changed: " . implode(', ', array_keys($changes));
             $this->logAction('Updated Profile', $user, $details);
         }
-        // ----------------------------------------
 
         return back()->with('success', 'User information updated successfully.');
     }
@@ -312,5 +315,28 @@ class AdminController extends Controller
             'details' => $details,
             'ip_address' => request()->ip(),
         ]);
+    }
+
+    public function departments() {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        $departments = Department::all();
+        return view('admin.departments', compact('departments'));
+    }
+
+    public function storeDepartment(Request $request) {
+        $request->validate([
+            'name' => 'required|unique:departments,name', 
+            'acronym' => 'nullable|string|max:10'
+        ]);
+
+        // Use only() instead of all() to ignore the security _token
+        Department::create($request->only(['name', 'acronym']));
+
+        return back()->with('success', 'Department added successfully.');
+    }
+
+    public function deleteDepartment($id) {
+        Department::findOrFail($id)->delete();
+        return back()->with('success', 'Department deleted.');
     }
 }

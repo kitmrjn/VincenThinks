@@ -42,6 +42,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/course', [AdminController::class, 'storeCourse'])->name('admin.course.store');
     Route::delete('/admin/course/{id}', [AdminController::class, 'deleteCourse'])->name('admin.course.delete');
 
+    // Departments Management
+    Route::get('/admin/departments', [AdminController::class, 'departments'])->name('admin.departments');
+    Route::post('/admin/department', [AdminController::class, 'storeDepartment'])->name('admin.department.store');
+    Route::delete('/admin/department/{id}', [AdminController::class, 'deleteDepartment'])->name('admin.department.delete');
+
     // Settings
     Route::prefix('admin/settings')->name('admin.settings.')->group(function() {
         Route::get('/general', [AdminController::class, 'generalSettings'])->name('general');

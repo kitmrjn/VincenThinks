@@ -27,7 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'member_type', // student, teacher
         'student_number',
         'course_id',
-        'department', 
+        'department_id', 
         'teacher_number',
     ];
 
@@ -57,4 +57,5 @@ class User extends Authenticatable implements MustVerifyEmail
     public function questions(){ return $this->hasMany(Question::class);}
     public function answers(){ return $this->hasMany(Answer::class);}
     public function course() { return $this->belongsTo(Course::class); }
+    public function department() { return $this->belongsTo(Department::class); }
 }

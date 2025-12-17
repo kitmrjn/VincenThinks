@@ -2,18 +2,21 @@
     <form method="POST" action="{{ route('register') }}" x-data="{ role: '{{ old('member_type', 'student') }}' }">
         @csrf
 
+        {{-- Name --}}
         <div>
             <x-input-label for="name" :value="__('Name')" />
             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
 
+        {{-- Email --}}
         <div class="mt-4">
             <x-input-label for="email" :value="__('Email')" />
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
+        {{-- Member Type --}}
         <div class="mt-4">
             <x-input-label for="member_type" :value="__('I am a...')" />
             <select id="member_type" name="member_type" x-model="role" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
@@ -24,7 +27,7 @@
         </div>
 
         {{-- STUDENT FIELDS --}}
-        <div x-show="role === 'student'" class="space-y-4 mt-4 transition-all" style="display: none;">
+        <div x-show="role === 'student'" class="space-y-4 mt-4 transition-all">
             <div>
                 <x-input-label for="student_number" :value="__('Student Number')" />
                 <x-text-input id="student_number" class="block mt-1 w-full" type="text" name="student_number" :value="old('student_number')" placeholder="e.g., AY2023-00123" />
@@ -52,33 +55,31 @@
         </div>
 
         {{-- TEACHER FIELDS --}}
-        <div x-show="role === 'teacher'" class="space-y-4 mt-4 transition-all" style="display: none;">
-            
-            {{-- Teacher Number (Updated Placeholder) --}}
+        <div x-show="role === 'teacher'" class="space-y-4 mt-4 transition-all">
             <div>
                 <x-input-label for="teacher_number" :value="__('Teacher Number')" />
-                <x-text-input id="teacher_number" class="block mt-1 w-full" type="text" name="teacher_number" :value="old('teacher_number')" placeholder="e.g., AY2023-00123" />
+                <x-text-input id="teacher_number" class="block mt-1 w-full" type="text" name="teacher_number" :value="old('teacher_number')" placeholder="e.g., ID-2023-99" />
                 <x-input-error :messages="$errors->get('teacher_number')" class="mt-2" />
             </div>
 
-            {{-- Department Dropdown --}}
+            {{-- DYNAMIC DEPARTMENT DROPDOWN --}}
             <div>
-                <x-input-label for="department" :value="__('Department / Faculty')" />
-                <select id="department" name="department" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                <x-input-label for="department_id" :value="__('Department / Faculty')" />
+                <select id="department_id" name="department_id" class="block mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
                     <option value="" disabled selected>Select Department...</option>
-                    <option value="Math Dept" {{ old('department') == 'Math Dept' ? 'selected' : '' }}>Mathematics Department</option>
-                    <option value="Science Dept" {{ old('department') == 'Science Dept' ? 'selected' : '' }}>Science Department</option>
-                    <option value="English Dept" {{ old('department') == 'English Dept' ? 'selected' : '' }}>English Department</option>
-                    <option value="Filipino Dept" {{ old('department') == 'Filipino Dept' ? 'selected' : '' }}>Filipino Department</option>
-                    <option value="Social Sciences" {{ old('department') == 'Social Sciences' ? 'selected' : '' }}>Social Sciences</option>
-                    <option value="IT / CS Dept" {{ old('department') == 'IT / CS Dept' ? 'selected' : '' }}>IT / Computer Science</option>
-                    <option value="MAPEH Dept" {{ old('department') == 'MAPEH Dept' ? 'selected' : '' }}>MAPEH Department</option>
-                    <option value="Senior High Faculty" {{ old('department') == 'Senior High Faculty' ? 'selected' : '' }}>Senior High School Faculty</option>
+                    @if(isset($departments))
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                {{ $dept->name }} @if($dept->acronym) ({{ $dept->acronym }}) @endif
+                            </option>
+                        @endforeach
+                    @endif
                 </select>
-                <x-input-error :messages="$errors->get('department')" class="mt-2" />
+                <x-input-error :messages="$errors->get('department_id')" class="mt-2" />
             </div>
         </div>
 
+        {{-- Password --}}
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
             <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
