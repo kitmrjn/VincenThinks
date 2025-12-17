@@ -67,6 +67,12 @@ class ForumController extends Controller
 
     // 2. STORE QUESTION
     public function storeQuestion(Request $request) {
+        // --- DYNAMIC VERIFICATION CHECK ---
+        $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
+        if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
+            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to post.');
+        }
+
         $request->validate([
             'title' => 'required',
             'category_id' => 'required|exists:categories,id',
@@ -145,6 +151,12 @@ class ForumController extends Controller
     
     // 4. STORE ANSWER
     public function storeAnswer(Request $request, $id) {
+        // --- DYNAMIC VERIFICATION CHECK ---
+        $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
+        if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
+            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to post.');
+        }
+
         $question = Question::findOrFail($id);
 
         if (Auth::id() === $question->user_id) {
@@ -182,6 +194,12 @@ class ForumController extends Controller
 
     // 5. STORE REPLY
     public function storeReply(Request $request, $answerId) {
+        // --- DYNAMIC VERIFICATION CHECK ---
+        $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
+        if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
+            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to reply.');
+        }
+
         $request->validate([
             'parent_id' => 'nullable|exists:replies,id',
             'content' => ['required', function ($attribute, $value, $fail) {

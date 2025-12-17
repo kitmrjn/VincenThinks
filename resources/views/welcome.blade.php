@@ -27,43 +27,24 @@
     </style>
 </head>
 
-{{-- GLOBAL STATE: mobileMenuOpen controls the Filter Sidebar --}}
 <body class="bg-gray-100 font-sans leading-normal tracking-normal flex flex-col min-h-screen" x-data="{ mobileMenuOpen: false }">
 
     @include('partials.navbar')
 
     <div class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8">
 
-        {{-- MOBILE FILTER DRAWER (Triggered by Navbar Filter Button) --}}
+        {{-- MOBILE FILTER DRAWER --}}
         <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-            {{-- Backdrop --}}
-            <div x-show="mobileMenuOpen" 
-                 x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" 
-                 x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="mobileMenuOpen = false"></div>
-
-            {{-- Sidebar Panel --}}
-            <div x-show="mobileMenuOpen" 
-                 x-transition:enter="transition ease-in-out duration-300 transform" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" 
-                 x-transition:leave="transition ease-in-out duration-300 transform" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full"
-                 class="relative mr-auto flex h-full w-4/5 max-w-xs flex-col overflow-y-auto bg-white shadow-2xl">
-                
+            <div x-show="mobileMenuOpen" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="mobileMenuOpen = false"></div>
+            <div x-show="mobileMenuOpen" class="relative mr-auto flex h-full w-4/5 max-w-xs flex-col overflow-y-auto bg-white shadow-2xl">
                 <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-                    <h2 class="text-lg font-bold text-gray-800 flex items-center">
-                        <i class='bx bx-category text-maroon-700 mr-2'></i> Categories
-                    </h2>
-                    <button @click="mobileMenuOpen = false" class="text-gray-400 hover:text-gray-600 transition">
-                        <i class='bx bx-x text-3xl'></i>
-                    </button>
+                    <h2 class="text-lg font-bold text-gray-800 flex items-center"><i class='bx bx-category text-maroon-700 mr-2'></i> Categories</h2>
+                    <button @click="mobileMenuOpen = false" class="text-gray-400 hover:text-gray-600 transition"><i class='bx bx-x text-3xl'></i></button>
                 </div>
-
                 <nav class="p-4 space-y-1">
-                    <a href="{{ route('home') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}">
-                        <i class='bx bx-grid-alt mr-3 text-lg'></i> All Topics
-                    </a>
+                    <a href="{{ route('home') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}"><i class='bx bx-grid-alt mr-3 text-lg'></i> All Topics</a>
                     @foreach($categories as $cat)
-                        <a href="{{ route('home', array_merge(request()->query(), ['category' => $cat->id])) }}" 
-                           class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}">
+                        <a href="{{ route('home', array_merge(request()->query(), ['category' => $cat->id])) }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}">
                             <span class="w-2 h-2 rounded-full bg-gray-300 mr-3 {{ request('category') == $cat->id ? 'bg-maroon-700' : '' }}"></span>
                             {{ $cat->name }}
                         </a>
@@ -75,7 +56,6 @@
         {{-- DESKTOP SIDEBAR --}}
         <aside class="hidden lg:block w-64 flex-shrink-0">
             <div class="sticky top-24 space-y-6">
-                {{-- Category Filter Widget --}}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5" x-data="{ search: '' }">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter by Topic</h3>
                     <div class="relative mb-4">
@@ -83,20 +63,12 @@
                         <input type="text" x-model="search" placeholder="Find..." class="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-maroon-700 bg-gray-50 focus:bg-white transition">
                     </div>
                     <nav class="space-y-1 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                        <a href="{{ route('home') }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                            <span>All Discussions</span>
-                        </a>
+                        <a href="{{ route('home') }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>All Discussions</span></a>
                         @foreach($categories as $cat)
-                            <a href="{{ route('home', array_merge(request()->query(), ['category' => $cat->id])) }}" 
-                               x-show="$el.innerText.toLowerCase().includes(search.toLowerCase())"
-                               class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                                <span>{{ $cat->name }}</span>
-                            </a>
+                            <a href="{{ route('home', array_merge(request()->query(), ['category' => $cat->id])) }}" x-show="$el.innerText.toLowerCase().includes(search.toLowerCase())" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>{{ $cat->name }}</span></a>
                         @endforeach
                     </nav>
                 </div>
-
-                {{-- Quick Links Widget --}}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
                     <ul class="space-y-3 text-sm text-gray-600">
@@ -116,7 +88,8 @@
             @endif
 
             @auth
-                @if (Auth::user()->hasVerifiedEmail())
+                {{-- UPDATED CONDITION: Check logic for Verification Toggle --}}
+                @if (!$verification_required || Auth::user()->hasVerifiedEmail())
                     {{-- Ask Question Box --}}
                     <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200 relative overflow-hidden group">
                         <div class="absolute top-0 left-0 w-1 h-full bg-maroon-700"></div>
@@ -192,25 +165,10 @@
                     $inactiveClasses = "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700";
                 @endphp
 
-                <a href="{{ route('home', array_merge(request()->except('filter'), ['page' => 1])) }}"
-                   class="{{ $baseClasses }} {{ !$currentFilter ? $activeClasses : $inactiveClasses }}">
-                   All
-                </a>
-
-                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'solved', 'page' => 1])) }}"
-                   class="{{ $baseClasses }} {{ $currentFilter === 'solved' ? $activeClasses : $inactiveClasses }}">
-                   <i class='bx bx-check-circle mr-1'></i> Solved
-                </a>
-
-                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}"
-                   class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}">
-                   <i class='bx bx-question-mark mr-1'></i> Unsolved
-                </a>
-
-                 <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}"
-                   class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}">
-                   <i class='bx bx-message-square-x mr-1'></i> No Answers
-                </a>
+                <a href="{{ route('home', array_merge(request()->except('filter'), ['page' => 1])) }}" class="{{ $baseClasses }} {{ !$currentFilter ? $activeClasses : $inactiveClasses }}">All</a>
+                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'solved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'solved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-check-circle mr-1'></i> Solved</a>
+                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-question-mark mr-1'></i> Unsolved</a>
+                 <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-message-square-x mr-1'></i> No Answers</a>
             </div>
 
             @if(request('search'))
@@ -236,14 +194,11 @@
                                 <div class="flex justify-between items-start mb-3">
                                     <div class="flex items-center text-xs text-gray-400 font-light">
                                         <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
-                                        
-                                        {{-- USER FLAIR --}}
                                         @if($q->user->member_type === 'student' && $q->user->course)
                                             <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
                                         @elseif($q->user->member_type === 'teacher' && $q->user->department)
                                             <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $q->user->department }}</span>
                                         @endif
-
                                         <span class="mx-1">•</span>
                                         <span>{{ $q->created_at->diffForHumans() }}</span>
                                         @if($q->category)

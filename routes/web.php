@@ -20,7 +20,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/admin/question/{id}/delete', [AdminController::class, 'deleteQuestion'])->name('admin.delete_question');
     Route::delete('/admin/report/{id}/dismiss', [AdminController::class, 'dismissReport'])->name('admin.dismiss_report');
 
-    // --- NEW: User Management Routes ---
+    // User Management
     Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
     Route::post('/admin/users/{id}/ban', [AdminController::class, 'toggleUserBan'])->name('admin.users.ban');
     Route::post('/admin/users/{id}/verify', [AdminController::class, 'verifyUser'])->name('admin.users.verify');
@@ -42,22 +42,20 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/course', [AdminController::class, 'storeCourse'])->name('admin.course.store');
     Route::delete('/admin/course/{id}', [AdminController::class, 'deleteCourse'])->name('admin.course.delete');
 
-    // NEW SEPARATED SETTINGS
+    // Settings
     Route::prefix('admin/settings')->name('admin.settings.')->group(function() {
-        // General Rules (Verification, Timers)
         Route::get('/general', [AdminController::class, 'generalSettings'])->name('general');
         Route::post('/general', [AdminController::class, 'updateGeneralSettings'])->name('general.update');
-
-        // Email Configuration (SMTP)
         Route::get('/email', [AdminController::class, 'emailSettings'])->name('email');
         Route::post('/email', [AdminController::class, 'updateEmailSettings'])->name('email.update');
     });
 });
 
 // --- AUTHENTICATED USER ROUTES ---
-Route::middleware(['auth', 'verified'])->group(function () {
+// REMOVED 'verified' middleware so the admin toggle can control access instead
+Route::middleware(['auth'])->group(function () {
     
-    // --- NEW: Profile Editing Routes ---
+    // Profile Editing
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
