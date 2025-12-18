@@ -27,6 +27,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/users/{id}/promote', [AdminController::class, 'promoteToAdmin'])->name('admin.users.promote');
     Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
     Route::get('/admin/audit-logs', [AdminController::class, 'auditLogs'])->name('admin.audit_logs');
+    // Departments Management
+    Route::get('/admin/departments', [AdminController::class, 'departments'])->name('admin.departments');
+    Route::post('/admin/department', [AdminController::class, 'storeDepartment'])->name('admin.department.store');
+    Route::delete('/admin/department/{id}', [AdminController::class, 'deleteDepartment'])->name('admin.department.delete');
 
     // User Update & Password Reset
     Route::post('/admin/users/{id}/update', [AdminController::class, 'updateUser'])->name('admin.users.update');
@@ -41,11 +45,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/courses', [AdminController::class, 'courses'])->name('admin.courses');
     Route::post('/admin/course', [AdminController::class, 'storeCourse'])->name('admin.course.store');
     Route::delete('/admin/course/{id}', [AdminController::class, 'deleteCourse'])->name('admin.course.delete');
-
-    // Departments Management
-    Route::get('/admin/departments', [AdminController::class, 'departments'])->name('admin.departments');
-    Route::post('/admin/department', [AdminController::class, 'storeDepartment'])->name('admin.department.store');
-    Route::delete('/admin/department/{id}', [AdminController::class, 'deleteDepartment'])->name('admin.department.delete');
 
     // Settings
     Route::prefix('admin/settings')->name('admin.settings.')->group(function() {
