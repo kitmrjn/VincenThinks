@@ -23,14 +23,18 @@
                     @csrf
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Acronym / Code</label>
-                        <input type="text" name="acronym" placeholder="E.g. CAS, IT-CS" 
+                        <input type="text" name="acronym" placeholder="E.g. CAS, IT-CS" value="{{ old('acronym') }}"
                                class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-maroon-700 focus:ring-0 text-sm transition">
+                        {{-- ADDED ERROR MESSAGE DISPLAY --}}
+                        @error('acronym') <span class="text-xs text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
                         <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Department Name</label>
-                        <input type="text" name="name" required placeholder="e.g. College of Arts and Sciences" 
+                        <input type="text" name="name" required placeholder="e.g. College of Arts and Sciences" value="{{ old('name') }}"
                                class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-maroon-700 focus:ring-0 text-sm transition">
+                        {{-- ADDED ERROR MESSAGE DISPLAY --}}
+                        @error('name') <span class="text-xs text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <button type="submit" class="w-full bg-maroon-700 hover:bg-maroon-800 text-white font-bold py-2.5 rounded-lg transition shadow-sm flex items-center justify-center">

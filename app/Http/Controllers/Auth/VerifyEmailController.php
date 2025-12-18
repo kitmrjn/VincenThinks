@@ -15,16 +15,15 @@ class VerifyEmailController extends Controller
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            // If already verified, redirect without a new message
-            return redirect()->intended(route('home', absolute: false).'?verified=1');
+            // --- FIXED: Redirect to 'home' ---
+            return redirect()->intended(route('home', absolute: false) . '?verified=1');
         }
 
         if ($request->user()->markEmailAsVerified()) {
             event(new Verified($request->user()));
         }
 
-        // Redirect with a friendly 'status' message after successful verification
-        return redirect()->intended(route('home', absolute: false).'?verified=1')
-                         ->with('status', 'Success! Your email address has been verified. You can now post questions and answers.');
+        // --- FIXED: Redirect to 'home' ---
+        return redirect()->intended(route('home', absolute: false) . '?verified=1');
     }
 }

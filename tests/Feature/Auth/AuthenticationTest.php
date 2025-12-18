@@ -19,15 +19,19 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
+        // Create a user (Factory handles member_type automatically)
         $user = User::factory()->create();
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            // Your custom login logic expects 'login' and 'login_type'
+            'login' => $user->email, 
             'password' => 'password',
+            'login_type' => $user->member_type, // 'student' or 'teacher'
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        
+        $response->assertRedirect(route('home', absolute: false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -35,8 +39,9 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
 
         $this->post('/login', [
-            'email' => $user->email,
+            'login' => $user->email,
             'password' => 'wrong-password',
+            'login_type' => $user->member_type, // Must provide this too
         ]);
 
         $this->assertGuest();

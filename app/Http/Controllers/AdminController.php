@@ -162,7 +162,6 @@ class AdminController extends Controller
     public function users(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
-        // --- FIXED: Changed 'department' to 'departmentInfo' ---
         $query = User::with(['course', 'departmentInfo'])->withCount(['questions', 'answers']);
 
         if ($request->has('search')) {
@@ -320,7 +319,8 @@ class AdminController extends Controller
     public function storeDepartment(Request $request) {
         $request->validate([
             'name' => 'required|unique:departments,name', 
-            'acronym' => 'nullable|string|max:10'
+            // --- FIXED: Increased max length from 10 to 50 ---
+            'acronym' => 'nullable|string|max:50'
         ]);
 
         Department::create($request->only(['name', 'acronym']));
