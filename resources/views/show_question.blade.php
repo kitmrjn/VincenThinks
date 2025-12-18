@@ -23,10 +23,9 @@
         pre { border-radius: 0.5rem; }
         [x-cloak] { display: none !important; }
 
-        /* --- BASE IMAGE (Question & Main Answers) --- */
         .prose img {
             max-width: 100%;
-            max-height: 500px;     /* Standard Height */
+            max-height: 500px;     
             width: auto;
             height: auto;
             display: block;
@@ -36,22 +35,12 @@
             background-color: #f9fafb;
             object-fit: contain;
             cursor: zoom-in;
-            transition: all 0.2s ease; /* Smooth transition */
+            transition: all 0.2s ease; 
         }
 
-        /* --- LEVEL 1: REPLIES (Smaller) --- */
-        .ml-11 .prose img {
-            max-height: 350px !important; 
-            max-width: 80%;              
-        }
+        .ml-11 .prose img { max-height: 350px !important; max-width: 80%; }
+        .ml-11 .ml-11 .prose img { max-height: 200px !important; max-width: 60%; }
 
-        /* --- LEVEL 2+: NESTED REPLIES (Smallest) --- */
-        .ml-11 .ml-11 .prose img {
-            max-height: 200px !important; 
-            max-width: 60%;               
-        }
-
-        /* Lightbox Zoom Animation */
         @keyframes zoom-in {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -112,8 +101,9 @@
                             {{-- QUESTION AUTHOR FLAIR --}}
                             @if($question->user->member_type === 'student' && $question->user->course)
                                 <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $question->user->course->name }}">{{ $question->user->course->acronym }}</span>
-                            @elseif($question->user->member_type === 'teacher' && $question->user->department)
-                                <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $question->user->department }}</span>
+                            {{-- FIXED: Use departmentInfo --}}
+                            @elseif($question->user->member_type === 'teacher' && $question->user->departmentInfo)
+                                <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $question->user->departmentInfo->name }}</span>
                             @endif
                         </div>
                         <div class="text-xs text-gray-500 font-light flex items-center flex-wrap">
@@ -180,7 +170,7 @@
                 {!! $question->content !!}
             </div>
 
-            {{-- ATTACHMENTS (Legacy Support) --}}
+            {{-- ATTACHMENTS --}}
             @if($question->images->count() > 0)
                 <div class="mb-8">
                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center">
@@ -282,8 +272,9 @@
                                 {{-- ANSWER AUTHOR FLAIR --}}
                                 @if($answer->user->member_type === 'student' && $answer->user->course)
                                     <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $answer->user->course->name }}">{{ $answer->user->course->acronym }}</span>
-                                @elseif($answer->user->member_type === 'teacher' && $answer->user->department)
-                                    <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $answer->user->department }}</span>
+                                {{-- FIXED: Use departmentInfo --}}
+                                @elseif($answer->user->member_type === 'teacher' && $answer->user->departmentInfo)
+                                    <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $answer->user->departmentInfo->name }}</span>
                                 @endif
                             </div>
                             <span class="text-xs text-gray-400 font-light">

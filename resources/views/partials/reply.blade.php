@@ -18,8 +18,9 @@
                 {{-- REPLY AUTHOR FLAIR --}}
                 @if($reply->user->member_type === 'student' && $reply->user->course)
                     <span class="text-[9px] font-bold text-blue-600 bg-blue-50 px-1 py-0.5 rounded border border-blue-100 mr-2" title="{{ $reply->user->course->name }}">{{ $reply->user->course->acronym }}</span>
-                @elseif($reply->user->member_type === 'teacher' && $reply->user->department)
-                    <span class="text-[9px] font-bold text-purple-600 bg-purple-50 px-1 py-0.5 rounded border border-purple-100 mr-2">{{ $reply->user->department }}</span>
+                {{-- FIXED: Use departmentInfo --}}
+                @elseif($reply->user->member_type === 'teacher' && $reply->user->departmentInfo)
+                    <span class="text-[9px] font-bold text-purple-600 bg-purple-50 px-1 py-0.5 rounded border border-purple-100 mr-2">{{ $reply->user->departmentInfo->name }}</span>
                 @endif
 
                 <span class="text-[10px] text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Department; 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,10 +17,12 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
-        // We might not need this anymore if we are using the profile page, 
-        // but keeping it for safety or direct access.
+        // Fetch departments from database
+        $departments = Department::orderBy('name')->get();
+
         return view('profile.edit', [
             'user' => $request->user(),
+            'departments' => $departments, 
         ]);
     }
 
@@ -32,18 +35,14 @@ class ProfileController extends Controller
         $user->fill($request->validated());
 
         if ($user->isDirty('email')) {
-            // 1. Reset verification status
             $user->email_verified_at = null;
-            
-            // 2. Save the new email to database FIRST
             $user->save();
-            
-            // 3. Send the email immediately
             $user->sendEmailVerificationNotification();
         } else {
             $user->save();
         }
 
+        // --- FIXED: Redirect to the Public Profile 'Settings' tab instead of the generic edit page ---
         return Redirect::route('user.profile', ['id' => $user->id, 'tab' => 'settings'])
                         ->with('status', 'profile-updated');
     }

@@ -6,13 +6,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
-use Illuminate\Support\Str; // Added Str import for the view logic if needed here, but mostly used in blade
+use App\Models\Department; // <--- ADD THIS
+use Illuminate\Support\Str;
 
 class UserProfileController extends Controller
 {
     public function show($id)
     {
-        // UPDATED: Eager load 'course' alongside existing relations
+        // Eager load relationships
         $user = User::with(['course', 'answers.question.answers.ratings'])->findOrFail($id);
 
         // --- STATS LOGIC ---
@@ -46,7 +47,10 @@ class UserProfileController extends Controller
                              ->latest()
                              ->paginate(5, ['*'], 'answers_page');
 
-        return view('profile.show', compact('user', 'solvedCount', 'topRatedCount', 'questions_list', 'answers_list'));
+        // --- NEW: Fetch Departments for the Settings Tab ---
+        $departments = Department::orderBy('name')->get();
+
+        return view('profile.show', compact('user', 'solvedCount', 'topRatedCount', 'questions_list', 'answers_list', 'departments'));
     }
 
     public function updateAvatar(Request $request)

@@ -104,8 +104,11 @@
 
                             @if($user->member_type === 'student' && $user->course)
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border cursor-help {{ $user->course->type == 'College' ? 'bg-blue-50 text-blue-700 border-blue-200' : ($user->course->type == 'SHS' ? 'bg-orange-50 text-orange-700 border-orange-200' : ($user->course->type == 'JHS' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-purple-50 text-purple-700 border-purple-200')) }}" title="{{ $user->course->name }}">{{ $user->course->acronym }}</span>
-                            @elseif($user->member_type === 'teacher' && $user->department)
-                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">{{ $user->department }}</span>
+                            @elseif($user->member_type === 'teacher' && $user->departmentInfo)
+                                 {{-- FIXED: Use departmentInfo relationship for display --}}
+                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                    {{ $user->departmentInfo->name }}
+                                 </span>
                             @endif
                         </div>
 
@@ -136,8 +139,6 @@
                         <div class="h-10 w-px bg-gray-200"></div>
                         <div class="flex flex-col items-center"><span class="font-bold text-gray-900 text-lg">{{ $user->answers->count() }}</span><span>Answers</span></div>
                     </div>
-
-                    {{-- REMOVED: Redundant "Edit Settings" button was here --}}
                 </div>
             </div>
 
@@ -265,7 +266,6 @@
 
                                             <div>
                                                 <x-input-label for="name" :value="__('Name')" />
-                                                {{-- Added explicit bg-white text-gray-900 to override dark mode --}}
                                                 <x-text-input id="name" name="name" type="text" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-maroon-700 focus:ring-maroon-700 py-3 px-4 bg-white text-gray-900" :value="old('name', $user->name)" required autofocus autocomplete="name" />
                                                 <x-input-error class="mt-2" :messages="$errors->get('name')" />
                                             </div>
@@ -303,17 +303,21 @@
                                                     <x-input-error class="mt-2" :messages="$errors->get('teacher_number')" />
                                                 </div>
                                                 <div>
-                                                    <x-input-label for="department" :value="__('Department / Faculty')" />
-                                                    <select id="department" name="department" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-maroon-700 focus:ring-maroon-700 py-3 px-4 bg-white text-gray-900">
-                                                        <option value="" disabled {{ !$user->department ? 'selected' : '' }}>Select Department...</option>
-                                                        <option value="Math Dept" {{ old('department', $user->department) == 'Math Dept' ? 'selected' : '' }}>Mathematics Dept</option>
-                                                        <option value="Science Dept" {{ old('department', $user->department) == 'Science Dept' ? 'selected' : '' }}>Science Dept</option>
-                                                        <option value="English Dept" {{ old('department', $user->department) == 'English Dept' ? 'selected' : '' }}>English Dept</option>
-                                                        <option value="Filipino Dept" {{ old('department', $user->department) == 'Filipino Dept' ? 'selected' : '' }}>Filipino Dept</option>
-                                                        <option value="Social Sciences" {{ old('department', $user->department) == 'Social Sciences' ? 'selected' : '' }}>Social Sciences</option>
-                                                        <option value="IT / CS Dept" {{ old('department', $user->department) == 'IT / CS Dept' ? 'selected' : '' }}>IT / Computer Science</option>
+                                                    <x-input-label for="department_id" :value="__('Department / Faculty')" />
+                                                    
+                                                    {{-- FIXED: Dynamic Dropdown using 'department_id' --}}
+                                                    <select id="department_id" name="department_id" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-maroon-700 focus:ring-maroon-700 py-3 px-4 bg-white text-gray-900">
+                                                        <option value="" disabled {{ !$user->department_id ? 'selected' : '' }}>Select Department...</option>
+                                                        
+                                                        @if(isset($departments))
+                                                            @foreach($departments as $dept)
+                                                                <option value="{{ $dept->id }}" {{ old('department_id', $user->department_id) == $dept->id ? 'selected' : '' }}>
+                                                                    {{ $dept->name }} @if($dept->acronym) ({{ $dept->acronym }}) @endif
+                                                                </option>
+                                                            @endforeach
+                                                        @endif
                                                     </select>
-                                                    <x-input-error class="mt-2" :messages="$errors->get('department')" />
+                                                    <x-input-error class="mt-2" :messages="$errors->get('department_id')" />
                                                 </div>
                                             @endif
 

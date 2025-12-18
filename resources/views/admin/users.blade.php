@@ -92,7 +92,8 @@
                                         @if($user->member_type == 'student')
                                             {{ $user->student_number }} • {{ $user->course->acronym ?? 'N/A' }}
                                         @else
-                                            {{ $user->teacher_number }} • {{ $user->department->acronym ?? ($user->department->name ?? 'N/A') }}
+                                            {{-- FIXED: Use departmentInfo --}}
+                                            {{ $user->teacher_number }} • {{ $user->departmentInfo->acronym ?? ($user->departmentInfo->name ?? 'N/A') }}
                                         @endif
                                     </span>
                                 </div>
@@ -127,7 +128,6 @@
                                         </button>
                                         
                                         <div x-show="openDropdown" class="absolute right-0 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-100 mt-2 origin-top-right" style="display: none;">
-                                            {{-- NOTE: We are using a simple anchor for Edit for now, or you can use a separate shared modal for editing --}}
                                             <button @click="activeModal = 'edit_{{ $user->id }}'; openDropdown = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"><i class='bx bx-edit-alt mr-2 text-blue-600'></i> Edit Info</button>
                                             
                                             <button @click="activeModal = 'password_{{ $user->id }}'; openDropdown = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"><i class='bx bx-key mr-2 text-orange-600'></i> Reset Password</button>
@@ -156,11 +156,6 @@
                                     </div>
                                 </div>
                                 
-                                {{-- 
-                                    INDIVIDUAL EDIT/PASSWORD MODALS
-                                    Since Edit forms need complex data binding (old values), keeping them per row IS safer for data integrity
-                                    unless we use a full JS component. We will keep these two here but use x-teleport to fix the z-index.
-                                --}}
                                 <template x-if="activeModal === 'edit_{{ $user->id }}'">
                                     @include('admin.partials.edit-user-modal', ['user' => $user, 'allDepartments' => $allDepartments, 'courses' => $courses])
                                 </template>
@@ -187,9 +182,7 @@
             {{ $users->appends(request()->query())->links('partials.pagination') }}
         </div>
 
-        {{-- ================= SHARED MODALS (OUTSIDE THE TABLE) ================= --}}
-        
-        {{-- 1. SHARED BAN MODAL --}}
+        {{-- SHARED MODALS --}}
         <div x-show="activeModal === 'ban'" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="activeModal = null"></div>
@@ -216,7 +209,6 @@
             </div>
         </div>
 
-        {{-- 2. SHARED PROMOTE MODAL --}}
         <div x-show="activeModal === 'promote'" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="activeModal = null"></div>
@@ -241,7 +233,6 @@
             </div>
         </div>
 
-        {{-- 3. SHARED DELETE MODAL --}}
         <div x-show="activeModal === 'delete'" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="activeModal = null"></div>

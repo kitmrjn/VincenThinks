@@ -58,7 +58,7 @@
         <div x-show="role === 'teacher'" class="space-y-4 mt-4 transition-all">
             <div>
                 <x-input-label for="teacher_number" :value="__('Teacher Number')" />
-                <x-text-input id="teacher_number" class="block mt-1 w-full" type="text" name="teacher_number" :value="old('teacher_number')" placeholder="e.g., ID-2023-99" />
+                <x-text-input id="teacher_number" class="block mt-1 w-full" type="text" name="teacher_number" :value="old('teacher_number')" placeholder="e.g., AY2023-00123" />
                 <x-input-error :messages="$errors->get('teacher_number')" class="mt-2" />
             </div>
 

@@ -162,8 +162,8 @@ class AdminController extends Controller
     public function users(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
-        // Eager load 'course' and 'department' for the table and modals
-        $query = User::with(['course', 'department'])->withCount(['questions', 'answers']);
+        // --- FIXED: Changed 'department' to 'departmentInfo' ---
+        $query = User::with(['course', 'departmentInfo'])->withCount(['questions', 'answers']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -184,7 +184,6 @@ class AdminController extends Controller
 
         $users = $query->latest()->paginate(10);
         
-        // --- NEW: Fetch these for the Edit Modals ---
         $allDepartments = Department::orderBy('name')->get();
         $courses = Course::orderBy('name')->get();
 
@@ -200,7 +199,6 @@ class AdminController extends Controller
         $user->save();
         
         $actionName = $user->is_banned ? 'Banned User' : 'Unbanned User';
-        // --- NEW: Better description ---
         $detailText = $user->is_banned ? 'Access suspended indefinitely.' : 'Access restored.';
 
         $this->logAction($actionName, $user, $detailText);
@@ -215,7 +213,6 @@ class AdminController extends Controller
         $user->email_verified_at = now();
         $user->save();
 
-        // --- NEW: Better description ---
         $this->logAction('Manually Verified User', $user, 'Marked email as verified.');
 
         return back()->with('success', 'User email verified manually.');
@@ -227,7 +224,6 @@ class AdminController extends Controller
         $user->is_admin = true;
         $user->save();
 
-        // --- NEW: Better description ---
         $this->logAction('Promoted to Admin', $user, 'Granted Administrator privileges.');
 
         return back()->with('success', 'User promoted to Administrator.');
@@ -238,10 +234,9 @@ class AdminController extends Controller
         if (Auth::id() == $id) return back()->with('error', 'You cannot delete yourself.');
         
         $user = User::findOrFail($id);
-        $userName = $user->name; // 1. Capture the name BEFORE deleting
+        $userName = $user->name;
         $user->delete();
 
-        // 2. Pass $userName directly as the 2nd argument so it shows in the main column
         $this->logAction('Deleted User', $userName, 'Account permanently removed.');
 
         return back()->with('success', 'User deleted successfully.');
@@ -254,25 +249,17 @@ class AdminController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            // Email must be unique, but ignore this current user's ID
             'email' => 'required|email|unique:users,email,' . $user->id,
-            
-            // Student Number must be unique, but ignore this current user's ID
             'student_number' => 'nullable|string|max:50|unique:users,student_number,' . $user->id,
-            
-            // Teacher Number must be unique, but ignore this current user's ID
             'teacher_number' => 'nullable|string|max:50|unique:users,teacher_number,' . $user->id,
-            
             'course_id' => 'nullable|exists:courses,id',
             'department_id' => 'nullable|exists:departments,id',
         ], [
-            // Custom error messages to make it clear why it failed
             'student_number.unique' => 'This Student Number is already assigned to another user.',
             'teacher_number.unique' => 'This Teacher Number is already assigned to another user.',
             'email.unique' => 'This email address is already in use by another account.',
         ]);
 
-        // Update the user using only the validated fields
         $user->update($request->only([
             'name', 'email', 'student_number', 'teacher_number', 'course_id', 'department_id'
         ]));
@@ -299,7 +286,6 @@ class AdminController extends Controller
         $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
         $user->save();
 
-        // --- NEW: Better description ---
         $this->logAction('Forced Password Reset', $user, 'Admin forced a password reset.');
 
         return back()->with('success', 'Password has been reset successfully.');
@@ -307,14 +293,11 @@ class AdminController extends Controller
 
     private function logAction($action, $target = null, $details = null) 
     {
-        // Default to N/A
         $targetName = 'N/A';
 
-        // Check if $target is a User Object (Database Model)
         if ($target instanceof User) {
             $targetName = $target->name;
         } 
-        // Check if $target is just a simple String (Text) - For deleted users
         elseif (is_string($target)) {
             $targetName = $target;
         }
@@ -340,7 +323,6 @@ class AdminController extends Controller
             'acronym' => 'nullable|string|max:10'
         ]);
 
-        // Use only() instead of all() to ignore the security _token
         Department::create($request->only(['name', 'acronym']));
 
         return back()->with('success', 'Department added successfully.');

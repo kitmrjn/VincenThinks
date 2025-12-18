@@ -88,7 +88,6 @@
             @endif
 
             @auth
-                {{-- UPDATED CONDITION: Check logic for Verification Toggle --}}
                 @if (!$verification_required || Auth::user()->hasVerifiedEmail())
                     {{-- Ask Question Box --}}
                     <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200 relative overflow-hidden group">
@@ -196,8 +195,9 @@
                                         <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
                                         @if($q->user->member_type === 'student' && $q->user->course)
                                             <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
-                                        @elseif($q->user->member_type === 'teacher' && $q->user->department)
-                                            <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $q->user->department }}</span>
+                                        {{-- FIXED: Use departmentInfo --}}
+                                        @elseif($q->user->member_type === 'teacher' && $q->user->departmentInfo)
+                                            <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $q->user->departmentInfo->name }}</span>
                                         @endif
                                         <span class="mx-1">•</span>
                                         <span>{{ $q->created_at->diffForHumans() }}</span>

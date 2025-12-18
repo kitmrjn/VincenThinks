@@ -17,12 +17,14 @@
         @csrf
         @method('patch')
 
+        {{-- Name --}}
         <div>
             <x-input-label for="name" :value="__('Name')" />
             <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
+        {{-- Email --}}
         <div>
             <x-input-label for="email" :value="__('Email')" />
             <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
@@ -47,7 +49,7 @@
             @endif
         </div>
 
-        {{-- DYNAMIC FIELDS BASED ON ROLE --}}
+        {{-- DYNAMIC FIELDS --}}
         
         {{-- FOR STUDENTS --}}
         @if($user->member_type === 'student')
@@ -76,7 +78,7 @@
             </div>
         @endif
 
-        {{-- FOR TEACHERS --}}
+        {{-- FOR TEACHERS (EXACT MATCH TO ADMIN PANEL) --}}
         @if($user->member_type === 'teacher')
             <div>
                 <x-input-label for="teacher_number" :value="__('Teacher Number')" />
@@ -85,19 +87,21 @@
             </div>
 
             <div>
-                <x-input-label for="department" :value="__('Department / Faculty')" />
-                <select id="department" name="department" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
-                    <option value="" disabled {{ !$user->department ? 'selected' : '' }}>Select Department...</option>
-                    <option value="Math Dept" {{ old('department', $user->department) == 'Math Dept' ? 'selected' : '' }}>Mathematics Department</option>
-                    <option value="Science Dept" {{ old('department', $user->department) == 'Science Dept' ? 'selected' : '' }}>Science Department</option>
-                    <option value="English Dept" {{ old('department', $user->department) == 'English Dept' ? 'selected' : '' }}>English Department</option>
-                    <option value="Filipino Dept" {{ old('department', $user->department) == 'Filipino Dept' ? 'selected' : '' }}>Filipino Department</option>
-                    <option value="Social Sciences" {{ old('department', $user->department) == 'Social Sciences' ? 'selected' : '' }}>Social Sciences</option>
-                    <option value="IT / CS Dept" {{ old('department', $user->department) == 'IT / CS Dept' ? 'selected' : '' }}>IT / Computer Science</option>
-                    <option value="MAPEH Dept" {{ old('department', $user->department) == 'MAPEH Dept' ? 'selected' : '' }}>MAPEH Department</option>
-                    <option value="Senior High Faculty" {{ old('department', $user->department) == 'Senior High Faculty' ? 'selected' : '' }}>Senior High School Faculty</option>
+                <x-input-label for="department_id" :value="__('Department / Faculty')" />
+                {{-- Dynamic Dropdown from Database --}}
+                <select id="department_id" name="department_id" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                    <option value="" disabled {{ !$user->department_id ? 'selected' : '' }}>Select Department...</option>
+                    
+                    @if(isset($departments))
+                        @foreach($departments as $dept)
+                            {{-- This line makes it identical to Admin Panel: Name (Acronym) --}}
+                            <option value="{{ $dept->id }}" {{ old('department_id', $user->department_id) == $dept->id ? 'selected' : '' }}>
+                                {{ $dept->name }} ({{ $dept->acronym }})
+                            </option>
+                        @endforeach
+                    @endif
                 </select>
-                <x-input-error class="mt-2" :messages="$errors->get('department')" />
+                <x-input-error class="mt-2" :messages="$errors->get('department_id')" />
             </div>
         @endif
 
