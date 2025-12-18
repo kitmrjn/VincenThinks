@@ -33,7 +33,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/admin/department/{id}', [AdminController::class, 'deleteDepartment'])->name('admin.department.delete');
 
     // User Update & Password Reset
-    Route::post('/admin/users/{id}/update', [AdminController::class, 'updateUser'])->name('admin.users.update');
+    Route::match(['post', 'patch'], '/admin/users/{id}/update', [AdminController::class, 'updateUser'])->name('admin.users.update');
     Route::post('/admin/users/{id}/reset-password', [AdminController::class, 'resetUserPassword'])->name('admin.users.reset_password');
 
     // Categories

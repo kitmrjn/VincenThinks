@@ -1,80 +1,108 @@
-<div x-show="activeModal === 'edit_{{ $user->id }}'" 
-     x-teleport="body"
-     class="fixed inset-0 z-[100] overflow-y-auto" 
-     style="display: none;">
-    
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="activeModal = null"></div>
-        
-        <div class="bg-white rounded-xl shadow-xl transform transition-all sm:max-w-lg sm:w-full z-[110] overflow-hidden">
-            <form method="POST" action="{{ route('admin.users.update', $user->id) }}" class="p-6 text-left">
-                @csrf
-                
-                {{-- Hidden Inputs to reopen this specific modal if validation fails --}}
-                <input type="hidden" name="form_target_id" value="{{ $user->id }}">
-                <input type="hidden" name="form_type" value="edit">
+<div class="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
+    {{-- Backdrop --}}
+    <div class="flex items-center justify-center min-h-screen px-4 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-60 backdrop-blur-sm" aria-hidden="true" @click="activeModal = null"></div>
 
-                <h3 class="text-lg font-bold text-gray-900 mb-4">Edit Profile: {{ $user->name }}</h3>
-                
-                <div class="space-y-4">
-                    {{-- Name --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                        <input type="text" name="name" value="{{ old('name', $user->name) }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
-                        @error('name') <span class="text-xs text-red-500 font-bold">{{ $message }}</span> @enderror
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        {{-- Modal Content --}}
+        <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full border border-gray-100">
+            
+            {{-- Header --}}
+            <div class="bg-gray-50 px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-lg leading-6 font-bold text-gray-800 flex items-center">
+                    <i class='bx bx-edit text-blue-600 mr-2 bg-blue-50 p-1.5 rounded-lg'></i> 
+                    Edit User Details
+                </h3>
+                <button @click="activeModal = null" class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-gray-100 rounded-full">
+                    <i class='bx bx-x text-2xl'></i>
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="px-6 py-6">
+                <form id="edit-form-{{ $user->id }}" action="{{ route('admin.users.update', $user->id) }}" method="POST">
+                    @csrf
+                    {{-- FIX: Removed @method('PATCH') so it submits as a standard POST request --}}
+
+                    <div class="space-y-5">
+                        {{-- Name --}}
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Full Name</label>
+                            <div class="relative">
+                                <i class='bx bx-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg'></i>
+                                <input type="text" name="name" value="{{ old('name', $user->name) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 pl-10 pr-3 transition">
+                            </div>
+                        </div>
+
+                        {{-- Email --}}
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email Address</label>
+                            <div class="relative">
+                                <i class='bx bx-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg'></i>
+                                <input type="email" name="email" value="{{ old('email', $user->email) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 pl-10 pr-3 transition">
+                            </div>
+                        </div>
+
+                        {{-- SEPARATOR --}}
+                        <div class="border-t border-gray-100 pt-2">
+                             <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Academic Information</span>
+
+                            {{-- STUDENT FIELDS --}}
+                            @if($user->member_type === 'student')
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Student ID Number</label>
+                                        <input type="text" name="student_number" value="{{ old('student_number', $user->student_number) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 px-3 bg-gray-50 font-mono text-gray-700">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Course / Strand</label>
+                                        <select name="course_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 px-3">
+                                            <option value="">Select Course...</option>
+                                            @foreach($courses as $course)
+                                                <option value="{{ $course->id }}" {{ $user->course_id == $course->id ? 'selected' : '' }}>
+                                                    {{ $course->acronym }} - {{ $course->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- TEACHER FIELDS --}}
+                            @if($user->member_type === 'teacher')
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Teacher ID Number</label>
+                                        <input type="text" name="teacher_number" value="{{ old('teacher_number', $user->teacher_number) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 px-3 bg-gray-50 font-mono text-gray-700">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-600 mb-1">Department</label>
+                                        <select name="department_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 px-3">
+                                            <option value="">Select Department...</option>
+                                            @foreach($allDepartments as $dept)
+                                                <option value="{{ $dept->id }}" {{ $user->department_id == $dept->id ? 'selected' : '' }}>
+                                                    {{ $dept->name }} @if($dept->acronym) ({{ $dept->acronym }}) @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
                     </div>
-
-                    {{-- Email --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" name="email" value="{{ old('email', $user->email) }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
-                        @error('email') <span class="text-xs text-red-500 font-bold">{{ $message }}</span> @enderror
-                    </div>
-
-                    {{-- Conditional Fields --}}
-                    @if($user->member_type === 'student')
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Student Number</label>
-                            <input type="text" name="student_number" value="{{ old('student_number', $user->student_number) }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
-                            @error('student_number') <span class="text-xs text-red-500 font-bold">{{ $message }}</span> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Course</label>
-                            <select name="course_id" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
-                                <option value="">Select Course...</option>
-                                @foreach($courses as $course)
-                                    <option value="{{ $course->id }}" {{ old('course_id', $user->course_id) == $course->id ? 'selected' : '' }}>
-                                        {{ $course->acronym }} - {{ $course->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @else
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Teacher Number</label>
-                            <input type="text" name="teacher_number" value="{{ old('teacher_number', $user->teacher_number) }}" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
-                            @error('teacher_number') <span class="text-xs text-red-500 font-bold">{{ $message }}</span> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Department / Faculty</label>
-                            <select name="department_id" class="mt-1 block w-full border-gray-300 rounded-lg focus:ring-maroon-700 focus:border-maroon-700">
-                                <option value="">Select Department...</option>
-                                @foreach($allDepartments as $dept)
-                                    <option value="{{ $dept->id }}" {{ old('department_id', $user->department_id) == $dept->id ? 'selected' : '' }}>
-                                        {{ $dept->name }} ({{ $dept->acronym }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('department_id') <span class="text-xs text-red-500 font-bold">{{ $message }}</span> @enderror
-                        </div>
-                    @endif
-                </div>
-
-                <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" @click="activeModal = null" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-maroon-700 text-white rounded-lg font-bold">Save Changes</button>
-                </div>
-            </form>
+                </form>
+            </div>
+            
+            {{-- Footer --}}
+            <div class="bg-gray-50 px-6 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-gray-100">
+                <button type="button" @click="activeModal = null" class="w-full sm:w-auto inline-flex justify-center items-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition">
+                    Cancel
+                </button>
+                <button type="submit" form="edit-form-{{ $user->id }}" class="w-full sm:w-auto inline-flex justify-center items-center rounded-lg border border-transparent shadow-sm px-6 py-2 bg-blue-600 text-sm font-bold text-white hover:bg-blue-700 focus:outline-none transition">
+                    Save Changes
+                </button>
+            </div>
         </div>
     </div>
 </div>
