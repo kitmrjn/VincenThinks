@@ -1,4 +1,61 @@
 <x-admin-layout>
+    {{-- TOAST NOTIFICATIONS (Success & Error) --}}
+    {{-- This section listens for 'success' or 'error' messages from your Controller --}}
+    <div class="fixed top-5 right-5 z-[120] space-y-3 pointer-events-none">
+        
+        {{-- Success Message --}}
+        @if (session('success'))
+            <div x-data="{ show: true }"
+                 x-init="setTimeout(() => show = false, 4000)" 
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-300"
+                 x-transition:leave-start="opacity-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 translate-y-2"
+                 class="pointer-events-auto bg-white border-l-4 border-green-500 shadow-xl rounded-lg p-4 pr-8 flex items-start gap-3 min-w-[300px]">
+                
+                <div class="text-green-500 mt-0.5">
+                    <i class='bx bx-check-circle text-2xl'></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-800 text-sm">Success</h4>
+                    <p class="text-xs text-gray-600 mt-0.5">{{ session('success') }}</p>
+                </div>
+                <button @click="show = false" class="absolute top-2 right-2 text-gray-300 hover:text-gray-500 transition">
+                    <i class='bx bx-x text-xl'></i>
+                </button>
+            </div>
+        @endif
+
+        {{-- Error Message --}}
+        @if (session('error'))
+            <div x-data="{ show: true }"
+                 x-init="setTimeout(() => show = false, 5000)" 
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-300"
+                 x-transition:leave-start="opacity-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 translate-y-2"
+                 class="pointer-events-auto bg-white border-l-4 border-red-500 shadow-xl rounded-lg p-4 pr-8 flex items-start gap-3 min-w-[300px]">
+                
+                <div class="text-red-500 mt-0.5">
+                    <i class='bx bx-x-circle text-2xl'></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-800 text-sm">Error</h4>
+                    <p class="text-xs text-gray-600 mt-0.5">{{ session('error') }}</p>
+                </div>
+                <button @click="show = false" class="absolute top-2 right-2 text-gray-300 hover:text-gray-500 transition">
+                    <i class='bx bx-x text-xl'></i>
+                </button>
+            </div>
+        @endif
+    </div>
+
     {{-- SHARED STATE: We track which modal is open and the target data here --}}
     <div x-data="{ 
         activeModal: null, 
@@ -22,7 +79,7 @@
             </form>
         </div>
 
-        {{-- Global Error Alert --}}
+        {{-- Global Validation Error Alert (For form inputs) --}}
         @if ($errors->any())
             <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-sm">
                 <div class="flex">
@@ -92,7 +149,6 @@
                                         @if($user->member_type == 'student')
                                             {{ $user->student_number }} • {{ $user->course->acronym ?? 'N/A' }}
                                         @else
-                                            {{-- FIXED: Use departmentInfo --}}
                                             {{ $user->teacher_number }} • {{ $user->departmentInfo->acronym ?? ($user->departmentInfo->name ?? 'N/A') }}
                                         @endif
                                     </span>
@@ -182,7 +238,7 @@
             {{ $users->appends(request()->query())->links('partials.pagination') }}
         </div>
 
-        {{-- SHARED MODALS --}}
+        {{-- SHARED MODALS (Ban, Promote, Delete) --}}
         <div x-show="activeModal === 'ban'" class="fixed inset-0 z-[100] overflow-y-auto" style="display: none;">
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="activeModal = null"></div>
