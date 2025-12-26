@@ -4,10 +4,12 @@
             
             {{-- LEFT SIDE: Logo & Mobile Topic Context --}}
             <div class="flex items-center overflow-hidden">
-                <a href="/" class="flex-shrink-0 flex items-center text-white font-bold tracking-wider hover:text-gray-200 transition">
-                    {{-- Mobile Logo (Short) --}}
-                    <span class="lg:hidden text-2xl">VT.</span>
-                    {{-- Desktop Logo (Full) --}}
+                <a href="/" class="flex-shrink-0 flex items-center gap-3 text-white font-bold tracking-wider hover:text-gray-200 transition">
+                    
+                    {{-- NEW LOGO (Clean, no background) --}}
+                    <img src="{{ asset('images/logo-no-text.svg') }}" class="h-10 w-10" alt="VT Logo">
+
+                    {{-- Desktop Text (Hidden on mobile, visible on desktop) --}}
                     <span class="hidden lg:block text-xl">VincenThinks</span>
                 </a>
 
@@ -24,7 +26,6 @@
             <div class="flex items-center space-x-1 sm:space-x-4">
                 
                 {{-- 1. Mobile Filter Button (Toggles the Sidebar Drawer) --}}
-                {{-- Note: 'mobileMenuOpen' is defined in body x-data --}}
                 <button @click="mobileMenuOpen = !mobileMenuOpen" 
                         class="lg:hidden text-white p-2 hover:bg-white/10 rounded-full transition flex items-center justify-center mr-1"
                         title="Filter Topics">
