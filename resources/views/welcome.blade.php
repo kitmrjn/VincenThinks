@@ -195,9 +195,9 @@
                                         <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
                                         @if($q->user->member_type === 'student' && $q->user->course)
                                             <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
-                                        {{-- FIXED: Use departmentInfo --}}
                                         @elseif($q->user->member_type === 'teacher' && $q->user->departmentInfo)
-                                            <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $q->user->departmentInfo->name }}</span>
+                                            {{-- CLEANUP: Switched to Acronym for consistency, with full name on hover --}}
+                                            <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1" title="{{ $q->user->departmentInfo->name }}">{{ $q->user->departmentInfo->acronym ?? $q->user->departmentInfo->name }}</span>
                                         @endif
                                         <span class="mx-1">•</span>
                                         <span>{{ $q->created_at->diffForHumans() }}</span>

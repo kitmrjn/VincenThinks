@@ -24,7 +24,6 @@ class ForumController extends Controller
     public function index(Request $request) {
         $categories = Category::all();
         
-        // --- FIXED: Added 'user.departmentInfo' to eager loading ---
         $query = Question::with(['user.course', 'user.departmentInfo', 'category', 'images'])
                          ->withCount('answers')
                          ->latest();
@@ -87,18 +86,17 @@ class ForumController extends Controller
     }
 
     public function show($id) {
-        // --- FIXED: Added 'user.departmentInfo' to Question, Answers, and Replies ---
         $question = Question::with([
             'user.course', 
-            'user.departmentInfo', // <--- Added here
+            'user.departmentInfo',
             'images',
             'answers.user.course', 
-            'answers.user.departmentInfo', // <--- Added here
+            'answers.user.departmentInfo',
             'answers.ratings', 
             'answers.replies.user.course', 
-            'answers.replies.user.departmentInfo', // <--- Added here
+            'answers.replies.user.departmentInfo',
             'answers.replies.children.user.course',
-            'answers.replies.children.user.departmentInfo' // <--- Added here
+            'answers.replies.children.user.departmentInfo'
         ])->findOrFail($id);
 
         $sessionKey = 'viewed_question_' . $id;
@@ -129,12 +127,7 @@ class ForumController extends Controller
 
         return view('show_question', compact('question', 'topRatedAnswerId'));
     }
-    
-    // ... (The rest of the functions: storeAnswer, storeReply, rateAnswer, etc. remain unchanged)
-    // You can keep the rest of the file exactly as it was, or I can paste the full file if you prefer.
-    // For brevity, the critical changes are in index() and show().
-    
-    // 4. STORE ANSWER
+
     public function storeAnswer(Request $request, $id) {
         $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
         if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
@@ -267,9 +260,23 @@ class ForumController extends Controller
     }
 
     public function destroyQuestion($id) {
-        $question = Question::findOrFail($id);
-        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
+        // CLEANUP: We now eager load images to delete them from storage too
+        $question = Question::with('images')->findOrFail($id);
+        
+        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { 
+            abort(403); 
+        }
+
+        // 1. Delete actual files from disk
+        foreach ($question->images as $image) {
+            if (Storage::disk('public')->exists($image->image_path)) {
+                Storage::disk('public')->delete($image->image_path);
+            }
+        }
+
+        // 2. Delete the record (Database cascades will handle answers/replies)
         $question->delete();
+
         return redirect()->route('home')->with('success', 'Question deleted.');
     }
 
