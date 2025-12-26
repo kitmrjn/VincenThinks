@@ -1,6 +1,5 @@
 <x-admin-layout>
     {{-- TOAST NOTIFICATIONS (Success & Error) --}}
-    {{-- This section listens for 'success' or 'error' messages from your Controller --}}
     <div class="fixed top-5 right-5 z-[120] space-y-3 pointer-events-none">
         
         {{-- Success Message --}}
@@ -56,7 +55,7 @@
         @endif
     </div>
 
-    {{-- SHARED STATE: We track which modal is open and the target data here --}}
+    {{-- SHARED STATE --}}
     <div x-data="{ 
         activeModal: null, 
         targetName: '', 
@@ -79,7 +78,7 @@
             </form>
         </div>
 
-        {{-- Global Validation Error Alert (For form inputs) --}}
+        {{-- Global Validation Error Alert --}}
         @if ($errors->any())
             <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-sm">
                 <div class="flex">
@@ -108,7 +107,8 @@
         </div>
 
         {{-- Users Table --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {{-- FIXED: Changed 'overflow-hidden' to 'overflow-visible' so dropdowns can spill out --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -183,7 +183,12 @@
                                             <i class='bx bx-dots-vertical-rounded text-xl'></i>
                                         </button>
                                         
-                                        <div x-show="openDropdown" class="absolute right-0 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-100 mt-2 origin-top-right" style="display: none;">
+                                        {{-- FIXED: Logic to flip menu upwards for the last item --}}
+                                        <div x-show="openDropdown" 
+                                             class="absolute right-0 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-100 
+                                                    {{ $loop->last ? 'bottom-full mb-2 origin-bottom-right' : 'mt-2 origin-top-right' }}" 
+                                             style="display: none;">
+                                             
                                             <button @click="activeModal = 'edit_{{ $user->id }}'; openDropdown = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"><i class='bx bx-edit-alt mr-2 text-blue-600'></i> Edit Info</button>
                                             
                                             <button @click="activeModal = 'password_{{ $user->id }}'; openDropdown = false" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"><i class='bx bx-key mr-2 text-orange-600'></i> Reset Password</button>
