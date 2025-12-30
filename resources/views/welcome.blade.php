@@ -196,14 +196,17 @@
                                         @if($q->user->member_type === 'student' && $q->user->course)
                                             <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
                                         @elseif($q->user->member_type === 'teacher' && $q->user->departmentInfo)
-                                            {{-- CLEANUP: Switched to Acronym for consistency, with full name on hover --}}
                                             <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1" title="{{ $q->user->departmentInfo->name }}">{{ $q->user->departmentInfo->acronym ?? $q->user->departmentInfo->name }}</span>
                                         @endif
                                         <span class="mx-1">•</span>
                                         <span>{{ $q->created_at->diffForHumans() }}</span>
                                         @if($q->category)
                                             <span class="mx-2 text-gray-300">|</span>
-                                            <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200">{{ $q->category->name }}</span>
+                                            {{-- UPDATED: Shows Acronym if available, otherwise falls back to Name --}}
+                                            <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200" 
+                                                  title="{{ $q->category->name }}">
+                                                {{ $q->category->acronym ?? $q->category->name }}
+                                            </span>
                                         @endif
                                     </div>
                                     <div class="flex items-center space-x-2">
