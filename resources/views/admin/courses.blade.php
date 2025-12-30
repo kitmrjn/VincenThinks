@@ -92,7 +92,7 @@
 
             {{-- LIST TABLE --}}
             <div class="md:col-span-2">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-visible">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-widest text-gray-500 font-medium">

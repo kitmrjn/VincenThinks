@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Category extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'slug'];
+    
+    // UPDATED: Added 'acronym' to the list
+    protected $fillable = ['name', 'acronym', 'slug'];
 
     public function questions() {
         return $this->hasMany(Question::class);

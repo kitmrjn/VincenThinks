@@ -40,10 +40,20 @@ class AdminController extends Controller
 
     public function storeCategory(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
-        $request->validate(['name' => 'required|unique:categories,name']);
-        $category = Category::create(['name' => $request->name, 'slug' => Str::slug($request->name)]);
         
-        $this->logAction('Created Category', null, "Category Name: {$category->name}");
+        // Validate both Name and Acronym
+        $request->validate([
+            'name' => 'required|unique:categories,name',
+            'acronym' => 'nullable|string|max:10|unique:categories,acronym'
+        ]);
+
+        $category = Category::create([
+            'name' => $request->name,
+            'acronym' => $request->acronym ? strtoupper($request->acronym) : null, // Force uppercase
+            'slug' => Str::slug($request->name)
+        ]);
+        
+        $this->logAction('Created Category', null, "Category: {$category->name} ({$category->acronym})");
         
         return redirect()->route('admin.categories')->with('success', 'Category created successfully!');
     }

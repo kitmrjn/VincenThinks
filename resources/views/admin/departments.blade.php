@@ -46,7 +46,7 @@
 
         {{-- Right Column: List of Departments --}}
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden font-light">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible font-light">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
