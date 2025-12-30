@@ -191,7 +191,8 @@
                             </div>
                             <div class="flex-grow min-w-0">
                                 <div class="flex justify-between items-start mb-3">
-                                    <div class="flex items-center text-xs text-gray-400 font-light">
+                                    {{-- ADDED: flex-wrap so it doesn't break on small phones --}}
+                                        <div class="flex items-center flex-wrap gap-y-1 text-xs text-gray-400 font-light">
                                         <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
                                         @if($q->user->member_type === 'student' && $q->user->course)
                                             <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>

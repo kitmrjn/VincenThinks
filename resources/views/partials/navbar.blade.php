@@ -16,8 +16,15 @@
                 {{-- Mobile Topic Indicator (Shows what category is active) --}}
                 <div class="lg:hidden flex flex-col ml-3 border-l border-white/20 pl-3 justify-center h-10">
                     <span class="text-[10px] text-white/60 uppercase font-bold leading-none tracking-wider">Browsing</span>
-                    <span class="text-sm font-bold text-white leading-tight truncate max-w-[120px]">
-                        {{ request('category') ? optional(\App\Models\Category::find(request('category')))->name : 'All Topics' }}
+                    <span class="text-sm font-bold text-white leading-tight truncate max-w-[150px]">
+                        @if(request('category'))
+                            @php 
+                                $currentCat = \App\Models\Category::find(request('category'));
+                            @endphp
+                            {{ $currentCat->acronym ?? $currentCat->name }}
+                        @else
+                            All Topics
+                        @endif
                     </span>
                 </div>
             </div>

@@ -94,19 +94,19 @@
                         @endif
                     </div>
                     <div class="text-sm">
-                        <div class="flex items-center">
-                            <a href="{{ route('user.profile', $question->user->id) }}" class="font-bold text-gray-800 hover:text-maroon-700 hover:underline transition">
+                        {{-- FIXED: Added flex-wrap so mobile layouts don't break --}}
+                        <div class="flex items-center flex-wrap gap-y-1">
+                            <a href="{{ route('user.profile', $question->user->id) }}" class="font-bold text-gray-800 hover:text-maroon-700 hover:underline transition mr-2">
                                 {{ $question->user->name }}
                             </a>
                             {{-- QUESTION AUTHOR FLAIR --}}
                             @if($question->user->member_type === 'student' && $question->user->course)
-                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $question->user->course->name }}">{{ $question->user->course->acronym }}</span>
-                            {{-- FIXED: Use departmentInfo --}}
+                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100" title="{{ $question->user->course->name }}">{{ $question->user->course->acronym }}</span>
                             @elseif($question->user->member_type === 'teacher' && $question->user->departmentInfo)
-                                <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $question->user->departmentInfo->name }}</span>
+                                <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100" title="{{ $question->user->departmentInfo->name }}">{{ $question->user->departmentInfo->acronym ?? $question->user->departmentInfo->name }}</span>
                             @endif
                         </div>
-                        <div class="text-xs text-gray-500 font-light flex items-center flex-wrap">
+                        <div class="text-xs text-gray-500 font-light flex items-center flex-wrap mt-1">
                             <span>{{ $question->created_at->diffForHumans() }}</span>
                             @if($question->created_at != $question->updated_at)
                                 <span class="mx-1">•</span>
@@ -118,8 +118,9 @@
                             </span>
                             @if($question->category)
                                 <span class="mx-2 text-gray-300">|</span>
-                                <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200">
-                                    {{ $question->category->name }}
+                                {{-- UPDATED: Acronym Badge --}}
+                                <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200" title="{{ $question->category->name }}">
+                                    {{ $question->category->acronym ?? $question->category->name }}
                                 </span>
                             @endif
                         </div>
@@ -267,17 +268,17 @@
                             <div class="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold mr-3">{{ substr($answer->user->name, 0, 1) }}</div>
                          @endif
                         <div>
-                            <div class="flex items-center">
-                                <a href="{{ route('user.profile', $answer->user->id) }}" class="block font-medium text-gray-800 text-sm hover:underline">{{ $answer->user->name }}</a>
+                            {{-- FIXED: Flex wrap for mobile answer headers --}}
+                            <div class="flex items-center flex-wrap gap-y-1">
+                                <a href="{{ route('user.profile', $answer->user->id) }}" class="block font-medium text-gray-800 text-sm hover:underline mr-2">{{ $answer->user->name }}</a>
                                 {{-- ANSWER AUTHOR FLAIR --}}
                                 @if($answer->user->member_type === 'student' && $answer->user->course)
-                                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $answer->user->course->name }}">{{ $answer->user->course->acronym }}</span>
-                                {{-- FIXED: Use departmentInfo --}}
+                                    <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100" title="{{ $answer->user->course->name }}">{{ $answer->user->course->acronym }}</span>
                                 @elseif($answer->user->member_type === 'teacher' && $answer->user->departmentInfo)
-                                    <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $answer->user->departmentInfo->name }}</span>
+                                    <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100" title="{{ $answer->user->departmentInfo->name }}">{{ $answer->user->departmentInfo->acronym ?? $answer->user->departmentInfo->name }}</span>
                                 @endif
                             </div>
-                            <span class="text-xs text-gray-400 font-light">
+                            <span class="text-xs text-gray-400 font-light block mt-0.5">
                                 {{ $answer->created_at->diffForHumans() }}
                                 @if($answer->created_at != $answer->updated_at) <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span> @endif
                             </span>
