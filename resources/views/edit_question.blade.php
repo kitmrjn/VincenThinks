@@ -1,37 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Question - VincenThinks</title>
-    
-    {{-- TAILWIND & ICONS --}}
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<x-public-layout>
+    @push('styles')
+        <style>
+            /* Trix Editor Styling to match Create Form */
+            .trix-content { 
+                min-height: 200px; 
+                overflow-y: auto;
+            }
+            /* Ensure the toolbar icons match your theme */
+            trix-toolbar .trix-button.trix-active { color: #800000; }
+        </style>
+    @endpush
 
-    {{-- 
-       NOTE: I removed the manual Trix CDN links here. 
-       Since <x-trix-editor> works in your welcome.blade.php without them, 
-       adding them here was breaking your custom toolbar.
-    --}}
-
-    <script>
-        tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000', 900: '#400000' } } } } }
-    </script>
-    <style>
-        /* Trix Editor Styling to match Create Form */
-        .trix-content { 
-            min-height: 200px; 
-            overflow-y: auto;
-        }
-        /* Ensure the toolbar icons match your theme */
-        trix-toolbar .trix-button.trix-active { color: #800000; }
-    </style>
-</head>
-<body class="bg-gray-100 font-sans min-h-screen">
-
-    @include('partials.navbar')
+    @push('scripts')
+    @endpush
 
     <div class="max-w-3xl mx-auto mt-8 px-4 mb-12">
         
@@ -110,6 +91,4 @@
             </form>
         </div>
     </div>
-
-</body>
-</html>
+</x-public-layout>

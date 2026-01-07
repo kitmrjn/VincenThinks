@@ -1,34 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $user->name }} - Profile</title>
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script>
-        // Force Light Mode configuration to prevent black inputs
-        tailwind.config = { 
-            darkMode: 'class', 
-            theme: { 
-                extend: { 
-                    colors: { 
-                        maroon: { 50: '#fdf2f2', 100: '#fde8e8', 200: '#fbd5d5', 300: '#f8b4b4', 400: '#f98080', 500: '#f05252', 600: '#e02424', 700: '#800000', 800: '#600000', 900: '#400000' } 
-                    } 
-                } 
-            } 
-        }
-    </script>
-    <style>
-        .prose p { margin-top: 0; margin-bottom: 0.5em; }
-        .prose img { margin-top: 0.5em; margin-bottom: 0.5em; }
-        [x-cloak] { display: none !important; }
-    </style>
-</head>
-<body class="bg-gray-100 font-sans leading-normal tracking-normal min-h-screen flex flex-col text-gray-900">
+<x-public-layout>
+    @push('styles')
+        <style>
+            .prose p { margin-top: 0; margin-bottom: 0.5em; }
+            .prose img { margin-top: 0.5em; margin-bottom: 0.5em; }
+            [x-cloak] { display: none !important; }
+        </style>
+    @endpush
 
-    @include('partials.navbar')
+    @push('scripts')
+    @endpush
 
     <div class="max-w-6xl mx-auto w-full mt-8 px-4 pb-12 flex-grow">
         
@@ -405,5 +385,4 @@
             </div>
         </div>
     </div>
-</body>
-</html>
+</x-public-layout>

@@ -1,60 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $question->title }} - VincenThinks</title>
-    
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
+<x-public-layout>
+    @push('styles')
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+        <style>
+            .fade-enter-active { transition: all 0.3s ease; }
+            .prose { max-width: none; }
+            pre { border-radius: 0.5rem; }
+            [x-cloak] { display: none !important; }
 
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    
-    <script>
-        tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000', 900: '#400000' } } } } }
-    </script>
-    <style>
-        .fade-enter-active { transition: all 0.3s ease; }
-        .prose { max-width: none; }
-        pre { border-radius: 0.5rem; }
-        [x-cloak] { display: none !important; }
+            .prose img {
+                max-width: 100%;
+                max-height: 500px;     
+                width: auto;
+                height: auto;
+                display: block;
+                margin: 1.5rem auto;
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
+                background-color: #f9fafb;
+                object-fit: contain;
+                cursor: zoom-in;
+                transition: all 0.2s ease; 
+            }
 
-        .prose img {
-            max-width: 100%;
-            max-height: 500px;     
-            width: auto;
-            height: auto;
-            display: block;
-            margin: 1.5rem auto;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            background-color: #f9fafb;
-            object-fit: contain;
-            cursor: zoom-in;
-            transition: all 0.2s ease; 
-        }
+            .ml-11 .prose img { max-height: 350px !important; max-width: 80%; }
+            .ml-11 .ml-11 .prose img { max-height: 200px !important; max-width: 60%; }
 
-        .ml-11 .prose img { max-height: 350px !important; max-width: 80%; }
-        .ml-11 .ml-11 .prose img { max-height: 200px !important; max-width: 60%; }
+            @keyframes zoom-in {
+                from { transform: scale(0.95); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
+            .animate-zoom-in { animation: zoom-in 0.2s ease-out forwards; }
+        </style>
+    @endpush
 
-        @keyframes zoom-in {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        .animate-zoom-in { animation: zoom-in 0.2s ease-out forwards; }
-    </style>
-</head>
-<body class="bg-gray-100 font-sans min-h-screen relative">
+    @push('scripts')
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+        <script>
+            function openReportModal() { document.getElementById('reportModal').classList.remove('hidden'); }
+            function closeReportModal() { document.getElementById('reportModal').classList.add('hidden'); resetModalForm(); }
+            function resetModalForm() { document.querySelector('#reportModal form').reset(); toggleOtherInput(); }
+            function toggleOtherInput() { const o = document.getElementById('otherRadio'), c = document.getElementById('otherInputContainer'), t = c.querySelector('textarea'); if(o.checked){c.classList.remove('hidden');t.setAttribute('required','required')}else{c.classList.add('hidden');t.removeAttribute('required')} }
+            window.onclick = function(e) { if(e.target == document.getElementById('reportModal')) closeReportModal(); }
+            function toggleReplyForm(id) { document.getElementById(id).classList.toggle('hidden'); }
+            function toggleMainReplies(answerId, btn) {
+                const h = document.querySelectorAll('.hidden-main-reply-'+answerId), l = btn.querySelector('.text-label'), i = btn.querySelector('i'), c = btn.getAttribute('data-count');
+                let isH = h.length > 0 && h[0].classList.contains('hidden');
+                h.forEach(e => e.classList.toggle('hidden'));
+                l.innerText = isH ? "Hide replies" : "View " + c + " more replies";
+                i.className = isH ? 'bx bx-up-arrow-alt mr-1' : 'bx bx-down-arrow-alt mr-1';
+            }
+            function toggleChildReplies(containerId, btn) {
+                const container = document.getElementById(containerId);
+                container.classList.toggle('hidden');
+                const isHidden = container.classList.contains('hidden');
+                const label = btn.querySelector('.text-label');
+                const icon = btn.querySelector('.icon-indicator');
+                const count = btn.getAttribute('data-count');
+                if (isHidden) {
+                    label.innerText = "View " + count + " replies";
+                    icon.classList.remove('bx-up-arrow-alt');
+                    icon.classList.add('bx-subdirectory-right');
+                } else {
+                    label.innerText = "Hide replies";
+                    icon.classList.remove('bx-subdirectory-right');
+                    icon.classList.add('bx-up-arrow-alt');
+                }
+            }
+        </script>
+    @endpush
 
     @php
         $editLimit = (int) (\App\Models\Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     @endphp
-
-    @include('partials.navbar')
 
     <div class="max-w-3xl mx-auto mt-6 px-4">
         @if ($errors->any())
@@ -451,39 +469,4 @@
                  class="max-w-full max-h-[90vh] object-contain rounded shadow-2xl animate-zoom-in">
         </div>
     </div>
-
-    {{-- SCRIPTS --}}
-    <script>
-        function openReportModal() { document.getElementById('reportModal').classList.remove('hidden'); }
-        function closeReportModal() { document.getElementById('reportModal').classList.add('hidden'); resetModalForm(); }
-        function resetModalForm() { document.querySelector('#reportModal form').reset(); toggleOtherInput(); }
-        function toggleOtherInput() { const o = document.getElementById('otherRadio'), c = document.getElementById('otherInputContainer'), t = c.querySelector('textarea'); if(o.checked){c.classList.remove('hidden');t.setAttribute('required','required')}else{c.classList.add('hidden');t.removeAttribute('required')} }
-        window.onclick = function(e) { if(e.target == document.getElementById('reportModal')) closeReportModal(); }
-        function toggleReplyForm(id) { document.getElementById(id).classList.toggle('hidden'); }
-        function toggleMainReplies(answerId, btn) {
-            const h = document.querySelectorAll('.hidden-main-reply-'+answerId), l = btn.querySelector('.text-label'), i = btn.querySelector('i'), c = btn.getAttribute('data-count');
-            let isH = h.length > 0 && h[0].classList.contains('hidden');
-            h.forEach(e => e.classList.toggle('hidden'));
-            l.innerText = isH ? "Hide replies" : "View " + c + " more replies";
-            i.className = isH ? 'bx bx-up-arrow-alt mr-1' : 'bx bx-down-arrow-alt mr-1';
-        }
-        function toggleChildReplies(containerId, btn) {
-            const container = document.getElementById(containerId);
-            container.classList.toggle('hidden');
-            const isHidden = container.classList.contains('hidden');
-            const label = btn.querySelector('.text-label');
-            const icon = btn.querySelector('.icon-indicator');
-            const count = btn.getAttribute('data-count');
-            if (isHidden) {
-                label.innerText = "View " + count + " replies";
-                icon.classList.remove('bx-up-arrow-alt');
-                icon.classList.add('bx-subdirectory-right');
-            } else {
-                label.innerText = "Hide replies";
-                icon.classList.remove('bx-subdirectory-right');
-                icon.classList.add('bx-up-arrow-alt');
-            }
-        }
-    </script>
-</body>
-</html>
+</x-public-layout>

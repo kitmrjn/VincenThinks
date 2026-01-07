@@ -1,28 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Reply - VincenThinks</title>
-    
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<x-public-layout>
+    @push('styles')
+        <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
+        <style>
+            .trix-content { min-height: 150px; overflow-y: auto; }
+            trix-toolbar .trix-button.trix-active { color: #800000; }
+        </style>
+    @endpush
 
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
-    <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
-
-    <script>
-        tailwind.config = { theme: { extend: { colors: { maroon: { 700: '#800000', 800: '#600000', 900: '#400000' } } } } }
-    </script>
-    <style>
-        .trix-content { min-height: 150px; overflow-y: auto; }
-        trix-toolbar .trix-button.trix-active { color: #800000; }
-    </style>
-</head>
-<body class="bg-gray-100 font-sans min-h-screen">
-
-    @include('partials.navbar')
+    @push('scripts')
+        <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
+        {{-- IMAGE UPLOAD SCRIPT --}}
+        <script>
+            addEventListener("trix-attachment-add", function(event) { if (event.attachment.file) { uploadFileAttachment(event.attachment) } })
+            function uploadFileAttachment(attachment) { uploadFile(attachment.file, function(progress) { attachment.setUploadProgress(progress) }, function(attributes) { attachment.setAttributes(attributes) }) }
+            function uploadFile(file, progressCallback, successCallback) {
+                var formData = new FormData(); formData.append("image", file);
+                var xhr = new XMLHttpRequest(); xhr.open("POST", "{{ route('editor.image.upload') }}", true);
+                xhr.setRequestHeader("X-CSRF-TOKEN", "{{ csrf_token() }}");
+                xhr.upload.addEventListener("progress", function(event) { progressCallback((event.loaded / event.total) * 100) });
+                xhr.onload = function() { if (xhr.status === 200) { var response = JSON.parse(xhr.responseText); successCallback({ url: response.url, href: response.url }) } };
+                xhr.send(formData);
+            }
+        </script>
+    @endpush
 
     <div class="max-w-2xl mx-auto mt-12 px-4 mb-12">
         
@@ -63,19 +63,4 @@
             </form>
         </div>
     </div>
-
-    {{-- IMAGE UPLOAD SCRIPT --}}
-    <script>
-        addEventListener("trix-attachment-add", function(event) { if (event.attachment.file) { uploadFileAttachment(event.attachment) } })
-        function uploadFileAttachment(attachment) { uploadFile(attachment.file, function(progress) { attachment.setUploadProgress(progress) }, function(attributes) { attachment.setAttributes(attributes) }) }
-        function uploadFile(file, progressCallback, successCallback) {
-            var formData = new FormData(); formData.append("image", file);
-            var xhr = new XMLHttpRequest(); xhr.open("POST", "{{ route('editor.image.upload') }}", true);
-            xhr.setRequestHeader("X-CSRF-TOKEN", "{{ csrf_token() }}");
-            xhr.upload.addEventListener("progress", function(event) { progressCallback((event.loaded / event.total) * 100) });
-            xhr.onload = function() { if (xhr.status === 200) { var response = JSON.parse(xhr.responseText); successCallback({ url: response.url, href: response.url }) } };
-            xhr.send(formData);
-        }
-    </script>
-</body>
-</html>
+</x-public-layout>
