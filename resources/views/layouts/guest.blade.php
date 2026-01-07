@@ -32,9 +32,9 @@
 
                 {{-- Content --}}
                 <div class="relative z-10">
-                    {{-- FIXED: Use route('home') instead of "/" --}}
-                    <a href="{{ route('home') }}" class="block">
-                        <x-application-logo class="w-20 h-20 fill-current text-white mb-6" />
+                    <a href="{{ route('home') }}" class="block mb-8">
+                        {{-- UPDATED: Changed text-yellow-400 to text-amber-400 (Warmer Gold) --}}
+                        <x-application-logo class="text-amber-400 fill-current" />
                     </a>
                     <h1 class="text-5xl font-bold tracking-tight mb-4">Think. Ask. Learn.</h1>
                     <p class="text-maroon-100 text-lg font-light max-w-md leading-relaxed">
@@ -56,11 +56,11 @@
                 </div>
                 
                 <div class="relative z-10 flex flex-col items-center justify-center">
-                    {{-- FIXED: Use route('home') instead of "/" --}}
                     <a href="{{ route('home') }}">
-                        <x-application-logo class="w-16 h-16 fill-current text-white" />
+                        {{-- UPDATED: Changed text-yellow-400 to text-amber-400 (Warmer Gold) --}}
+                        <x-application-logo class="text-amber-400 fill-current justify-center" />
                     </a>
-                    <h1 class="text-white text-lg font-bold mt-2 tracking-wide">Think. Ask. Learn.</h1>
+                    <h1 class="text-white text-sm font-light mt-3 tracking-wide opacity-90">Think. Ask. Learn.</h1>
                 </div>
             </div>
 
