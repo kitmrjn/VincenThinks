@@ -340,7 +340,8 @@
                                             </div>
 
                                             <div class="flex items-center gap-4">
-                                                <x-primary-button class="bg-gray-800 py-3 px-6">{{ __('Save') }}</x-primary-button>
+                                                {{-- FIXED: Changed from bg-gray-800 to Maroon --}}
+                                                <x-primary-button class="bg-maroon-700 hover:bg-maroon-800 py-3 px-6">{{ __('Save') }}</x-primary-button>
                                             </div>
                                         </form>
                                     </section>
@@ -356,7 +357,8 @@
                                             <p class="mt-1 text-sm text-gray-600">Once your account is deleted, all of its resources and data will be permanently deleted.</p>
                                         </header>
 
-                                        <x-danger-button x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')" class="py-3 px-6">{{ __('Delete Account') }}</x-danger-button>
+                                        {{-- FIXED: Explicitly set Red color for Delete button --}}
+                                        <x-danger-button x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')" class="py-3 px-6 bg-red-600 hover:bg-red-700 text-white">{{ __('Delete Account') }}</x-danger-button>
 
                                         <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
                                             <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
@@ -370,7 +372,7 @@
                                                 </div>
                                                 <div class="mt-6 flex justify-end">
                                                     <x-secondary-button x-on:click="$dispatch('close')" class="py-3 px-6">{{ __('Cancel') }}</x-secondary-button>
-                                                    <x-danger-button class="ms-3 py-3 px-6">{{ __('Delete Account') }}</x-danger-button>
+                                                    <x-danger-button class="ms-3 py-3 px-6 bg-red-600 hover:bg-red-700 text-white">{{ __('Delete Account') }}</x-danger-button>
                                                 </div>
                                             </form>
                                         </x-modal>
