@@ -50,7 +50,7 @@ class ForumController extends Controller
 
         $questions = $query->paginate(10)->onEachSide(1);
         
-        return view('welcome', compact('questions', 'categories'));
+        return view('feed', compact('questions', 'categories'));
     }
 
     public function storeQuestion(Request $request) {

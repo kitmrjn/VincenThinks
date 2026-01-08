@@ -7,28 +7,49 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\ProfileController; 
 use Illuminate\Support\Facades\Auth;
 
-// --- PUBLIC ROUTES ---
-Route::get('/', [ForumController::class, 'index'])->name('home');
+// ===========================
+// LANDING PAGE & FEED LOGIC
+// ===========================
+
+// 1. Root URL ('/')
+// If guest -> Show Landing Page. If logged in -> Redirect to Feed.
+Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('feed');
+    }
+    return view('welcome');
+})->name('landing');
+
+// 2. The Main Forum Feed ('/feed')
+// This is the route your Landing Page buttons link to.
+Route::get('/feed', [ForumController::class, 'index'])->name('feed');
+
+// 3. 'Home' Redirect
+// Fixes "Route [home] not defined" errors if your controllers redirect to 'home'.
+Route::redirect('/home', '/feed')->name('home');
+
+// ===========================
+// PUBLIC ROUTES
+// ===========================
 Route::get('/question/{id}', [ForumController::class, 'show'])->name('question.show');
 Route::get('/user/{id}', [UserProfileController::class, 'show'])->name('user.profile');
 
-// --- AUTHENTICATED ROUTES ---
+// ===========================
+// AUTHENTICATED ROUTES
+// ===========================
 Route::middleware(['auth'])->group(function () {
 
-    // ===========================
     // ADMIN ROUTES
-    // ===========================
-    // Dashboard, Reports & Analytics
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/analytics', [AdminController::class, 'analytics'])->name('admin.analytics');
     Route::get('/admin/reports', [AdminController::class, 'reports'])->name('admin.reports');
     
-    // Moderation (Flagged Content)
+    // Moderation
     Route::get('/admin/moderation', [AdminController::class, 'moderation'])->name('admin.moderation');
     Route::post('/admin/moderation/{type}/{id}/approve', [AdminController::class, 'approveContent'])->name('admin.moderation.approve');
     Route::delete('/admin/moderation/{type}/{id}/delete', [AdminController::class, 'deleteFlaggedContent'])->name('admin.moderation.delete');
 
-    // NEW: Banned Words Management
+    // Banned Words
     Route::get('/admin/banned-words', [AdminController::class, 'bannedWords'])->name('admin.banned_words');
     Route::post('/admin/banned-words', [AdminController::class, 'storeBannedWord'])->name('admin.banned_words.store');
     Route::delete('/admin/banned-words/{id}', [AdminController::class, 'deleteBannedWord'])->name('admin.banned_words.delete');
@@ -45,7 +66,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/users/{id}/promote', [AdminController::class, 'promoteToAdmin'])->name('admin.users.promote');
     Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
     
-    // User Update & Password Reset
     Route::match(['post', 'patch'], '/admin/users/{id}/update', [AdminController::class, 'updateUser'])->name('admin.users.update');
     Route::post('/admin/users/{id}/reset-password', [AdminController::class, 'resetUserPassword'])->name('admin.users.reset_password');
 
@@ -74,13 +94,13 @@ Route::middleware(['auth'])->group(function () {
     // USER ROUTES
     // ===========================
     
-    // Profile Editing
+    // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/user/avatar', [UserProfileController::class, 'updateAvatar'])->name('user.avatar.update');
 
-    // Posting & Interacting
+    // Questions & Answers
     Route::post('/post-question', [ForumController::class, 'storeQuestion'])->name('question.store');
     Route::post('/question/{id}/answer', [ForumController::class, 'storeAnswer'])->name('answer.store');
     Route::post('/question/{id}/report', [ForumController::class, 'reportQuestion'])->name('question.report');
@@ -95,7 +115,7 @@ Route::middleware(['auth'])->group(function () {
         return back();
     })->name('notifications.read');
 
-    // Editing Content
+    // Editing
     Route::get('/question/{id}/edit', [ForumController::class, 'editQuestion'])->name('question.edit');
     Route::put('/question/{id}', [ForumController::class, 'updateQuestion'])->name('question.update');
     Route::delete('/question/{id}', [ForumController::class, 'destroyQuestion'])->name('question.destroy');

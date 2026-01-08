@@ -1,245 +1,303 @@
-<x-public-layout>
-    @push('styles')
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-        <style>
-            .line-clamp-3 pre { overflow: hidden; }
-            .prose img { display: block; max-width: 100%; max-height: 300px; width: auto; height: auto; margin: 10px 0; border-radius: 6px; object-fit: contain; }
-            [x-cloak] { display: none !important; }
-            .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-        </style>
-    @endpush
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ config('app.name', 'VincenThinks') }} - The Knowledge Hub</title>
 
-    @push('scripts')
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-        <script>hljs.highlightAll();</script>
-    @endpush
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:300,400,500,600,700,800&display=swap" rel="stylesheet" />
+    
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
-    <div class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-        {{-- MOBILE FILTER DRAWER --}}
-        <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-            <div x-show="mobileMenuOpen" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="mobileMenuOpen = false"></div>
-            <div x-show="mobileMenuOpen" class="relative mr-auto flex h-full w-4/5 max-w-xs flex-col overflow-y-auto bg-white shadow-2xl">
-                <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-                    <h2 class="text-lg font-bold text-gray-800 flex items-center"><i class='bx bx-category text-maroon-700 mr-2'></i> Categories</h2>
-                    <button @click="mobileMenuOpen = false" class="text-gray-400 hover:text-gray-600 transition"><i class='bx bx-x text-3xl'></i></button>
+    <style>
+        [x-cloak] { display: none !important; }
+        .hero-pattern {
+            background-image: radial-gradient(#c81e1e 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.05;
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-700 antialiased bg-white selection:bg-maroon-700 selection:text-white">
+
+    {{-- NAVIGATION --}}
+    <nav x-data="{ mobileMenuOpen: false, scrolled: false }" 
+         @scroll.window="scrolled = (window.pageYOffset > 20)"
+         :class="{ 'bg-white/90 backdrop-blur-md shadow-sm': scrolled, 'bg-transparent': !scrolled }"
+         class="fixed top-0 w-full z-50 transition-all duration-300 border-b border-transparent"
+         :class="{ 'border-gray-100': scrolled }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <a href="{{ route('landing') }}" class="flex-shrink-0 flex items-center gap-3">
+                    <img src="{{ asset('images/logo-no-text.svg') }}" alt="Logo" class="h-10 w-auto">
+                    <span class="font-bold text-2xl tracking-tight text-maroon-700">VincenThinks</span>
+                </a>
+
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#features" class="text-sm font-medium text-gray-500 hover:text-maroon-700 transition">Features</a>
+                    <a href="#stats" class="text-sm font-medium text-gray-500 hover:text-maroon-700 transition">Impact</a>
+                    <a href="#departments" class="text-sm font-medium text-gray-500 hover:text-maroon-700 transition">Departments</a>
                 </div>
-                <nav class="p-4 space-y-1">
-                    <a href="{{ route('home') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}"><i class='bx bx-grid-alt mr-3 text-lg'></i> All Topics</a>
-                    @foreach($categories as $cat)
-                        <a href="{{ route('home', array_merge(request()->query(), ['category' => $cat->id])) }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}">
-                            <span class="w-2 h-2 rounded-full bg-gray-300 mr-3 {{ request('category') == $cat->id ? 'bg-maroon-700' : '' }}"></span>
-                            {{ $cat->name }}
-                        </a>
-                    @endforeach
-                </nav>
+
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="{{ route('login') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition">Log in</a>
+                    <a href="{{ route('register') }}" class="px-5 py-2.5 bg-maroon-700 text-white text-sm font-semibold rounded-xl hover:bg-maroon-800 transition shadow-lg shadow-maroon-700/20 transform hover:-translate-y-0.5">
+                        Get Started
+                    </a>
+                </div>
+
+                <div class="flex items-center md:hidden">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-gray-500 hover:text-maroon-700 focus:outline-none">
+                        <i class='bx bx-menu text-3xl'></i>
+                    </button>
+                </div>
             </div>
         </div>
 
-        {{-- DESKTOP SIDEBAR --}}
-        <aside class="hidden lg:block w-64 flex-shrink-0">
-            <div class="sticky top-24 space-y-6">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5" x-data="{ search: '' }">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter by Topic</h3>
-                    <div class="relative mb-4">
-                        <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'></i>
-                        <input type="text" x-model="search" placeholder="Find..." class="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-maroon-700 bg-gray-50 focus:bg-white transition">
-                    </div>
-                    <nav class="space-y-1 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                        <a href="{{ route('home') }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>All Discussions</span></a>
-                        @foreach($categories as $cat)
-                            <a href="{{ route('home', array_merge(request()->query(), ['category' => $cat->id])) }}" x-show="$el.innerText.toLowerCase().includes(search.toLowerCase())" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>{{ $cat->name }}</span></a>
-                        @endforeach
-                    </nav>
+        <div x-show="mobileMenuOpen" 
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 -translate-y-2"
+             x-cloak
+             class="md:hidden absolute top-20 left-0 w-full bg-white shadow-lg border-b border-gray-100 p-4 flex flex-col space-y-4">
+            <a href="#features" @click="mobileMenuOpen = false" class="block text-base font-medium text-gray-600 hover:text-maroon-700">Features</a>
+            <a href="#stats" @click="mobileMenuOpen = false" class="block text-base font-medium text-gray-600 hover:text-maroon-700">Impact</a>
+            <hr class="border-gray-100">
+            <a href="{{ route('login') }}" class="block text-center w-full py-3 text-gray-600 font-medium border border-gray-200 rounded-xl hover:bg-gray-50">Log in</a>
+            <a href="{{ route('register') }}" class="block text-center w-full py-3 bg-maroon-700 text-white font-bold rounded-xl shadow-lg shadow-maroon-700/20">Sign Up Now</a>
+        </div>
+    </nav>
+
+    {{-- HERO SECTION --}}
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        <div class="absolute inset-0 hero-pattern z-0 pointer-events-none"></div>
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-maroon-100 rounded-full blur-3xl opacity-50 z-0"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-orange-100 rounded-full blur-3xl opacity-50 z-0"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center lg:text-left flex flex-col lg:flex-row items-center gap-12">
+            <div class="lg:w-1/2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-maroon-50 border border-maroon-100 text-maroon-700 text-xs font-bold uppercase tracking-wider mb-6">
+                    <span class="w-2 h-2 rounded-full bg-maroon-700 animate-pulse"></span>
+                    AI-Enhanced • Real-Time • Secure
                 </div>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
-                    <ul class="space-y-3 text-sm text-gray-600">
-                        <li><a href="#" class="hover:text-maroon-700 flex items-center transition"><i class='bx bx-help-circle mr-2 text-lg'></i> Help Center</a></li>
-                        <li><a href="#" class="hover:text-maroon-700 flex items-center transition"><i class='bx bx-info-circle mr-2 text-lg'></i> Guidelines</a></li>
-                    </ul>
+                <h1 class="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-6">
+                    The AI-Powered Knowledge Hub for <br>
+                    <span class="text-maroon-700 bg-clip-text text-transparent bg-gradient-to-r from-maroon-700 to-red-500">
+                        St. Vincent College of Cabuyao.
+                    </span>
+                </h1>
+                <p class="text-lg text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                    Bridge the gap between JHS, SHS, and College. Connect with Verified Faculty and peers in a secure, moderated environment when face-to-face consultation isn't possible.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                    <a href="{{ route('feed') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white bg-maroon-700 rounded-2xl hover:bg-maroon-800 transition shadow-xl shadow-maroon-700/20 transform hover:-translate-y-1">
+                        Start Asking
+                        <i class='bx bx-right-arrow-alt ml-2 text-xl'></i>
+                    </a>
+                    <a href="#features" class="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition">
+                        Learn More
+                    </a>
+                </div>
+                <div class="mt-8 flex items-center justify-center lg:justify-start gap-4 text-sm text-gray-500">
+                    <div class="flex -space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600">J</div>
+                        <div class="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600">S</div>
+                        <div class="w-8 h-8 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600">C</div>
+                    </div>
+                    <p>Connecting <strong>BSIT, ABM, & Criminology</strong> students.</p>
                 </div>
             </div>
-        </aside>
 
-        {{-- MAIN FEED AREA --}}
-        <main class="flex-1 min-w-0">
-            @if(session('success') || session('status'))
-                <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
-                    <i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') ?? session('status') }}
-                </div>
-            @endif
-
-            @auth
-                @if (!$verification_required || Auth::user()->hasVerifiedEmail())
-                    {{-- Ask Question Box --}}
-                    <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200 relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-1 h-full bg-maroon-700"></div>
-                        <h3 class="text-xl font-light text-gray-800 mb-4 flex items-center">
-                            <i class='bx bx-edit text-2xl text-maroon-700 mr-2 font-thin'></i> Ask the Community
-                        </h3>
-                        <form action="{{ route('question.store') }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <select name="category_id" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-sm font-light text-gray-600 cursor-pointer">
-                                <option value="" disabled selected>Select a Category...</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
-                            <input type="text" name="title" placeholder="What's your question?" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-lg font-normal transition-colors placeholder-gray-400">
-                            <div class="mb-4">
-                                <x-trix-editor name="content" placeholder="Type your question here..." />
-                                @error('content') <p class="text-red-500 text-xs mt-1 font-bold flex items-center"><i class='bx bx-error-circle mr-1'></i> {{ $message }}</p> @enderror
-                            </div>
-                            <div class="mb-4 flex items-center">
-                                <label class="cursor-pointer flex items-center text-xs text-gray-500 hover:text-maroon-700 transition">
-                                    <i class='bx bx-images text-lg mr-1'></i> Add Images (Optional)
-                                    <input type="file" name="images[]" multiple class="hidden" onchange="document.getElementById('img-preview-count').innerText = this.files.length + ' files selected'">
-                                </label>
-                                <span id="img-preview-count" class="ml-3 text-xs text-maroon-700 font-bold"></span>
-                            </div>
-                            <div class="text-right">
-                                <button type="submit" class="bg-maroon-700 text-white px-6 py-2 rounded-lg font-normal hover:bg-maroon-800 transition shadow-sm flex items-center ml-auto tracking-wide"><i class='bx bx-send mr-2'></i> Post Question</button>
-                            </div>
-                        </form>
-                    </div>
-                @else
-                    {{-- Unverified Email Warning --}}
-                    <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-6 mb-8 rounded-lg shadow-sm flex items-center justify-between">
-                        <div class="flex items-center">
-                            <i class='bx bxs-lock text-3xl mr-4 font-thin'></i>
-                            <div><p class="font-normal text-lg text-gray-800">Action Blocked: Email Verification Required</p><p class="text-sm font-light mt-1 text-gray-600">You must verify your email address before you can post.</p></div>
+            <div class="lg:w-1/2 relative">
+                <div class="relative rounded-2xl bg-white shadow-2xl border border-gray-200 p-2 transform rotate-2 hover:rotate-0 transition duration-500 ease-out">
+                    <div class="rounded-xl overflow-hidden bg-gray-50 aspect-[4/3] flex flex-col relative group">
+                        <div class="h-10 bg-white border-b border-gray-100 flex items-center px-4 gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
                         </div>
-                        <form method="POST" action="{{ route('verification.send') }}">@csrf<button type="submit" class="bg-red-700 text-white px-4 py-2 rounded-lg font-normal hover:bg-red-800 transition shadow-sm flex items-center tracking-wide"><i class='bx bx-mail-send mr-2'></i> Resend Link</button></form>
+                        <div class="p-6 space-y-4">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div class="flex gap-3 mb-2">
+                                    <div class="w-8 h-8 rounded-full bg-maroon-100"></div>
+                                    <div class="space-y-1">
+                                        <div class="w-24 h-3 bg-gray-200 rounded"></div>
+                                        <div class="w-16 h-2 bg-gray-100 rounded"></div>
+                                    </div>
+                                </div>
+                                <div class="w-full h-4 bg-gray-100 rounded mb-2"></div>
+                                <div class="w-3/4 h-4 bg-gray-100 rounded"></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 opacity-60">
+                                <div class="flex gap-3 mb-2">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100"></div>
+                                    <div class="space-y-1">
+                                        <div class="w-20 h-3 bg-gray-200 rounded"></div>
+                                        <div class="w-12 h-2 bg-gray-100 rounded"></div>
+                                    </div>
+                                </div>
+                                <div class="w-full h-4 bg-gray-100 rounded mb-2"></div>
+                                <div class="w-1/2 h-4 bg-gray-100 rounded"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="absolute bottom-6 right-6 bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-100 flex items-center gap-3 animate-bounce">
+                            <div class="bg-green-100 p-1.5 rounded-full text-green-600"><i class='bx bx-check'></i></div>
+                            <div>
+                                <p class="text-xs text-gray-400 font-bold uppercase">Status</p>
+                                {{-- UPDATED: Matches the actual 'Solved' status in your Feed --}}
+                                <p class="text-sm font-bold text-gray-800">Solved</p>
+                            </div>
+                        </div>
                     </div>
-                @endif
-            @else
-                {{-- Guest Banner --}}
-                <div class="bg-white border-l-4 border-blue-400 text-gray-600 p-6 mb-8 rounded-lg shadow-sm flex items-center">
-                    <i class='bx bx-info-circle text-3xl text-blue-400 mr-4 font-thin'></i>
-                    <div><p class="font-normal text-lg text-gray-800">Join the conversation!</p><p class="text-sm font-light mt-1">Please <a href="{{ route('login') }}" class="underline hover:text-blue-600">login</a> to ask questions.</p></div>
                 </div>
-            @endauth
+            </div>
+        </div>
+    </section>
 
-            {{-- Feed Header --}}
-            <div class="flex flex-col sm:flex-row items-center justify-between mb-4 space-y-4 sm:space-y-0">
-                <h2 class="text-2xl font-light text-gray-800 flex items-center">
-                    <i class='bx bx-message-square-dots text-maroon-700 mr-2 font-thin'></i> 
-                    @if(request('category'))
-                        {{ optional($categories->find(request('category')))->name ?? 'Unknown' }} Discussions
-                    @else
-                        Recent Discussions
-                    @endif
-                </h2>
-                <form action="/" method="GET" class="relative w-full sm:w-72">
-                    @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
-                    <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
-                    <input type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700 text-sm font-light bg-white shadow-sm transition">
-                </form>
+    {{-- SOCIAL PROOF STATS --}}
+    <section id="stats" class="bg-maroon-700 py-12 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-maroon-600/50">
+                <div class="space-y-1">
+                    <p class="text-4xl font-extrabold">Live</p>
+                    <p class="text-maroon-200 text-sm font-medium">Real-Time Analytics</p>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-4xl font-extrabold">24/7</p>
+                    <p class="text-maroon-200 text-sm font-medium">Automated Moderation</p>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-4xl font-extrabold">6+</p>
+                    <p class="text-maroon-200 text-sm font-medium">Active Departments</p>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-4xl font-extrabold">3</p>
+                    <p class="text-maroon-200 text-sm font-medium">Education Levels (JHS-Col)</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- FEATURES GRID --}}
+    <section id="features" class="py-24 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-base font-bold text-maroon-700 tracking-wide uppercase mb-2">Why VincenThinks?</h2>
+                <h3 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Everything you need to ace your semester.</h3>
+                <p class="text-gray-500 text-lg">We've built a platform that encourages collaboration, ensures accuracy, and rewards participation.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {{-- Feature 1: Verified Faculty --}}
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 text-3xl mb-6">
+                        <i class='bx bx-badge-check'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Verified Faculty</h4>
+                    <p class="text-gray-500 leading-relaxed">Your efficient alternative to face-to-face consultation. Get verified answers from registered faculty members.</p>
+                </div>
+
+                {{-- Feature 2: Department Focused --}}
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 text-3xl mb-6">
+                        <i class='bx bx-category'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Department Focused</h4>
+                    <p class="text-gray-500 leading-relaxed">Tailored for BSIT, BSED, ABM, BSBA, GAS, and Criminology (BSCRIM). Find materials specific to your strand.</p>
+                </div>
+
+                {{-- Feature 3: Gamification --}}
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 text-3xl mb-6">
+                        <i class='bx bx-trophy'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Gamification</h4>
+                    <p class="text-gray-500 leading-relaxed">Earn reputation points by helping others. Climb the leaderboard and get recognized as a top contributor.</p>
+                </div>
+
+                {{-- Feature 4: AI Auto-Moderation --}}
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center text-green-600 text-3xl mb-6">
+                        <i class='bx bx-shield-quarter'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">AI Auto-Moderation</h4>
+                    <p class="text-gray-500 leading-relaxed">Our AI automatically filters inappropriate content instantly, ensuring a safe space for academic growth.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-pink-50 rounded-xl flex items-center justify-center text-pink-600 text-3xl mb-6">
+                        <i class='bx bx-search-alt'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Smart Search</h4>
+                    <p class="text-gray-500 leading-relaxed">Don't ask the same question twice. Our powerful search helps you find existing solutions instantly.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-maroon-50 rounded-xl flex items-center justify-center text-maroon-700 text-3xl mb-6">
+                        <i class='bx bx-mobile'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Mobile Ready</h4>
+                    <p class="text-gray-500 leading-relaxed">Study on the go. VincenThinks is fully responsive and optimized for your phone or tablet.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- CTA SECTION --}}
+    <section class="py-20 relative overflow-hidden">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="bg-maroon-700 rounded-3xl p-10 md:p-16 text-center shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 -mr-10 -mt-10 w-64 h-64 bg-white opacity-10 rounded-full blur-2xl"></div>
+                <div class="absolute bottom-0 left-0 -ml-10 -mb-10 w-64 h-64 bg-white opacity-10 rounded-full blur-2xl"></div>
+                
+                <h2 class="text-3xl md:text-5xl font-bold text-white mb-6">Ready to improve your grades?</h2>
+                <p class="text-maroon-100 text-lg mb-8 max-w-2xl mx-auto">Join thousands of students and teachers building the smartest campus community today.</p>
+                
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <a href="{{ route('register') }}" class="px-8 py-4 bg-white text-maroon-700 font-bold rounded-2xl hover:bg-gray-100 transition shadow-lg">
+                        Create Free Account
+                    </a>
+                    <a href="{{ route('feed') }}" class="px-8 py-4 bg-maroon-800 text-white font-bold rounded-2xl hover:bg-maroon-900 transition border border-maroon-600">
+                        Browse Questions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- FOOTER --}}
+    <footer class="bg-white border-t border-gray-100 pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-12">
+                <div class="flex items-center gap-3 mb-4 md:mb-0">
+                    <img src="{{ asset('images/logo-no-text.svg') }}" alt="Logo" class="h-8 w-auto">
+                    <span class="font-bold text-lg text-maroon-700">VincenThinks</span>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-maroon-700 transition text-2xl"><i class='bx bxl-facebook'></i></a>
+                    <a href="#" class="text-gray-400 hover:text-maroon-700 transition text-2xl"><i class='bx bxl-twitter'></i></a>
+                    <a href="#" class="text-gray-400 hover:text-maroon-700 transition text-2xl"><i class='bx bxl-instagram'></i></a>
+                </div>
             </div>
             
-            {{-- Filter Tabs --}}
-            <div class="flex items-center space-x-2 mb-6 overflow-x-auto custom-scrollbar pb-2">
-                @php
-                    $currentFilter = request('filter');
-                    $baseClasses = "px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap";
-                    $activeClasses = "bg-maroon-700 text-white border-maroon-700 shadow-sm";
-                    $inactiveClasses = "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700";
-                @endphp
-
-                <a href="{{ route('home', array_merge(request()->except('filter'), ['page' => 1])) }}" class="{{ $baseClasses }} {{ !$currentFilter ? $activeClasses : $inactiveClasses }}">All</a>
-                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'solved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'solved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-check-circle mr-1'></i> Solved</a>
-                <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-question-mark mr-1'></i> Unsolved</a>
-                 <a href="{{ route('home', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-message-square-x mr-1'></i> No Answers</a>
-            </div>
-
-            @if(request('search'))
-                <div class="mb-4 text-sm text-gray-500 font-light flex items-center">
-                    <span>Showing results for: <strong>"{{ request('search') }}"</strong></span>
-                    <a href="/" class="ml-2 text-maroon-700 hover:underline flex items-center"><i class='bx bx-x'></i> Clear</a>
-                </div>
-            @endif
-
-            {{-- Questions Feed --}}
-            <div class="space-y-4 pb-12">
-                @forelse($questions as $q)
-                    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 mr-4">
-                                @if($q->user->avatar)
-                                    <img src="{{ asset('storage/' . $q->user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200" alt="{{ $q->user->name }}">
-                                @else
-                                    <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-maroon-700 text-sm font-bold">{{ substr($q->user->name, 0, 1) }}</div>
-                                @endif
-                            </div>
-                            <div class="flex-grow min-w-0">
-                                <div class="flex justify-between items-start mb-3">
-                                    {{-- ADDED: flex-wrap so it doesn't break on small phones --}}
-                                        <div class="flex items-center flex-wrap gap-y-1 text-xs text-gray-400 font-light">
-                                        <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
-                                        @if($q->user->member_type === 'student' && $q->user->course)
-                                            <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
-                                        @elseif($q->user->member_type === 'teacher' && $q->user->departmentInfo)
-                                            <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1" title="{{ $q->user->departmentInfo->name }}">{{ $q->user->departmentInfo->acronym ?? $q->user->departmentInfo->name }}</span>
-                                        @endif
-                                        <span class="mx-1">•</span>
-                                        <span>{{ $q->created_at->diffForHumans() }}</span>
-                                        @if($q->category)
-                                            <span class="mx-2 text-gray-300">|</span>
-                                            {{-- UPDATED: Shows Acronym if available, otherwise falls back to Name --}}
-                                            <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200" 
-                                                  title="{{ $q->category->name }}">
-                                                {{ $q->category->acronym ?? $q->category->name }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        @if($q->best_answer_id)
-                                            <span class="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center border border-green-200 shadow-sm"><i class='bx bx-check mr-1 text-base'></i> Solved</span>
-                                        @endif
-                                        @auth
-                                            @if(Auth::id() === $q->user_id || Auth::user()->is_admin)
-                                                <form action="{{ route('question.destroy', $q->id) }}" method="POST" onsubmit="return confirm('Delete this question?');">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="text-gray-300 hover:text-red-500 transition" title="Delete Question"><i class='bx bx-trash text-lg'></i></button>
-                                                </form>
-                                            @endif
-                                        @endauth
-                                    </div>
-                                </div>
-                                <a href="{{ route('question.show', $q->id) }}" class="block group-hover:text-maroon-700 transition-colors">
-                                    <h3 class="text-lg font-bold text-gray-900 leading-tight mb-2 group-hover:text-maroon-700 transition-colors">{{ $q->title }}</h3>
-                                    <div class="prose prose-sm prose-stone text-gray-600 line-clamp-3 mb-4">{!! Str::markdown($q->content) !!}</div>
-                                    @if($q->images->count() > 0)
-                                        <div class="mt-2 rounded-lg overflow-hidden h-72 w-full border border-gray-200 relative bg-gray-100 flex justify-center items-center">
-                                            <img src="{{ asset('storage/' . $q->images->first()->image_path) }}" class="w-full h-full object-contain">
-                                            @if($q->images->count() > 1)
-                                                <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm"><i class='bx bx-images mr-1.5 text-sm'></i> +{{ $q->images->count() - 1 }}</div>
-                                            @endif
-                                        </div>
-                                    @endif
-                                </a>
-                                <div class="mt-4 flex items-center justify-between">
-                                    <div class="flex items-center space-x-4 text-sm text-gray-400 font-light">
-                                        <span class="flex items-center"><i class='bx bx-message-alt mr-1 text-base'></i> {{ $q->answers_count }} Answers</span>
-                                        <span class="flex items-center"><i class='bx bx-show mr-1 text-lg'></i> {{ $q->views ?? 0 }} Views</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="text-center py-12 bg-white rounded-xl border border-gray-200">
-                        <i class='bx bx-search-alt text-4xl text-gray-300 mb-2'></i>
-                        <p class="text-gray-500 font-light">No questions found.</p>
-                    </div>
-                @endforelse
-                <div class="mt-8">
-                    {{ $questions->withQueryString()->links('partials.pagination') }}
+            <div class="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+                <p>&copy; {{ date('Y') }} VincenThinks. All rights reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="hover:text-gray-900 transition">Privacy Policy</a>
+                    <a href="#" class="hover:text-gray-900 transition">Terms of Service</a>
                 </div>
             </div>
-        </main>
-    </div>
-</x-public-layout>
+        </div>
+    </footer>
+
+</body>
+</html>
