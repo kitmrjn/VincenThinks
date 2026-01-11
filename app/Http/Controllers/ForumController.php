@@ -54,36 +54,59 @@ class ForumController extends Controller
     }
 
     public function storeQuestion(Request $request) {
-        $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
-        if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
-            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to post.');
+    // 1. Verification Check
+    $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
+    if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Email verification required.'], 403);
         }
-
-        $request->validate([
-            'title' => 'required',
-            'category_id' => 'required|exists:categories,id',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:3072',
-            'content' => ['required', function ($attribute, $value, $fail) {
-                if (trim(strip_tags($value)) === '') { $fail('The question content cannot be empty.'); }
-            }],
-        ]);
-
-        $question = Question::create([
-            'user_id' => Auth::id(),
-            'title' => $request->title,
-            'content' => $request->content,
-            'category_id' => $request->category_id
-        ]);
-
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('question_images', 'public');
-                QuestionImage::create(['question_id' => $question->id, 'image_path' => $path]);
-            }
-        }
-
-        return redirect()->back()->with('success', 'Question Posted!');
+        return redirect()->back()->with('error', 'Action blocked: You must verify your email address to post.');
     }
+
+    // 2. Validation
+    $request->validate([
+        'title' => 'required',
+        'category_id' => 'required|exists:categories,id',
+        'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:3072',
+        'content' => ['required', function ($attribute, $value, $fail) {
+            if (trim(strip_tags($value)) === '') { $fail('The question content cannot be empty.'); }
+        }],
+    ]);
+
+    // 3. Create Question
+    $question = Question::create([
+        'user_id' => Auth::id(),
+        'title' => $request->title,
+        'content' => $request->content,
+        'category_id' => $request->category_id
+    ]);
+
+    // 4. Handle Images
+    if ($request->hasFile('images')) {
+        foreach ($request->file('images') as $image) {
+            $path = $image->store('question_images', 'public');
+            QuestionImage::create(['question_id' => $question->id, 'image_path' => $path]);
+        }
+    }
+
+    // 5. AJAX RESPONSE (The New Part)
+    if ($request->wantsJson()) {
+        // Eager load relationships so the partial doesn't crash
+        $question->load('user.course', 'user.departmentInfo', 'category', 'images');
+        
+        // Render the partial we created in Phase 1
+        $html = view('partials.question-card', ['q' => $question])->render();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Question Posted!',
+            'html' => $html
+        ]);
+    }
+
+    // Fallback for non-JS
+    return redirect()->back()->with('success', 'Question Posted!');
+}
 
     public function show($id) {
         $question = Question::with([

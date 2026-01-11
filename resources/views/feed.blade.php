@@ -16,7 +16,21 @@
         <script>hljs.highlightAll();</script>
     @endpush
 
-    <div class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8">
+    {{-- Main Container with x-data for Modal State --}}
+    <div x-data="{ mobileMenuOpen: false, createModalOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative">
+
+        {{-- NEW: Include the Modal Component --}}
+        <x-create-question-modal :categories="$categories" />
+
+        {{-- MOBILE FAB (Floating Action Button) --}}
+        @auth
+            <button 
+                @click="createModalOpen = true"
+                class="lg:hidden fixed bottom-6 right-6 z-40 bg-maroon-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-maroon-800 hover:scale-105 transition transform focus:outline-none focus:ring-4 focus:ring-maroon-300"
+            >
+                <i class='bx bx-plus text-3xl'></i>
+            </button>
+        @endauth
 
         {{-- MOBILE FILTER DRAWER --}}
         <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
@@ -54,6 +68,7 @@
                         @endforeach
                     </nav>
                 </div>
+                {{-- Quick Links Block --}}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
                     <ul class="space-y-3 text-sm text-gray-600">
@@ -74,37 +89,41 @@
 
             @auth
                 @if (!$verification_required || Auth::user()->hasVerifiedEmail())
-                    {{-- Ask Question Box --}}
-                    <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200 relative overflow-hidden group">
-                        <div class="absolute top-0 left-0 w-1 h-full bg-maroon-700"></div>
-                        <h3 class="text-xl font-light text-gray-800 mb-4 flex items-center">
-                            <i class='bx bx-edit text-2xl text-maroon-700 mr-2 font-thin'></i> Ask the Community
-                        </h3>
-                        <form action="{{ route('question.store') }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <select name="category_id" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-sm font-light text-gray-600 cursor-pointer">
-                                <option value="" disabled selected>Select a Category...</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                @endforeach
-                            </select>
-                            <input type="text" name="title" placeholder="What's your question?" required class="w-full border-b border-gray-200 bg-transparent p-2 mb-4 focus:border-maroon-700 focus:outline-none text-lg font-normal transition-colors placeholder-gray-400">
-                            <div class="mb-4">
-                                <x-trix-editor name="content" placeholder="Type your question here..." />
-                                @error('content') <p class="text-red-500 text-xs mt-1 font-bold flex items-center"><i class='bx bx-error-circle mr-1'></i> {{ $message }}</p> @enderror
+                    
+                    {{-- NEW: Desktop Trigger Bar --}}
+                    <div class="hidden lg:block bg-white rounded-xl shadow-sm p-4 mb-8 border border-gray-200">
+                        <div class="flex items-center gap-4">
+                            {{-- Avatar --}}
+                            <div class="flex-shrink-0">
+                                @if(Auth::user()->avatar)
+                                    <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                                @else
+                                    <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-maroon-700 font-bold">
+                                        {{ substr(Auth::user()->name, 0, 1) }}
+                                    </div>
+                                @endif
                             </div>
-                            <div class="mb-4 flex items-center">
-                                <label class="cursor-pointer flex items-center text-xs text-gray-500 hover:text-maroon-700 transition">
-                                    <i class='bx bx-images text-lg mr-1'></i> Add Images (Optional)
-                                    <input type="file" name="images[]" multiple class="hidden" onchange="document.getElementById('img-preview-count').innerText = this.files.length + ' files selected'">
-                                </label>
-                                <span id="img-preview-count" class="ml-3 text-xs text-maroon-700 font-bold"></span>
+                            
+                            {{-- Fake Input --}}
+                            <button 
+                                @click="createModalOpen = true"
+                                class="flex-grow text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full py-2.5 px-5 text-sm text-gray-500 font-light transition duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-100"
+                            >
+                                What do you want to ask, {{ Auth::user()->name }}?
+                            </button>
+
+                            {{-- Action Icons --}}
+                            <div class="flex items-center gap-2 text-gray-400">
+                                <button @click="createModalOpen = true" class="p-2 hover:bg-gray-50 rounded-full hover:text-maroon-700 transition" title="Upload Image">
+                                    <i class='bx bx-image-add text-xl'></i>
+                                </button>
+                                <button @click="createModalOpen = true" class="p-2 hover:bg-gray-50 rounded-full hover:text-maroon-700 transition" title="Select Category">
+                                    <i class='bx bx-category-alt text-xl'></i>
+                                </button>
                             </div>
-                            <div class="text-right">
-                                <button type="submit" class="bg-maroon-700 text-white px-6 py-2 rounded-lg font-normal hover:bg-maroon-800 transition shadow-sm flex items-center ml-auto tracking-wide"><i class='bx bx-send mr-2'></i> Post Question</button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
+
                 @else
                     {{-- Unverified Email Warning --}}
                     <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-6 mb-8 rounded-lg shadow-sm flex items-center justify-between">
@@ -123,7 +142,7 @@
                 </div>
             @endauth
 
-            {{-- Feed Header --}}
+            {{-- Feed Header & Filter Tabs --}}
             <div class="flex flex-col sm:flex-row items-center justify-between mb-4 space-y-4 sm:space-y-0">
                 <h2 class="text-2xl font-light text-gray-800 flex items-center">
                     <i class='bx bx-message-square-dots text-maroon-700 mr-2 font-thin'></i> 
@@ -133,7 +152,11 @@
                         Recent Discussions
                     @endif
                 </h2>
-                <form action="/" method="GET" class="relative w-full sm:w-72">
+                {{-- Mobile Filter Toggle --}}
+                <button @click="mobileMenuOpen = true" class="lg:hidden w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 py-2 rounded-lg text-sm font-medium text-gray-600 shadow-sm">
+                    <i class='bx bx-filter'></i> <span>Filter Topics</span>
+                </button>
+                <form action="/" method="GET" class="hidden sm:block relative w-72">
                     @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
                     <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
                     <input type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700 text-sm font-light bg-white shadow-sm transition">
@@ -162,9 +185,14 @@
                 </div>
             @endif
 
-            {{-- Questions Feed --}}
-            <div class="space-y-4 pb-12">
+            {{-- Questions Feed with ID for AJAX --}}
+            <div id="feed-container" class="space-y-4 pb-12">
                 @forelse($questions as $q)
+                    {{-- 
+                        NOTE: We are using inline HTML here to match your preferred code style.
+                        Ideally, this block should be refactored to: @include('partials.question-card', ['q' => $q]) 
+                        so it matches the AJAX injected cards exactly.
+                    --}}
                     <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative">
                         <div class="flex items-start">
                             <div class="flex-shrink-0 mr-4">
@@ -176,8 +204,7 @@
                             </div>
                             <div class="flex-grow min-w-0">
                                 <div class="flex justify-between items-start mb-3">
-                                    {{-- ADDED: flex-wrap so it doesn't break on small phones --}}
-                                        <div class="flex items-center flex-wrap gap-y-1 text-xs text-gray-400 font-light">
+                                    <div class="flex items-center flex-wrap gap-y-1 text-xs text-gray-400 font-light">
                                         <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
                                         @if($q->user->member_type === 'student' && $q->user->course)
                                             <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
@@ -188,7 +215,6 @@
                                         <span>{{ $q->created_at->diffForHumans() }}</span>
                                         @if($q->category)
                                             <span class="mx-2 text-gray-300">|</span>
-                                            {{-- UPDATED: Shows Acronym if available, otherwise falls back to Name --}}
                                             <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200" 
                                                   title="{{ $q->category->name }}">
                                                 {{ $q->category->acronym ?? $q->category->name }}
