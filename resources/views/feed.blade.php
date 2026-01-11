@@ -19,10 +19,10 @@
     {{-- Main Container with x-data for Modal State --}}
     <div x-data="{ mobileMenuOpen: false, createModalOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative">
 
-        {{-- NEW: Include the Modal Component --}}
+        {{-- MODAL COMPONENT --}}
         <x-create-question-modal :categories="$categories" />
 
-        {{-- MOBILE FAB (Floating Action Button) --}}
+        {{-- MOBILE FAB --}}
         @auth
             <button 
                 @click="createModalOpen = true"
@@ -68,7 +68,6 @@
                         @endforeach
                     </nav>
                 </div>
-                {{-- Quick Links Block --}}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
                     <ul class="space-y-3 text-sm text-gray-600">
@@ -89,11 +88,8 @@
 
             @auth
                 @if (!$verification_required || Auth::user()->hasVerifiedEmail())
-                    
-                    {{-- NEW: Desktop Trigger Bar --}}
                     <div class="hidden lg:block bg-white rounded-xl shadow-sm p-4 mb-8 border border-gray-200">
                         <div class="flex items-center gap-4">
-                            {{-- Avatar --}}
                             <div class="flex-shrink-0">
                                 @if(Auth::user()->avatar)
                                     <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
@@ -103,29 +99,19 @@
                                     </div>
                                 @endif
                             </div>
-                            
-                            {{-- Fake Input --}}
                             <button 
                                 @click="createModalOpen = true"
                                 class="flex-grow text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full py-2.5 px-5 text-sm text-gray-500 font-light transition duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-100"
                             >
                                 What do you want to ask, {{ Auth::user()->name }}?
                             </button>
-
-                            {{-- Action Icons --}}
                             <div class="flex items-center gap-2 text-gray-400">
-                                <button @click="createModalOpen = true" class="p-2 hover:bg-gray-50 rounded-full hover:text-maroon-700 transition" title="Upload Image">
-                                    <i class='bx bx-image-add text-xl'></i>
-                                </button>
-                                <button @click="createModalOpen = true" class="p-2 hover:bg-gray-50 rounded-full hover:text-maroon-700 transition" title="Select Category">
-                                    <i class='bx bx-category-alt text-xl'></i>
-                                </button>
+                                <button @click="createModalOpen = true" class="p-2 hover:bg-gray-50 rounded-full hover:text-maroon-700 transition" title="Upload Image"><i class='bx bx-image-add text-xl'></i></button>
+                                <button @click="createModalOpen = true" class="p-2 hover:bg-gray-50 rounded-full hover:text-maroon-700 transition" title="Select Category"><i class='bx bx-category-alt text-xl'></i></button>
                             </div>
                         </div>
                     </div>
-
                 @else
-                    {{-- Unverified Email Warning --}}
                     <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-6 mb-8 rounded-lg shadow-sm flex items-center justify-between">
                         <div class="flex items-center">
                             <i class='bx bxs-lock text-3xl mr-4 font-thin'></i>
@@ -135,14 +121,13 @@
                     </div>
                 @endif
             @else
-                {{-- Guest Banner --}}
                 <div class="bg-white border-l-4 border-blue-400 text-gray-600 p-6 mb-8 rounded-lg shadow-sm flex items-center">
                     <i class='bx bx-info-circle text-3xl text-blue-400 mr-4 font-thin'></i>
                     <div><p class="font-normal text-lg text-gray-800">Join the conversation!</p><p class="text-sm font-light mt-1">Please <a href="{{ route('login') }}" class="underline hover:text-blue-600">login</a> to ask questions.</p></div>
                 </div>
             @endauth
 
-            {{-- Feed Header & Filter Tabs --}}
+            {{-- Feed Header & Filters --}}
             <div class="flex flex-col sm:flex-row items-center justify-between mb-4 space-y-4 sm:space-y-0">
                 <h2 class="text-2xl font-light text-gray-800 flex items-center">
                     <i class='bx bx-message-square-dots text-maroon-700 mr-2 font-thin'></i> 
@@ -152,7 +137,6 @@
                         Recent Discussions
                     @endif
                 </h2>
-                {{-- Mobile Filter Toggle --}}
                 <button @click="mobileMenuOpen = true" class="lg:hidden w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 py-2 rounded-lg text-sm font-medium text-gray-600 shadow-sm">
                     <i class='bx bx-filter'></i> <span>Filter Topics</span>
                 </button>
@@ -163,7 +147,6 @@
                 </form>
             </div>
             
-            {{-- Filter Tabs --}}
             <div class="flex items-center space-x-2 mb-6 overflow-x-auto custom-scrollbar pb-2">
                 @php
                     $currentFilter = request('filter');
@@ -185,16 +168,29 @@
                 </div>
             @endif
 
-            {{-- Questions Feed with ID for AJAX --}}
-            <div id="feed-container" class="space-y-4 pb-12">
+            {{-- Questions Feed --}}
+            {{-- Increased space-y-4 to space-y-6 to accommodate the floating 'Legend' badge --}}
+            <div id="feed-container" class="space-y-6 pb-12">
                 @forelse($questions as $q)
                     {{-- 
-                        NOTE: We are using inline HTML here to match your preferred code style.
-                        Ideally, this block should be refactored to: @include('partials.question-card', ['q' => $q]) 
-                        so it matches the AJAX injected cards exactly.
+                        CARD LOGIC: 
+                        If solved: border-green-500 + green ring. 
+                        Else: default styling.
                     --}}
-                    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative">
-                        <div class="flex items-start">
+                    <div class="bg-white rounded-xl shadow-sm p-5 border transition duration-200 group relative 
+                        {{ $q->best_answer_id 
+                            ? 'border-green-500 ring-1 ring-green-500' 
+                            : 'border-gray-100 hover:border-maroon-200 hover:shadow-md' 
+                        }}">
+                        
+                        {{-- NEW: Solved "Legend" Badge on Top Border --}}
+                        @if($q->best_answer_id)
+                            <div class="absolute -top-3 left-4 bg-green-100 text-green-700 border border-green-400 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide shadow-sm flex items-center gap-1 z-10">
+                                <i class='bx bx-check text-base'></i> Solved
+                            </div>
+                        @endif
+
+                        <div class="flex items-start {{ $q->best_answer_id ? 'mt-2' : '' }}"> {{-- Slight margin top if solved to breathe --}}
                             <div class="flex-shrink-0 mr-4">
                                 @if($q->user->avatar)
                                     <img src="{{ asset('storage/' . $q->user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200" alt="{{ $q->user->name }}">
@@ -204,27 +200,38 @@
                             </div>
                             <div class="flex-grow min-w-0">
                                 <div class="flex justify-between items-start mb-3">
-                                    <div class="flex items-center flex-wrap gap-y-1 text-xs text-gray-400 font-light">
-                                        <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
-                                        @if($q->user->member_type === 'student' && $q->user->course)
-                                            <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 ml-1" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
-                                        @elseif($q->user->member_type === 'teacher' && $q->user->departmentInfo)
-                                            <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1" title="{{ $q->user->departmentInfo->name }}">{{ $q->user->departmentInfo->acronym ?? $q->user->departmentInfo->name }}</span>
-                                        @endif
-                                        <span class="mx-1">•</span>
-                                        <span>{{ $q->created_at->diffForHumans() }}</span>
-                                        @if($q->category)
-                                            <span class="mx-2 text-gray-300">|</span>
-                                            <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200" 
-                                                  title="{{ $q->category->name }}">
-                                                {{ $q->category->acronym ?? $q->category->name }}
-                                            </span>
-                                        @endif
+                                    
+                                    {{-- Metadata Container --}}
+                                    <div class="flex flex-col sm:flex-row sm:items-center gap-y-1 sm:gap-x-2 text-xs text-gray-400 font-light flex-1 min-w-0">
+                                        
+                                        {{-- Row 1: Name + Role --}}
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <a href="{{ route('user.profile', $q->user->id) }}" class="font-medium text-gray-600 hover:underline hover:text-maroon-700">{{ $q->user->name }}</a>
+                                            @if($q->user->member_type === 'student' && $q->user->course)
+                                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 whitespace-nowrap" title="{{ $q->user->course->name }}">{{ $q->user->course->acronym }}</span>
+                                            @elseif($q->user->member_type === 'teacher' && $q->user->departmentInfo)
+                                                <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 whitespace-nowrap" title="{{ $q->user->departmentInfo->name }}">{{ $q->user->departmentInfo->acronym ?? $q->user->departmentInfo->name }}</span>
+                                            @endif
+                                        </div>
+
+                                        {{-- Desktop Separator --}}
+                                        <span class="hidden sm:inline text-gray-300">•</span>
+
+                                        {{-- Row 2: Time + Category (Solved Badge Removed from here) --}}
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="whitespace-nowrap">{{ $q->created_at->diffForHumans() }}</span>
+                                            @if($q->category)
+                                                <span class="text-gray-300">|</span>
+                                                <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200 whitespace-nowrap" 
+                                                      title="{{ $q->category->name }}">
+                                                    {{ $q->category->acronym ?? $q->category->name }}
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
-                                    <div class="flex items-center space-x-2">
-                                        @if($q->best_answer_id)
-                                            <span class="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center border border-green-200 shadow-sm"><i class='bx bx-check mr-1 text-base'></i> Solved</span>
-                                        @endif
+
+                                    {{-- Actions: Only Delete now --}}
+                                    <div class="flex items-center space-x-2 pl-2 flex-shrink-0">
                                         @auth
                                             @if(Auth::id() === $q->user_id || Auth::user()->is_admin)
                                                 <form action="{{ route('question.destroy', $q->id) }}" method="POST" onsubmit="return confirm('Delete this question?');">
