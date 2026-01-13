@@ -4,13 +4,33 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder; // Needed for Global Scope
+use App\Services\ContentFilter;           // Needed for AI
 
 class Reply extends Model
 {
     use HasFactory;
     
-    // Add 'parent_id' to the list
-    protected $fillable = ['user_id', 'answer_id', 'content', 'parent_id'];
+    protected $fillable = ['user_id', 'answer_id', 'content', 'parent_id', 'status'];
+
+    protected static function booted()
+    {
+        // 1. Intercept Creation: Run Content Filter
+        static::creating(function ($reply) {
+            if (ContentFilter::check($reply->content)) {
+                $reply->status = 'pending_review';
+            } else {
+                $reply->status = 'published';
+            }
+        });
+
+        // 2. Global Scope: Only show published replies (unless Admin)
+        static::addGlobalScope('published', function (Builder $builder) {
+            if (!request()->is('admin*')) { 
+                $builder->where('status', 'published');
+            }
+        });
+    }
 
     public function user() {
         return $this->belongsTo(User::class);
@@ -20,12 +40,10 @@ class Reply extends Model
         return $this->belongsTo(Answer::class);
     }
 
-    // A reply can have a parent (if it's a sub-reply)
     public function parent() {
         return $this->belongsTo(Reply::class, 'parent_id');
     }
 
-    // A reply can have many children (sub-replies)
     public function children() {
         return $this->hasMany(Reply::class, 'parent_id');
     }

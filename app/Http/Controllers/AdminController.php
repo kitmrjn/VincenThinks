@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Report;
 use App\Models\Question;
 use App\Models\Answer;
+use App\Models\Reply; // <--- ADDED THIS IMPORT
 use App\Models\Category;
 use App\Models\Setting;
 use App\Models\Course;
@@ -88,8 +89,15 @@ class AdminController extends Controller
             ->with('user', 'question')
             ->latest()
             ->get();
+        
+        // --- ADDED: Fetch Flagged Replies ---
+        $flaggedReplies = Reply::withoutGlobalScope('published')
+            ->where('status', 'pending_review')
+            ->with('user', 'answer.question') // Eager load answer and its question for context
+            ->latest()
+            ->get();
 
-        return view('admin.moderation', compact('flaggedQuestions', 'flaggedAnswers'));
+        return view('admin.moderation', compact('flaggedQuestions', 'flaggedAnswers', 'flaggedReplies'));
     }
 
     public function approveContent(Request $request, $type, $id) {
@@ -97,8 +105,12 @@ class AdminController extends Controller
 
         if ($type === 'question') {
             $item = Question::withoutGlobalScope('published')->findOrFail($id);
-        } else {
+        } elseif ($type === 'answer') {
             $item = Answer::withoutGlobalScope('published')->findOrFail($id);
+        } elseif ($type === 'reply') { // --- ADDED: Handle Reply Approval
+            $item = Reply::withoutGlobalScope('published')->findOrFail($id);
+        } else {
+            abort(404);
         }
 
         $item->status = 'published';
@@ -114,8 +126,12 @@ class AdminController extends Controller
 
         if ($type === 'question') {
             $item = Question::withoutGlobalScope('published')->findOrFail($id);
-        } else {
+        } elseif ($type === 'answer') {
             $item = Answer::withoutGlobalScope('published')->findOrFail($id);
+        } elseif ($type === 'reply') { // --- ADDED: Handle Reply Deletion
+            $item = Reply::withoutGlobalScope('published')->findOrFail($id);
+        } else {
+            abort(404);
         }
 
         $item->delete();

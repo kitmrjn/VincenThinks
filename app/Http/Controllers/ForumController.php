@@ -83,7 +83,22 @@ class ForumController extends Controller
             }
         }
 
-        // AJAX RESPONSE
+        // --- MODERATION CHECK START ---
+        // If the ContentFilter flagged this as 'pending_review', do NOT return the HTML.
+        // Instead, warn the user that it is under moderation.
+        if ($question->status === 'pending_review') {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Your post contains sensitive content and is pending moderation.',
+                    'pending_review' => true
+                ]);
+            }
+            return redirect()->back()->with('error', 'Your post contains sensitive content and is pending moderation.');
+        }
+        // --- MODERATION CHECK END ---
+
+        // AJAX RESPONSE (Success)
         if ($request->wantsJson()) {
             $question->load('user.course', 'user.departmentInfo', 'category', 'images');
             $html = view('partials.question-card', ['q' => $question])->render();
@@ -177,8 +192,6 @@ class ForumController extends Controller
 
     public function storeReply(StoreReplyRequest $request, $answerId) {
         
-        // Verification Check Removed (Handled by middleware)
-
         // Create Reply
         $reply = Reply::create([
             'user_id' => Auth::id(),
@@ -187,7 +200,21 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        // Notifications
+        // --- MODERATION CHECK ---
+        if ($reply->status === 'pending_review') {
+            // If AJAX, send error JSON
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your reply contains sensitive content and is pending moderation.'
+                ]);
+            }
+            // If normal request, redirect with error
+            return redirect()->back()->with('error', 'Your reply is pending moderation.');
+        }
+        // ------------------------
+
+        // Notifications (Only run if published)
         $answer = Answer::findOrFail($answerId);
         $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
 

@@ -52,7 +52,7 @@
 
     {{-- Flagged Answers --}}
     <h2 class="text-xl font-medium text-gray-800 mb-4">Flagged Answers ({{ $flaggedAnswers->count() }})</h2>
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-8">
         @if($flaggedAnswers->count() > 0)
             <table class="w-full text-left border-collapse">
                 <thead class="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-medium">
@@ -86,6 +86,47 @@
             </table>
         @else
             <div class="p-6 text-center text-gray-400 text-sm">No flagged answers found.</div>
+        @endif
+    </div>
+
+    {{-- Flagged Replies (NEW SECTION) --}}
+    <h2 class="text-xl font-medium text-gray-800 mb-4">Flagged Replies ({{ $flaggedReplies->count() }})</h2>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        @if($flaggedReplies->count() > 0)
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-medium">
+                    <tr>
+                        <th class="px-6 py-4">User</th>
+                        <th class="px-6 py-4 w-1/2">Content Preview</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach($flaggedReplies as $r)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium">{{ $r->user->name ?? 'Unknown' }}</td>
+                            <td class="px-6 py-4">
+                                <div class="text-xs text-gray-400 mb-1">
+                                    On Question: {{ Str::limit($r->answer->question->title ?? 'Unknown Question', 40) }}
+                                </div>
+                                <p class="text-sm text-gray-600 leading-relaxed">{{ Str::limit(strip_tags($r->content), 150) }}</p>
+                            </td>
+                            <td class="px-6 py-4 text-right space-x-2">
+                                <form action="{{ route('admin.moderation.approve', ['type' => 'reply', 'id' => $r->id]) }}" method="POST" class="inline">
+                                    @csrf
+                                    <button class="text-green-600 hover:text-green-800 text-xs font-bold border border-green-200 px-3 py-1 rounded hover:bg-green-50">Approve</button>
+                                </form>
+                                <form action="{{ route('admin.moderation.delete', ['type' => 'reply', 'id' => $r->id]) }}" method="POST" class="inline">
+                                    @csrf @method('DELETE')
+                                    <button class="text-red-600 hover:text-red-800 text-xs font-bold border border-red-200 px-3 py-1 rounded hover:bg-red-50">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @else
+            <div class="p-6 text-center text-gray-400 text-sm">No flagged replies found.</div>
         @endif
     </div>
 </x-admin-layout>
