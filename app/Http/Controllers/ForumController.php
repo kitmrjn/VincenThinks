@@ -55,7 +55,12 @@ class ForumController extends Controller
         }
 
         $questions = $query->paginate(10)->onEachSide(1);
+
+        if ($request->ajax()) {
+            return view('partials.question-list', compact('questions'))->render();
+        }
         
+        // Otherwise, load the full page (for first visit)
         return view('feed', compact('questions', 'categories'));
     }
 
