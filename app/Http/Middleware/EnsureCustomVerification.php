@@ -5,43 +5,31 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Models\Setting; // Import Setting model
+use Illuminate\Support\Facades\Auth;
+use App\Models\Setting;
 
 class EnsureCustomVerification
 {
     /**
      * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
+        // 1. Check if the global setting 'verification_required' is enabled (value '1')
+        $verificationRequired = Setting::where('key', 'verification_required')->value('value') === '1';
 
-        // 1. If user is not logged in, standard auth handles it
-        if (!$user) {
-            return $next($request);
+        // 2. If required, check if the user is verified
+        if ($verificationRequired && Auth::check() && !Auth::user()->hasVerifiedEmail()) {
+            
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Email verification required.'], 403);
+            }
+
+            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to post.');
         }
 
-        // 2. ADMIN BYPASS: Always allow Admins (Fixes your issue)
-        if ($user->is_admin) {
-            return $next($request);
-        }
-
-        // 3. SETTINGS CHECK: Check if verification is disabled in Admin Panel
-        // If the 'verification_required' setting is '0' or missing, we can optionally skip check
-        // For safety, let's assume if it's strictly '0', we skip.
-        $isRequired = Setting::where('key', 'verification_required')->value('value');
-        if ($isRequired === '0') {
-            return $next($request);
-        }
-
-        // 4. STANDARD CHECK: If not admin and required, check verification
-        if ($user->hasVerifiedEmail()) {
-            return $next($request);
-        }
-
-        // 5. Fail: Redirect to verification notice
-        return $request->expectsJson()
-                ? abort(403, 'Your email address is not verified.')
-                : redirect()->route('verification.notice');
+        return $next($request);
     }
 }

@@ -66,14 +66,7 @@ class ForumController extends Controller
 
     public function storeQuestion(StoreQuestionRequest $request) {
         
-        // 1. Verification Check (Keep this here for now since your authorize() returns true)
-        $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
-        if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
-            if ($request->wantsJson()) {
-                return response()->json(['message' => 'Email verification required.'], 403);
-            }
-            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to post.');
-        }
+        // Verification Check Removed (Handled by middleware)
 
         $question = Question::create([
             'user_id' => Auth::id(),
@@ -82,7 +75,7 @@ class ForumController extends Controller
             'category_id' => $request->category_id
         ]);
 
-        // 4. Handle Images
+        // Handle Images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
                 $path = $image->store('question_images', 'public');
@@ -90,7 +83,7 @@ class ForumController extends Controller
             }
         }
 
-        // 5. AJAX RESPONSE
+        // AJAX RESPONSE
         if ($request->wantsJson()) {
             $question->load('user.course', 'user.departmentInfo', 'category', 'images');
             $html = view('partials.question-card', ['q' => $question])->render();
@@ -150,15 +143,11 @@ class ForumController extends Controller
 
     public function storeAnswer(StoreAnswerRequest $request, $id) {
         
-        // 1. Verification Check (Kept in controller)
-        $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
-        if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
-            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to post.');
-        }
+        // Verification Check Removed (Handled by middleware)
 
         $question = Question::findOrFail($id);
 
-        // 2. Business Logic Checks (Kept in controller)
+        // Business Logic Checks
         if (Auth::id() === $question->user_id) {
             return redirect()->back()->with('error', 'You cannot answer your own question.');
         }
@@ -167,14 +156,14 @@ class ForumController extends Controller
             return redirect()->back()->with('error', 'This question is solved.');
         }
 
-        // 3. Create Answer
+        // Create Answer
         Answer::create([
             'user_id' => Auth::id(),
             'question_id' => $id,
             'content' => $request->content
         ]);
 
-        // 4. Notifications
+        // Notifications
         if ($question->user_id !== Auth::id()) {
             $question->user->notify(new NewActivity(
                 Auth::user()->name . " answered your question.",
@@ -188,13 +177,9 @@ class ForumController extends Controller
 
     public function storeReply(StoreReplyRequest $request, $answerId) {
         
-        // 1. Verification Check
-        $verificationRequired = Setting::where('key', 'verification_required')->value('value') == '1';
-        if ($verificationRequired && !Auth::user()->hasVerifiedEmail()) {
-            return redirect()->back()->with('error', 'Action blocked: You must verify your email address to reply.');
-        }
+        // Verification Check Removed (Handled by middleware)
 
-        // 2. Create Reply
+        // Create Reply
         $reply = Reply::create([
             'user_id' => Auth::id(),
             'answer_id' => $answerId,
@@ -202,7 +187,7 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        // 3. Notifications
+        // Notifications
         $answer = Answer::findOrFail($answerId);
         $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
 
@@ -276,21 +261,18 @@ class ForumController extends Controller
     }
 
     public function destroyQuestion($id) {
-        // CLEANUP: We now eager load images to delete them from storage too
         $question = Question::with('images')->findOrFail($id);
         
         if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { 
             abort(403); 
         }
 
-        // 1. Delete actual files from disk
         foreach ($question->images as $image) {
             if (Storage::disk('public')->exists($image->image_path)) {
                 Storage::disk('public')->delete($image->image_path);
             }
         }
 
-        // 2. Delete the record (Database cascades will handle answers/replies)
         $question->delete();
 
         return redirect()->route('home')->with('success', 'Question deleted.');
@@ -327,7 +309,6 @@ class ForumController extends Controller
     public function updateQuestion(UpdateQuestionRequest $request, $id) {
         $question = Question::findOrFail($id);
         
-        // 1. Authorization & Time Limits (Kept in controller)
         if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
 
         $limit = $this->getEditLimit();
@@ -335,14 +316,12 @@ class ForumController extends Controller
             return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
         }
 
-        // 2. Update Question
         $question->update([
             'title' => $request->title,
             'content' => $request->content,
             'category_id' => $request->category_id
         ]);
 
-        // 3. Handle Image Deletions
         if ($request->has('delete_images')) {
             foreach ($request->delete_images as $imageId) {
                 $image = QuestionImage::find($imageId);
@@ -353,7 +332,6 @@ class ForumController extends Controller
             }
         }
 
-        // 4. Handle New Images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $imageFile) {
                 $path = $imageFile->store('question_images', 'public');
@@ -376,10 +354,8 @@ class ForumController extends Controller
     }
 
     public function updateAnswer(UpdateAnswerRequest $request, $id) {
-
         $answer = Answer::findOrFail($id);
         
-        // 1. Authorization & Time Limits
         if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
         
         $limit = $this->getEditLimit();
@@ -387,7 +363,6 @@ class ForumController extends Controller
             return redirect()->back()->with('error', "Time limit exceeded. You can only edit within $limit seconds.");
         }
 
-        // 2. Update
         $answer->update(['content' => $request->content]);
         
         return redirect()->route('question.show', $answer->question_id)->with('success', 'Answer updated.');

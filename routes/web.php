@@ -100,12 +100,16 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/user/avatar', [UserProfileController::class, 'updateAvatar'])->name('user.avatar.update');
 
-    // Questions & Answers
-    Route::post('/post-question', [ForumController::class, 'storeQuestion'])->name('question.store');
-    Route::post('/question/{id}/answer', [ForumController::class, 'storeAnswer'])->name('answer.store');
+    // Questions & Answers (WITH MIDDLEWARE CHECK)
+    Route::middleware(['verified.custom'])->group(function () {
+        Route::post('/post-question', [ForumController::class, 'storeQuestion'])->name('question.store');
+        Route::post('/question/{id}/answer', [ForumController::class, 'storeAnswer'])->name('answer.store');
+        Route::post('/answer/{id}/reply', [ForumController::class, 'storeReply'])->name('reply.store');
+    });
+
+    // Other Interaction Routes
     Route::post('/question/{id}/report', [ForumController::class, 'reportQuestion'])->name('question.report');
     Route::post('/answer/{id}/rate', [ForumController::class, 'rateAnswer'])->name('answer.rate');
-    Route::post('/answer/{id}/reply', [ForumController::class, 'storeReply'])->name('reply.store');
     Route::post('/answer/{id}/best', [ForumController::class, 'markAsBest'])->name('answer.best');
 
     // Notifications
