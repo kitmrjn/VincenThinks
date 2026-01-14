@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Report;
 use App\Models\Question;
 use App\Models\Answer;
-use App\Models\Reply; // <--- ADDED THIS IMPORT
+use App\Models\Reply;
 use App\Models\Category;
 use App\Models\Setting;
 use App\Models\Course;
@@ -18,19 +18,51 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use App\Services\AnalyticsService; // [New Import]
 
 class AdminController extends Controller
 {
+    protected $analyticsService;
+
+    public function __construct(AnalyticsService $analyticsService)
+    {
+        $this->analyticsService = $analyticsService;
+    }
+
     // --- DASHBOARD (COMMAND CENTER) ---
     public function index() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
-        $pendingReports = Report::count(); 
-        $newUsersToday = User::whereDate('created_at', today())->count();
-        $totalQuestions = Question::count();
-        $recentLogs = AuditLog::with('admin')->latest()->take(5)->get();
+        // [Refactored] Use Service for stats
+        $data = $this->analyticsService->getDashboardStats();
 
-        return view('admin.dashboard', compact('pendingReports', 'newUsersToday', 'totalQuestions', 'recentLogs'));
+        return view('admin.dashboard', $data);
+    }
+
+    // --- ANALYTICS (STATS) ---
+    public function analytics() {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+
+        // [Refactored] All logic delegated to Service
+        $stats = $this->analyticsService->getFullAnalytics();
+        $growthData = $this->analyticsService->getGrowthChartData();
+        $catData = $this->analyticsService->getCategoryDistribution();
+        $topContent = $this->analyticsService->getTopContent();
+
+        // Prepare charts array for the view
+        $charts = [
+            'growth' => $growthData,
+            'distribution' => $catData,
+            'resolution' => [
+                'labels' => ['Solved', 'Unsolved'], 
+                'data' => [$stats['total_solved'], $stats['unsolved_count']]
+            ]
+        ];
+
+        return view('admin.analytics', array_merge(
+            ['stats' => $stats, 'charts' => $charts], 
+            $topContent
+        ));
     }
 
     // --- BANNED WORDS MANAGEMENT ---
@@ -50,7 +82,6 @@ class AdminController extends Controller
 
         BannedWord::create(['word' => strtolower($request->word)]);
         
-        // Clear cache so the new word applies immediately
         Cache::forget('banned_words_list');
 
         $this->logAction('Added Banned Word', null, "Word: {$request->word}");
@@ -65,7 +96,6 @@ class AdminController extends Controller
         $wordText = $word->word;
         $word->delete();
 
-        // Clear cache
         Cache::forget('banned_words_list');
 
         $this->logAction('Deleted Banned Word', null, "Word: {$wordText}");
@@ -77,7 +107,6 @@ class AdminController extends Controller
     public function moderation() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
-        // Use withoutGlobalScope to fetch hidden content
         $flaggedQuestions = Question::withoutGlobalScope('published')
             ->where('status', 'pending_review')
             ->with('user')
@@ -90,10 +119,9 @@ class AdminController extends Controller
             ->latest()
             ->get();
         
-        // --- ADDED: Fetch Flagged Replies ---
         $flaggedReplies = Reply::withoutGlobalScope('published')
             ->where('status', 'pending_review')
-            ->with('user', 'answer.question') // Eager load answer and its question for context
+            ->with('user', 'answer.question')
             ->latest()
             ->get();
 
@@ -107,7 +135,7 @@ class AdminController extends Controller
             $item = Question::withoutGlobalScope('published')->findOrFail($id);
         } elseif ($type === 'answer') {
             $item = Answer::withoutGlobalScope('published')->findOrFail($id);
-        } elseif ($type === 'reply') { // --- ADDED: Handle Reply Approval
+        } elseif ($type === 'reply') {
             $item = Reply::withoutGlobalScope('published')->findOrFail($id);
         } else {
             abort(404);
@@ -128,7 +156,7 @@ class AdminController extends Controller
             $item = Question::withoutGlobalScope('published')->findOrFail($id);
         } elseif ($type === 'answer') {
             $item = Answer::withoutGlobalScope('published')->findOrFail($id);
-        } elseif ($type === 'reply') { // --- ADDED: Handle Reply Deletion
+        } elseif ($type === 'reply') {
             $item = Reply::withoutGlobalScope('published')->findOrFail($id);
         } else {
             abort(404);
@@ -146,45 +174,6 @@ class AdminController extends Controller
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $reports = Report::with(['question', 'question.user'])->latest()->get();
         return view('admin.reports', compact('reports'));
-    }
-
-    // --- ANALYTICS (STATS) ---
-    public function analytics() {
-        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
-
-        $pendingReportCount = Report::count(); 
-
-        $stats = [
-            'total_users' => User::count(),
-            'total_questions' => Question::count(),
-            'total_solved' => Question::whereNotNull('best_answer_id')->count(),
-            'total_departments' => Department::count(),
-            'total_courses' => Course::count(),
-            'total_categories' => Category::count(),
-            'pending_reports' => $pendingReportCount,
-        ];
-
-        $growthQuery = Question::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
-            ->get();
-
-        $distQuery = Category::withCount('questions')->get();
-
-        $solvedCount = $stats['total_solved'];
-        $unsolvedCount = $stats['total_questions'] - $solvedCount;
-
-        $charts = [
-            'growth' => ['labels' => $growthQuery->pluck('date'), 'data' => $growthQuery->pluck('count')],
-            'distribution' => ['labels' => $distQuery->pluck('name'), 'data' => $distQuery->pluck('questions_count')],
-            'resolution' => ['labels' => ['Solved', 'Unsolved'], 'data' => [$solvedCount, $unsolvedCount]]
-        ];
-
-        $trendingQuestions = Question::with('category')->orderBy('views', 'desc')->take(5)->get();
-        $topContributors = User::withCount('answers')->orderBy('answers_count', 'desc')->take(5)->get();
-
-        return view('admin.analytics', compact('stats', 'charts', 'trendingQuestions', 'topContributors'));
     }
 
     // --- AUDIT LOGS VIEW ---
