@@ -6,14 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\Question;
 use App\Models\Answer;
 use App\Models\Category;
-use App\Models\Rating;
 use App\Models\Reply;
 use App\Models\Report;
-use App\Models\QuestionImage;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\NewActivity;
-use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreQuestionRequest;
 use App\Http\Requests\StoreAnswerRequest;
 use App\Http\Requests\StoreReplyRequest;
@@ -21,53 +18,39 @@ use App\Http\Requests\UpdateQuestionRequest;
 use App\Http\Requests\UpdateAnswerRequest;
 use App\Http\Requests\UpdateReplyRequest;
 
+// [New Imports]
+use App\Services\ForumService;
+use App\Services\ImageService;
+
 class ForumController extends Controller
 {
+    protected $forumService;
+    protected $imageService;
+
+    public function __construct(ForumService $forumService, ImageService $imageService)
+    {
+        $this->forumService = $forumService;
+        $this->imageService = $imageService;
+    }
+
     private function getEditLimit() {
         return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     }
 
     public function index(Request $request) {
+        // [Refactored] Complex filtering moved to Service
+        $questions = $this->forumService->getFilteredFeed($request->all());
         $categories = Category::all();
-        
-        $query = Question::with(['user.course', 'user.departmentInfo', 'category', 'images'])
-                         ->withCount('answers')
-                         ->latest();
-
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->get('search');
-            $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('content', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->has('filter')) {
-            switch ($request->filter) {
-                case 'solved': $query->whereNotNull('best_answer_id'); break;
-                case 'unsolved': $query->whereNull('best_answer_id'); break;
-                case 'no_answers': $query->doesntHave('answers'); break;
-            }
-        }
-
-        if ($request->has('category') && $request->category != '') {
-            $query->where('category_id', $request->category);
-        }
-
-        $questions = $query->paginate(10)->onEachSide(1);
 
         if ($request->ajax()) {
             return view('partials.question-list', compact('questions'))->render();
         }
         
-        // Otherwise, load the full page (for first visit)
         return view('feed', compact('questions', 'categories'));
     }
 
     public function storeQuestion(StoreQuestionRequest $request) {
         
-        // Verification Check Removed (Handled by middleware)
-
         $question = Question::create([
             'user_id' => Auth::id(),
             'title' => $request->title,
@@ -75,17 +58,12 @@ class ForumController extends Controller
             'category_id' => $request->category_id
         ]);
 
-        // Handle Images
+        // [Refactored] Image handling delegated to Service
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('question_images', 'public');
-                QuestionImage::create(['question_id' => $question->id, 'image_path' => $path]);
-            }
+            $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
         // --- MODERATION CHECK START ---
-        // If the ContentFilter flagged this as 'pending_review', do NOT return the HTML.
-        // Instead, warn the user that it is under moderation.
         if ($question->status === 'pending_review') {
             if ($request->wantsJson()) {
                 return response()->json([
@@ -98,7 +76,6 @@ class ForumController extends Controller
         }
         // --- MODERATION CHECK END ---
 
-        // AJAX RESPONSE (Success)
         if ($request->wantsJson()) {
             $question->load('user.course', 'user.departmentInfo', 'category', 'images');
             $html = view('partials.question-card', ['q' => $question])->render();
@@ -127,6 +104,7 @@ class ForumController extends Controller
             'answers.replies.children.user.departmentInfo'
         ])->findOrFail($id);
 
+        // Track views
         $sessionKey = 'viewed_question_' . $id;
         if (!session()->has($sessionKey)) {
             $question->timestamps = false;
@@ -135,34 +113,18 @@ class ForumController extends Controller
             session()->put($sessionKey, true);
         }
 
-        $sortedAnswers = $question->answers->sortByDesc(function($answer) use ($question) {
-            $isBest = $answer->id === $question->best_answer_id ? 1000000 : 0;
-            $rating = $answer->ratings->avg('score') ?? 0;
-            return $isBest + $rating;
-        });
+        // [Refactored] Sorting and Top Rated logic delegated to Service
+        $sortedAnswers = $this->forumService->getSortedAnswers($question);
+        $topRatedAnswerId = $this->forumService->getTopRatedAnswerId($question);
 
         $question->setRelation('answers', $sortedAnswers);
-
-        $topRatedAnswerId = null;
-        $highestScore = 0;
-        foreach ($question->answers as $answer) {
-            $avgScore = $answer->ratings->avg('score');
-            if ($avgScore > $highestScore) {
-                $highestScore = $avgScore;
-                $topRatedAnswerId = $answer->id;
-            }
-        }
 
         return view('show_question', compact('question', 'topRatedAnswerId'));
     }
 
     public function storeAnswer(StoreAnswerRequest $request, $id) {
-        
-        // Verification Check Removed (Handled by middleware)
-
         $question = Question::findOrFail($id);
 
-        // Business Logic Checks
         if (Auth::id() === $question->user_id) {
             return redirect()->back()->with('error', 'You cannot answer your own question.');
         }
@@ -171,14 +133,12 @@ class ForumController extends Controller
             return redirect()->back()->with('error', 'This question is solved.');
         }
 
-        // Create Answer
         Answer::create([
             'user_id' => Auth::id(),
             'question_id' => $id,
             'content' => $request->content
         ]);
 
-        // Notifications
         if ($question->user_id !== Auth::id()) {
             $question->user->notify(new NewActivity(
                 Auth::user()->name . " answered your question.",
@@ -191,8 +151,6 @@ class ForumController extends Controller
     }
 
     public function storeReply(StoreReplyRequest $request, $answerId) {
-        
-        // Create Reply
         $reply = Reply::create([
             'user_id' => Auth::id(),
             'answer_id' => $answerId,
@@ -202,19 +160,16 @@ class ForumController extends Controller
 
         // --- MODERATION CHECK ---
         if ($reply->status === 'pending_review') {
-            // If AJAX, send error JSON
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Your reply contains sensitive content and is pending moderation.'
                 ]);
             }
-            // If normal request, redirect with error
             return redirect()->back()->with('error', 'Your reply is pending moderation.');
         }
-        // ------------------------
 
-        // Notifications (Only run if published)
+        // Notifications
         $answer = Answer::findOrFail($answerId);
         $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
 
@@ -237,29 +192,8 @@ class ForumController extends Controller
             return redirect()->back()->with('error', 'You cannot rate your own answer.');
         }
 
-        Rating::updateOrCreate(
-            ['user_id' => Auth::id(), 'answer_id' => $id],
-            ['score' => $request->score]
-        );
-
-        $answer->load('ratings', 'question.answers.ratings');
-        $myScore = $answer->ratings->avg('score');
-        $question = $answer->question;
-        
-        $isHighest = true;
-        foreach($question->answers as $other) {
-            if($other->id !== $answer->id && $other->ratings->avg('score') >= $myScore) {
-                $isHighest = false; break;
-            }
-        }
-
-        if ($isHighest && $myScore >= 4 && $answer->user_id !== Auth::id()) {
-            $answer->user->notify(new NewActivity(
-                'Your answer is now the Top Rated solution!',
-                route('question.show', $question->id),
-                'top_rated'
-            ));
-        }
+        // [Refactored] Rating logic delegated to Service
+        $this->forumService->processRating($answer, $request->score, Auth::user());
 
         return redirect()->back()->with('message', 'Rating saved!');
     }
@@ -294,11 +228,8 @@ class ForumController extends Controller
             abort(403); 
         }
 
-        foreach ($question->images as $image) {
-            if (Storage::disk('public')->exists($image->image_path)) {
-                Storage::disk('public')->delete($image->image_path);
-            }
-        }
+        // [Refactored] Image cleanup delegated to Service
+        $this->imageService->deleteAllForQuestion($question);
 
         $question->delete();
 
@@ -349,21 +280,14 @@ class ForumController extends Controller
             'category_id' => $request->category_id
         ]);
 
+        // [Refactored] Image deletion delegated to Service
         if ($request->has('delete_images')) {
-            foreach ($request->delete_images as $imageId) {
-                $image = QuestionImage::find($imageId);
-                if ($image && $image->question_id == $question->id) {
-                    Storage::disk('public')->delete($image->image_path);
-                    $image->delete();
-                }
-            }
+            $this->imageService->deleteImages($request->delete_images, $question->id);
         }
 
+        // [Refactored] New Image upload delegated to Service
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $imageFile) {
-                $path = $imageFile->store('question_images', 'public');
-                $question->images()->create(['image_path' => $path]);
-            }
+            $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
         return redirect()->route('question.show', $id)->with('success', 'Question updated.');
