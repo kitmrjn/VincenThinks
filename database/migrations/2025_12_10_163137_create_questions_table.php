@@ -10,12 +10,16 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up() {
-    Schema::create('questions', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Who posted it
-        $table->string('title'); // Question title
-        $table->text('content'); // Detailed question
-        $table->timestamps();
+        Schema::create('questions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('title');
+            $table->text('content');
+            
+            // [Fix] Add this line so the column exists
+            $table->string('status')->default('published'); 
+            
+            $table->timestamps();
         });
     }
 

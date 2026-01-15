@@ -18,7 +18,7 @@ use App\Http\Requests\UpdateQuestionRequest;
 use App\Http\Requests\UpdateAnswerRequest;
 use App\Http\Requests\UpdateReplyRequest;
 
-// [New Imports]
+// Services
 use App\Services\ForumService;
 use App\Services\ImageService;
 
@@ -38,7 +38,6 @@ class ForumController extends Controller
     }
 
     public function index(Request $request) {
-        // [Refactored] Complex filtering moved to Service
         $questions = $this->forumService->getFilteredFeed($request->all());
         $categories = Category::all();
 
@@ -58,12 +57,11 @@ class ForumController extends Controller
             'category_id' => $request->category_id
         ]);
 
-        // [Refactored] Image handling delegated to Service
         if ($request->hasFile('images')) {
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
-        // --- MODERATION CHECK START ---
+        // --- MODERATION CHECK ---
         if ($question->status === 'pending_review') {
             if ($request->wantsJson()) {
                 return response()->json([
@@ -74,7 +72,6 @@ class ForumController extends Controller
             }
             return redirect()->back()->with('error', 'Your post contains sensitive content and is pending moderation.');
         }
-        // --- MODERATION CHECK END ---
 
         if ($request->wantsJson()) {
             $question->load('user.course', 'user.departmentInfo', 'category', 'images');
@@ -91,20 +88,29 @@ class ForumController extends Controller
     }
 
     public function show($id) {
-        $question = Question::with([
-            'user.course', 
-            'user.departmentInfo',
-            'images',
-            'answers.user.course', 
-            'answers.user.departmentInfo',
-            'answers.ratings', 
-            'answers.replies.user.course', 
-            'answers.replies.user.departmentInfo',
-            'answers.replies.children.user.course',
-            'answers.replies.children.user.departmentInfo'
-        ])->findOrFail($id);
+        // [FIX] Use 'withoutGlobalScope' so we can find the question even if it is Pending
+        $question = Question::withoutGlobalScope('published')
+            ->with([
+                'user.course', 
+                'user.departmentInfo',
+                'images',
+                'answers.user.course', 
+                'answers.user.departmentInfo',
+                'answers.ratings', 
+                'answers.replies.user.course', 
+                'answers.replies.user.departmentInfo',
+                'answers.replies.children.user.course',
+                'answers.replies.children.user.departmentInfo'
+            ])->findOrFail($id);
 
-        // Track views
+        // [SECURITY] If it is hidden, ONLY allow the Owner or Admin to see it
+        if ($question->status !== 'published') {
+            if (!Auth::check() || (Auth::id() !== $question->user_id && !Auth::user()->is_admin)) {
+                abort(404); // Fake a 404 for everyone else
+            }
+        }
+
+        // [Logic] View counting logic
         $sessionKey = 'viewed_question_' . $id;
         if (!session()->has($sessionKey)) {
             $question->timestamps = false;
@@ -113,7 +119,6 @@ class ForumController extends Controller
             session()->put($sessionKey, true);
         }
 
-        // [Refactored] Sorting and Top Rated logic delegated to Service
         $sortedAnswers = $this->forumService->getSortedAnswers($question);
         $topRatedAnswerId = $this->forumService->getTopRatedAnswerId($question);
 
@@ -158,7 +163,6 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        // --- MODERATION CHECK ---
         if ($reply->status === 'pending_review') {
             if ($request->wantsJson()) {
                 return response()->json([
@@ -169,7 +173,6 @@ class ForumController extends Controller
             return redirect()->back()->with('error', 'Your reply is pending moderation.');
         }
 
-        // Notifications
         $answer = Answer::findOrFail($answerId);
         $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
 
@@ -192,7 +195,6 @@ class ForumController extends Controller
             return redirect()->back()->with('error', 'You cannot rate your own answer.');
         }
 
-        // [Refactored] Rating logic delegated to Service
         $this->forumService->processRating($answer, $request->score, Auth::user());
 
         return redirect()->back()->with('message', 'Rating saved!');
@@ -224,13 +226,10 @@ class ForumController extends Controller
     public function destroyQuestion($id) {
         $question = Question::with('images')->findOrFail($id);
         
-        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { 
-            abort(403); 
-        }
+        // [Security] Use Policy
+        $this->authorize('delete', $question);
 
-        // [Refactored] Image cleanup delegated to Service
         $this->imageService->deleteAllForQuestion($question);
-
         $question->delete();
 
         return redirect()->route('home')->with('success', 'Question deleted.');
@@ -238,7 +237,10 @@ class ForumController extends Controller
 
     public function destroyAnswer($id) {
         $answer = Answer::findOrFail($id);
-        if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
+        
+        // [Security] Use Policy
+        $this->authorize('delete', $answer);
+        
         $answer->delete();
         return redirect()->back()->with('success', 'Answer deleted.');
     }
@@ -253,7 +255,9 @@ class ForumController extends Controller
     public function editQuestion($id)
     {
         $question = Question::with('images')->findOrFail($id);
-        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
+        
+        // [Security] Use Policy
+        $this->authorize('update', $question);
 
         $limit = $this->getEditLimit();
         if ($question->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
@@ -267,7 +271,8 @@ class ForumController extends Controller
     public function updateQuestion(UpdateQuestionRequest $request, $id) {
         $question = Question::findOrFail($id);
         
-        if (Auth::id() !== $question->user_id && !Auth::user()->is_admin) { abort(403); }
+        // [Security] Use Policy
+        $this->authorize('update', $question);
 
         $limit = $this->getEditLimit();
         if ($question->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
@@ -280,12 +285,10 @@ class ForumController extends Controller
             'category_id' => $request->category_id
         ]);
 
-        // [Refactored] Image deletion delegated to Service
         if ($request->has('delete_images')) {
             $this->imageService->deleteImages($request->delete_images, $question->id);
         }
 
-        // [Refactored] New Image upload delegated to Service
         if ($request->hasFile('images')) {
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
@@ -295,7 +298,9 @@ class ForumController extends Controller
 
     public function editAnswer($id) {
         $answer = Answer::findOrFail($id);
-        if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
+        
+        // [Security] Use Policy
+        $this->authorize('update', $answer);
         
         $limit = $this->getEditLimit();
         if ($answer->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
@@ -307,7 +312,8 @@ class ForumController extends Controller
     public function updateAnswer(UpdateAnswerRequest $request, $id) {
         $answer = Answer::findOrFail($id);
         
-        if (Auth::id() !== $answer->user_id && !Auth::user()->is_admin) { abort(403); }
+        // [Security] Use Policy
+        $this->authorize('update', $answer);
         
         $limit = $this->getEditLimit();
         if ($answer->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
@@ -321,7 +327,9 @@ class ForumController extends Controller
 
     public function editReply($id) {
         $reply = Reply::findOrFail($id);
-        if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
+        
+        // [Security] Use Policy
+        $this->authorize('update', $reply);
         
         $limit = $this->getEditLimit();
         if ($reply->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
@@ -333,7 +341,8 @@ class ForumController extends Controller
     public function updateReply(UpdateReplyRequest $request, $id) {
         $reply = Reply::findOrFail($id);
         
-        if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
+        // [Security] Use Policy
+        $this->authorize('update', $reply);
         
         $limit = $this->getEditLimit();
         if ($reply->created_at < now()->subSeconds($limit) && !Auth::user()->is_admin) {
@@ -348,6 +357,9 @@ class ForumController extends Controller
         $answer = Answer::findOrFail($id);
         $question = $answer->question;
 
+        // "Mark as Best" is unique: Only the Question Owner can do it.
+        // We can use a Policy here too if we add a 'markAsBest' method to QuestionPolicy,
+        // but for now, checking ownership directly or using Gate is standard.
         if (Auth::id() !== $question->user_id) { abort(403); }
 
         if ($question->best_answer_id === $answer->id) {
@@ -372,7 +384,10 @@ class ForumController extends Controller
 
     public function destroyReply($id) {
         $reply = Reply::findOrFail($id);
-        if (Auth::id() !== $reply->user_id && !Auth::user()->is_admin) { abort(403); }
+        
+        // [Security] Use Policy
+        $this->authorize('delete', $reply);
+        
         $reply->delete();
         return redirect()->back()->with('success', 'Reply deleted.');
     }

@@ -5,8 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Services\ContentFilter;
-use Illuminate\Support\Facades\Log;
+use App\Jobs\CheckContentSafety; // [Import Job]
 
 class Answer extends Model
 {
@@ -21,14 +20,33 @@ class Answer extends Model
 
     protected static function booted()
     {
+        // 1. CREATING: Set default status
         static::creating(function ($answer) {
-            if (ContentFilter::check($answer->content)) {
+            if (empty($answer->status)) {
                 $answer->status = 'pending_review';
-            } else {
-                $answer->status = 'published';
             }
         });
 
+        // 2. CREATED: Dispatch Job
+        static::created(function ($answer) {
+            CheckContentSafety::dispatch($answer);
+        });
+
+        // 3. UPDATING: If content changes, set back to pending
+        static::updating(function ($answer) {
+            if ($answer->isDirty('content')) {
+                $answer->status = 'pending_review';
+            }
+        });
+
+        // 4. UPDATED: Dispatch Job if content changed
+        static::updated(function ($answer) {
+            if ($answer->wasChanged('content')) {
+                CheckContentSafety::dispatch($answer);
+            }
+        });
+
+        // Global Scope: Hide pending answers unless Admin
         static::addGlobalScope('published', function (Builder $builder) {
             if (!request()->is('admin*')) {
                 $builder->where('status', 'published');

@@ -5,37 +5,45 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Services\ContentFilter;
-use Illuminate\Support\Facades\Log;
+use App\Jobs\CheckContentSafety; // [Import Job]
 
 class Question extends Model {
     use HasFactory;
     
     protected $fillable = [
-        'user_id', 
-        'title', 
-        'content', 
-        'category_id', 
-        'image',
-        'best_answer_id',
-        'views',
-        'status'
+        'user_id', 'title', 'content', 'category_id', 
+        'image', 'best_answer_id', 'views', 'status'
     ];
 
     protected static function booted()
     {
-        // 1. Intercept Creation: Run Content Filter
+        // 1. CREATING
         static::creating(function ($question) {
-            $textToCheck = $question->title . "\n" . $question->content;
-            
-            if (ContentFilter::check($textToCheck)) {
+            if (empty($question->status)) {
                 $question->status = 'pending_review';
-            } else {
-                $question->status = 'published';
             }
         });
 
-        // 2. Global Scope: Filter non-published questions for non-admins
+        // 2. CREATED
+        static::created(function ($question) {
+            CheckContentSafety::dispatch($question);
+        });
+
+        // 3. UPDATING (Edit Logic: Check Title or Content)
+        static::updating(function ($question) {
+            if ($question->isDirty('title') || $question->isDirty('content')) {
+                $question->status = 'pending_review';
+            }
+        });
+
+        // 4. UPDATED (Edit Logic)
+        static::updated(function ($question) {
+            if ($question->wasChanged('title') || $question->wasChanged('content')) {
+                CheckContentSafety::dispatch($question);
+            }
+        });
+
+        // Global Scope
         static::addGlobalScope('published', function (Builder $builder) {
             if (!request()->is('admin*')) { 
                 $builder->where('status', 'published');

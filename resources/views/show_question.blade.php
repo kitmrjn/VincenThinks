@@ -67,6 +67,15 @@
                     icon.classList.add('bx-up-arrow-alt');
                 }
             }
+
+            // [NEW] AUTO-REFRESH LOGIC FOR PENDING POSTS
+            // This checks if the post is hidden/pending and reloads the page every 3 seconds
+            @if($question->status === 'pending_review')
+                console.log("Post is under review. Auto-refreshing to check status...");
+                setInterval(function() {
+                    window.location.reload();
+                }, 3000); // 3 seconds
+            @endif
         </script>
     @endpush
 
@@ -96,6 +105,17 @@
 
     <div class="max-w-3xl mx-auto px-4 pb-12">
 
+        {{-- SAFETY WARNING BANNER --}}
+        @if($question->status === 'pending_review')
+            <div class="bg-yellow-50 text-yellow-800 p-4 rounded-lg border border-yellow-200 mb-6 shadow-sm flex items-center justify-center animate-pulse">
+                <i class='bx bx-time-five text-2xl mr-3'></i> 
+                <div>
+                    <strong>Under Review:</strong> This post is hidden while our AI checks it for safety. 
+                    <span class="text-sm block opacity-80">Only you and the admins can see this right now.</span>
+                </div>
+            </div>
+        @endif
+
         {{-- QUESTION CARD --}}
         <div class="bg-white rounded-xl shadow-sm p-8 mb-8 border border-gray-200 relative">
             
@@ -112,12 +132,10 @@
                         @endif
                     </div>
                     <div class="text-sm">
-                        {{-- FIXED: Added flex-wrap so mobile layouts don't break --}}
                         <div class="flex items-center flex-wrap gap-y-1">
                             <a href="{{ route('user.profile', $question->user->id) }}" class="font-bold text-gray-800 hover:text-maroon-700 hover:underline transition mr-2">
                                 {{ $question->user->name }}
                             </a>
-                            {{-- QUESTION AUTHOR FLAIR --}}
                             @if($question->user->member_type === 'student' && $question->user->course)
                                 <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100" title="{{ $question->user->course->name }}">{{ $question->user->course->acronym }}</span>
                             @elseif($question->user->member_type === 'teacher' && $question->user->departmentInfo)
@@ -136,7 +154,6 @@
                             </span>
                             @if($question->category)
                                 <span class="mx-2 text-gray-300">|</span>
-                                {{-- UPDATED: Acronym Badge --}}
                                 <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200" title="{{ $question->category->name }}">
                                     {{ $question->category->acronym ?? $question->category->name }}
                                 </span>
@@ -286,10 +303,8 @@
                             <div class="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold mr-3">{{ substr($answer->user->name, 0, 1) }}</div>
                          @endif
                         <div>
-                            {{-- FIXED: Flex wrap for mobile answer headers --}}
                             <div class="flex items-center flex-wrap gap-y-1">
                                 <a href="{{ route('user.profile', $answer->user->id) }}" class="block font-medium text-gray-800 text-sm hover:underline mr-2">{{ $answer->user->name }}</a>
-                                {{-- ANSWER AUTHOR FLAIR --}}
                                 @if($answer->user->member_type === 'student' && $answer->user->course)
                                     <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100" title="{{ $answer->user->course->name }}">{{ $answer->user->course->acronym }}</span>
                                 @elseif($answer->user->member_type === 'teacher' && $answer->user->departmentInfo)

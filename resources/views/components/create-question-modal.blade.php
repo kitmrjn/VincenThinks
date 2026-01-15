@@ -70,11 +70,24 @@
                 if (response.ok) {
                     this.closeModal();
                     
-                    const feedContainer = document.getElementById('feed-container');
-                    if (feedContainer) {
-                        feedContainer.insertAdjacentHTML('afterbegin', data.html);
+                    // [FIX] Check if the server returned HTML (Published) or just a Status (Pending)
+                    if (data.html) {
+                        // CASE 1: Post is Safe & Published
+                        const feedContainer = document.getElementById('feed-container');
+                        if (feedContainer) {
+                            feedContainer.insertAdjacentHTML('afterbegin', data.html);
+                        } else {
+                            window.location.reload();
+                        }
                     } else {
-                        window.location.reload();
+                        // CASE 2: Post is Pending Review (No HTML returned)
+                        // Redirect to the question page so the user sees the 'Under Review' banner
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            // Fallback if no redirect URL
+                            window.location.reload();
+                        }
                     }
                 } else {
                     alert('Error: ' + (data.message || 'Something went wrong.'));
