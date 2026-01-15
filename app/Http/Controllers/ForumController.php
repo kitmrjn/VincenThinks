@@ -61,17 +61,9 @@ class ForumController extends Controller
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
-        // --- MODERATION CHECK ---
-        if ($question->status === 'pending_review') {
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'Your post contains sensitive content and is pending moderation.',
-                    'pending_review' => true
-                ]);
-            }
-            return redirect()->back()->with('error', 'Your post contains sensitive content and is pending moderation.');
-        }
+        // [UPDATED] Removed the immediate "pending_review" error check.
+        // We now treat the submission as successful regardless of the initial status.
+        // The AI job runs in the background.
 
         if ($request->wantsJson()) {
             $question->load('user.course', 'user.departmentInfo', 'category', 'images');
@@ -79,12 +71,12 @@ class ForumController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => 'Question Posted!',
+                'message' => 'Question submitted! It will appear shortly.',
                 'html' => $html
             ]);
         }
 
-        return redirect()->back()->with('success', 'Question Posted!');
+        return redirect()->back()->with('success', 'Question submitted! It will appear shortly.');
     }
 
     public function show($id) {
@@ -163,15 +155,7 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        if ($reply->status === 'pending_review') {
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Your reply contains sensitive content and is pending moderation.'
-                ]);
-            }
-            return redirect()->back()->with('error', 'Your reply is pending moderation.');
-        }
+        // [UPDATED] Removed the immediate "pending_review" error check here as well.
 
         $answer = Answer::findOrFail($answerId);
         $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;

@@ -36,10 +36,8 @@
                     <button @click="mobileMenuOpen = false" class="text-gray-400 hover:text-gray-600 transition"><i class='bx bx-x text-3xl'></i></button>
                 </div>
                 <nav class="p-4 space-y-1">
-                    {{-- FIXED: Changed route('home') to route('feed') --}}
                     <a href="{{ route('feed') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}"><i class='bx bx-grid-alt mr-3 text-lg'></i> All Topics</a>
                     @foreach($categories as $cat)
-                        {{-- FIXED: Changed route('home', ...) to route('feed', ...) --}}
                         <a href="{{ route('feed', array_merge(request()->query(), ['category' => $cat->id])) }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}">
                             <span class="w-2 h-2 rounded-full bg-gray-300 mr-3 {{ request('category') == $cat->id ? 'bg-maroon-700' : '' }}"></span>
                             {{ $cat->name }}
@@ -59,10 +57,8 @@
                         <input type="text" x-model="search" placeholder="Find..." class="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-maroon-700 bg-gray-50 focus:bg-white transition">
                     </div>
                     <nav class="space-y-1 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-                        {{-- FIXED: Changed route('home') to route('feed') --}}
                         <a href="{{ route('feed') }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>All Discussions</span></a>
                         @foreach($categories as $cat)
-                            {{-- FIXED: Changed route('home', ...) to route('feed', ...) --}}
                             <a href="{{ route('feed', array_merge(request()->query(), ['category' => $cat->id])) }}" x-show="$el.innerText.toLowerCase().includes(search.toLowerCase())" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>{{ $cat->name }}</span></a>
                         @endforeach
                     </nav>
@@ -79,9 +75,24 @@
 
         {{-- MAIN FEED AREA --}}
         <main class="flex-1 min-w-0">
+            
+            {{-- [NEW] Hidden container for JS Alerts (Used by the Modal) --}}
+            <div id="js-flash-message" style="display: none;" class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
+                <i class='bx bx-check-circle text-xl mr-2'></i>
+                <span id="js-flash-text"></span>
+            </div>
+
+            {{-- Standard Session Success Message --}}
             @if(session('success') || session('status'))
                 <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
                     <i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') ?? session('status') }}
+                </div>
+            @endif
+
+            {{-- Standard Session Error Message --}}
+            @if(session('error'))
+                <div class="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 mb-6 shadow-sm flex items-center">
+                    <i class='bx bx-error-circle text-xl mr-2'></i> {{ session('error') }}
                 </div>
             @endif
 
@@ -140,7 +151,6 @@
                     <i class='bx bx-filter'></i> <span>Filter Topics</span>
                 </button>
                 
-                {{-- FIXED: Changed action="/" to action="{{ route('feed') }}" --}}
                 <form action="{{ route('feed') }}" method="GET" class="hidden sm:block relative w-72" id="search-form">
                     @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
                     <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
@@ -156,7 +166,6 @@
                     $inactiveClasses = "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700";
                 @endphp
 
-                {{-- FIXED: Changed all route('home') to route('feed') below --}}
                 <a href="{{ route('feed', array_merge(request()->except('filter'), ['page' => 1])) }}" class="{{ $baseClasses }} {{ !$currentFilter ? $activeClasses : $inactiveClasses }}">All</a>
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'solved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'solved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-check-circle mr-1'></i> Solved</a>
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-question-mark mr-1'></i> Unsolved</a>
@@ -166,7 +175,6 @@
             @if(request('search'))
                 <div class="mb-4 text-sm text-gray-500 font-light flex items-center">
                     <span>Showing results for: <strong>"{{ request('search') }}"</strong></span>
-                    {{-- FIXED: Changed href="/" to href="{{ route('feed') }}" --}}
                     <a href="{{ route('feed') }}" class="ml-2 text-maroon-700 hover:underline flex items-center"><i class='bx bx-x'></i> Clear</a>
                 </div>
             @endif

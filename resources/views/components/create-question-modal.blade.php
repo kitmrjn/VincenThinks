@@ -70,25 +70,23 @@
                 if (response.ok) {
                     this.closeModal();
                     
-                    // [FIX] Check if the server returned HTML (Published) or just a Status (Pending)
-                    if (data.html) {
-                        // CASE 1: Post is Safe & Published
-                        const feedContainer = document.getElementById('feed-container');
-                        if (feedContainer) {
-                            feedContainer.insertAdjacentHTML('afterbegin', data.html);
-                        } else {
-                            window.location.reload();
-                        }
-                    } else {
-                        // CASE 2: Post is Pending Review (No HTML returned)
-                        // Redirect to the question page so the user sees the 'Under Review' banner
-                        if (data.redirect_url) {
-                            window.location.href = data.redirect_url;
-                        } else {
-                            // Fallback if no redirect URL
-                            window.location.reload();
-                        }
+                    // Show success message briefly
+                    const flashBox = document.getElementById('js-flash-message');
+                    const flashText = document.getElementById('js-flash-text');
+                    
+                    if (flashBox && flashText) {
+                        flashText.innerText = data.message || 'Post submitted successfully!';
+                        flashBox.style.display = 'flex';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
+
+                    // [FIX] Reload IMMEDIATELY. 
+                    // Since we used dispatchSync, the DB is already updated.
+                    // No need to wait 1500ms.
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500); // Small 0.5s delay just so the user sees the green flash
+
                 } else {
                     alert('Error: ' + (data.message || 'Something went wrong.'));
                 }
@@ -96,7 +94,8 @@
                 console.error('Error:', error);
                 alert('An unexpected error occurred.');
             } finally {
-                this.isLoading = false;
+                // Keep loading true if successful to prevent double-clicks during reload
+                if (!this.isLoading) this.isLoading = false; 
             }
         }
     }"

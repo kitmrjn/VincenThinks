@@ -26,7 +26,8 @@ class Question extends Model {
 
         // 2. CREATED
         static::created(function ($question) {
-            CheckContentSafety::dispatch($question);
+            // [FIX] Use dispatchSync so the user WAITS for the safety check.
+            CheckContentSafety::dispatchSync($question);
         });
 
         // 3. UPDATING (Edit Logic: Check Title or Content)
