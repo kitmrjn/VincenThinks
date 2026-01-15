@@ -17,6 +17,7 @@ use App\Http\Requests\StoreReplyRequest;
 use App\Http\Requests\UpdateQuestionRequest;
 use App\Http\Requests\UpdateAnswerRequest;
 use App\Http\Requests\UpdateReplyRequest;
+use App\Jobs\CheckContentSafety; // [Import Job]
 
 // Services
 use App\Services\ForumService;
@@ -61,8 +62,10 @@ class ForumController extends Controller
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
-        // Refresh to get the AI-assigned status
-        $question->refresh();
+        // [SAFETY CHECK] Force sync dispatch and reload ignoring scopes
+        // If API fails (429), status remains 'pending_review' (Fail Safe)
+        CheckContentSafety::dispatchSync($question);
+        $question = Question::withoutGlobalScope('published')->find($question->id);
 
         $message = 'Question posted successfully!';
         if ($question->status === 'pending_review') {
@@ -73,7 +76,7 @@ class ForumController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => $question->status // [NEW] Send status to JS
+                'status' => $question->status
             ]);
         }
 
@@ -87,6 +90,9 @@ class ForumController extends Controller
                 'user.course', 
                 'user.departmentInfo',
                 'images',
+                'answers' => function($query) {
+                    // [OPTIONAL] You can modify this to show pending answers to admins if needed
+                },
                 'answers.user.course', 
                 'answers.user.departmentInfo',
                 'answers.ratings', 
@@ -131,11 +137,23 @@ class ForumController extends Controller
             return redirect()->back()->with('error', 'This question is solved.');
         }
 
-        Answer::create([
+        $answer = Answer::create([
             'user_id' => Auth::id(),
             'question_id' => $id,
             'content' => $request->content
         ]);
+
+        // [SAFETY CHECK] Force sync dispatch explicitly
+        CheckContentSafety::dispatchSync($answer);
+        
+        // [RELOAD] Force reload ignoring the 'published' scope to get real status
+        $answer = Answer::withoutGlobalScope('published')->find($answer->id);
+
+        $message = 'Answer posted!';
+        // Check if it was flagged (or API failed)
+        if ($answer->status === 'pending_review') {
+            return redirect()->back()->with('error', 'Your answer is pending moderation and will appear shortly if approved.'); 
+        }
 
         if ($question->user_id !== Auth::id()) {
             $question->user->notify(new NewActivity(
@@ -145,7 +163,7 @@ class ForumController extends Controller
             ));
         }
 
-        return redirect()->back()->with('success', 'Answer posted!');
+        return redirect()->back()->with('success', $message);
     }
 
     public function storeReply(StoreReplyRequest $request, $answerId) {
@@ -156,19 +174,24 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        // Refresh to check status
-        $reply->refresh();
+        // [SAFETY CHECK] Force sync dispatch explicitly
+        CheckContentSafety::dispatchSync($reply);
+
+        // [RELOAD] Force reload ignoring the 'published' scope
+        $reply = Reply::withoutGlobalScope('published')->find($reply->id);
 
         $message = 'Reply posted.';
+        
+        // Check if flagged (or API failed)
         if ($reply->status === 'pending_review') {
-             $message = 'Your reply is pending moderation.';
+             return redirect()->back()->with('error', 'Your reply contains sensitive content and is pending moderation.');
         }
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => $reply->status // [NEW] Send status to JS
+                'status' => $reply->status
             ]);
         }
 

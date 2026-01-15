@@ -24,7 +24,8 @@ class Reply extends Model
 
         // 2. CREATED
         static::created(function ($reply) {
-            CheckContentSafety::dispatch($reply);
+            // [FIX] Use dispatchSync so we WAIT for the AI result
+            CheckContentSafety::dispatchSync($reply);
         });
 
         // 3. UPDATING (Edit Logic)
@@ -37,7 +38,8 @@ class Reply extends Model
         // 4. UPDATED (Edit Logic)
         static::updated(function ($reply) {
             if ($reply->wasChanged('content')) {
-                CheckContentSafety::dispatch($reply);
+                // [FIX] Use dispatchSync here too
+                CheckContentSafety::dispatchSync($reply);
             }
         });
 

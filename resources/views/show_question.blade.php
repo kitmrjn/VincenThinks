@@ -144,7 +144,8 @@
                         </div>
                         <div class="text-xs text-gray-500 font-light flex items-center flex-wrap mt-1">
                             <span>{{ $question->created_at->diffForHumans() }}</span>
-                            @if($question->created_at != $question->updated_at)
+                            {{-- [FIX] Only show Edited if the difference is greater than 5 minutes --}}
+                            @if($question->updated_at->diffInMinutes($question->created_at) > 5)
                                 <span class="mx-1">•</span>
                                 <span class="italic" title="Edited {{ $question->updated_at->diffForHumans() }}">(edited)</span>
                             @endif
@@ -313,7 +314,10 @@
                             </div>
                             <span class="text-xs text-gray-400 font-light block mt-0.5">
                                 {{ $answer->created_at->diffForHumans() }}
-                                @if($answer->created_at != $answer->updated_at) <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span> @endif
+                                {{-- [FIX] Only show Edited if difference > 5 mins --}}
+                                @if($answer->updated_at->diffInMinutes($answer->created_at) > 5) 
+                                    <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span> 
+                                @endif
                             </span>
                         </div>
                     </div>
