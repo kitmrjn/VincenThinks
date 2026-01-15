@@ -61,22 +61,23 @@ class ForumController extends Controller
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
-        // [UPDATED] Removed the immediate "pending_review" error check.
-        // We now treat the submission as successful regardless of the initial status.
-        // The AI job runs in the background.
+        // Refresh to get the AI-assigned status
+        $question->refresh();
+
+        $message = 'Question posted successfully!';
+        if ($question->status === 'pending_review') {
+            $message = 'Your post has been flagged for review and will appear once approved.';
+        }
 
         if ($request->wantsJson()) {
-            $question->load('user.course', 'user.departmentInfo', 'category', 'images');
-            $html = view('partials.question-card', ['q' => $question])->render();
-            
             return response()->json([
                 'success' => true,
-                'message' => 'Question submitted! It will appear shortly.',
-                'html' => $html
+                'message' => $message,
+                'status' => $question->status // [NEW] Send status to JS
             ]);
         }
 
-        return redirect()->back()->with('success', 'Question submitted! It will appear shortly.');
+        return redirect()->back()->with('success', $message);
     }
 
     public function show($id) {
@@ -155,7 +156,21 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        // [UPDATED] Removed the immediate "pending_review" error check here as well.
+        // Refresh to check status
+        $reply->refresh();
+
+        $message = 'Reply posted.';
+        if ($reply->status === 'pending_review') {
+             $message = 'Your reply is pending moderation.';
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'status' => $reply->status // [NEW] Send status to JS
+            ]);
+        }
 
         $answer = Answer::findOrFail($answerId);
         $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
@@ -168,7 +183,7 @@ class ForumController extends Controller
             ));
         }
 
-        return redirect()->back()->with('success', 'Reply posted.');
+        return redirect()->back()->with('success', $message);
     }
 
     public function rateAnswer(Request $request, $id) {

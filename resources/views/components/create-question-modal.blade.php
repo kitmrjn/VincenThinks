@@ -70,32 +70,46 @@
                 if (response.ok) {
                     this.closeModal();
                     
-                    // Show success message briefly
                     const flashBox = document.getElementById('js-flash-message');
                     const flashText = document.getElementById('js-flash-text');
+                    const flashIcon = flashBox ? flashBox.querySelector('i') : null;
                     
                     if (flashBox && flashText) {
                         flashText.innerText = data.message || 'Post submitted successfully!';
                         flashBox.style.display = 'flex';
                         window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }
 
-                    // [FIX] Reload IMMEDIATELY. 
-                    // Since we used dispatchSync, the DB is already updated.
-                    // No need to wait 1500ms.
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500); // Small 0.5s delay just so the user sees the green flash
+                        // Reset base classes to remove any previous colors
+                        flashBox.className = 'p-4 rounded-lg border mb-6 shadow-sm flex items-center'; 
+                        
+                        if (data.status === 'pending_review') {
+                            // [STYLE] Yellow/Orange for Review
+                            flashBox.classList.add('bg-yellow-50', 'text-yellow-800', 'border-yellow-200');
+                            if(flashIcon) flashIcon.className = 'bx bx-info-circle text-xl mr-2';
+                            
+                            // [TIMING] Long delay (4 seconds) so user can read
+                            setTimeout(() => { window.location.reload(); }, 4000);
+                        } else {
+                            // [STYLE] Green for Success
+                            flashBox.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+                            if(flashIcon) flashIcon.className = 'bx bx-check-circle text-xl mr-2';
+                            
+                            // [TIMING] Short delay (0.5 seconds) for quick feedback
+                            setTimeout(() => { window.location.reload(); }, 500);
+                        }
+                    } else {
+                         // Fallback if element missing
+                         window.location.reload();
+                    }
 
                 } else {
                     alert('Error: ' + (data.message || 'Something went wrong.'));
+                    this.isLoading = false;
                 }
             } catch (error) {
                 console.error('Error:', error);
                 alert('An unexpected error occurred.');
-            } finally {
-                // Keep loading true if successful to prevent double-clicks during reload
-                if (!this.isLoading) this.isLoading = false; 
+                this.isLoading = false;
             }
         }
     }"
