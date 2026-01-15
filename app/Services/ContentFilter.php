@@ -36,8 +36,11 @@ class ContentFilter
         }
 
         // 2. SECOND LINE OF DEFENSE: Gemini AI
-        // If the database didn't catch it, we ask Gemini.
-        if (env('USE_AI_MODERATION', false)) {
+        // [UPDATED] Check the Database Setting instead of .env
+        $useAi = \App\Models\Setting::where('key', 'use_ai_moderation')->value('value');
+        
+        // If strictly '1', we run the AI. 
+        if ($useAi === '1') {
             return self::checkWithGemini($text);
         }
 

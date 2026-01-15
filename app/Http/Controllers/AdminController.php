@@ -290,13 +290,21 @@ class AdminController extends Controller
 
     public function updateGeneralSettings(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        
+        // 1. Verification Setting
         $verification = $request->has('verification_required') ? '1' : '0';
         Setting::updateOrCreate(['key' => 'verification_required'], ['value' => $verification]);
+
+        // 2. [NEW] AI Moderation Setting
+        $aiModeration = $request->has('use_ai_moderation') ? '1' : '0';
+        Setting::updateOrCreate(['key' => 'use_ai_moderation'], ['value' => $aiModeration]);
+
+        // 3. Edit Time Limit
         if ($request->has('edit_time_limit')) {
             Setting::updateOrCreate(['key' => 'edit_time_limit'], ['value' => $request->edit_time_limit]);
         }
 
-        $this->logAction('Updated General Settings');
+        $this->logAction('Updated General Settings', null, "AI: $aiModeration, Verify: $verification");
 
         return redirect()->back()->with('success', 'General settings updated.');
     }

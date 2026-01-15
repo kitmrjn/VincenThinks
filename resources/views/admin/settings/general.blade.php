@@ -24,7 +24,7 @@
         <hr class="border-gray-100 mb-8">
 
         {{-- Verification Toggle --}}
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center justify-between mb-6">
             <div>
                 <label class="block text-sm font-bold text-gray-800">Require Email Verification</label>
                 <p class="text-xs text-gray-500 mt-1">If enabled, new users must verify their email before posting.</p>
@@ -32,6 +32,19 @@
             <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" name="verification_required" value="1" class="sr-only peer" {{ ($settings['verification_required'] ?? '1') == '1' ? 'checked' : '' }}>
                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-maroon-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+            </label>
+        </div>
+
+        {{-- [NEW] AI Moderation Toggle --}}
+        <div class="flex items-center justify-between mb-2">
+            <div>
+                <label class="block text-sm font-bold text-gray-800">Enable AI Moderation (Gemini)</label>
+                <p class="text-xs text-gray-500 mt-1">Automatically flag toxic content using Google Gemini AI.</p>
+                <p class="text-[10px] text-gray-400 mt-0.5">Note: Requires a valid API Key. Disable if hitting rate limits.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="use_ai_moderation" value="1" class="sr-only peer" {{ ($settings['use_ai_moderation'] ?? '0') == '1' ? 'checked' : '' }}>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
             </label>
         </div>
 
