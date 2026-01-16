@@ -8,9 +8,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Question;
-use App\Models\Answer;
-use App\Models\Reply;
 use App\Services\ContentFilter;
+use Illuminate\Support\Facades\Storage; //
 
 class CheckContentSafety implements ShouldQueue
 {
@@ -18,38 +17,40 @@ class CheckContentSafety implements ShouldQueue
 
     protected $model;
 
-    /**
-     * Create a new job instance.
-     * Accepts any model that has 'title', 'content', and 'status'.
-     */
     public function __construct($model)
     {
         $this->model = $model;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
-        // 1. Prepare text to check
+        // 1. Prepare text
         $text = '';
+        $imagePaths = []; // Initialize empty array
+
         if ($this->model instanceof Question) {
             $text = $this->model->title . "\n" . $this->model->content;
+            
+            // 2. Load images if they exist
+            // We need the full server path for file_get_contents later
+            $this->model->load('images');
+            foreach ($this->model->images as $img) {
+                // Ensure file exists before trying to check it
+                if (Storage::disk('public')->exists($img->image_path)) {
+                     $imagePaths[] = Storage::disk('public')->path($img->image_path);
+                }
+            }
         } else {
             $text = $this->model->content;
         }
 
-        // 2. Perform the Slow AI Check
-        // We assume ContentFilter::check returns TRUE if content is UNSAFE
-        $isUnsafe = ContentFilter::check($text);
+        // 3. Perform the AI Check (Passing both text and images)
+        $isUnsafe = ContentFilter::check($text, $imagePaths);
 
-        // 3. Update the Model
+        // 4. Update the Model
         if ($isUnsafe) {
-            // Keep as pending or flag it (logic depends on your preference)
             $this->model->update(['status' => 'pending_review']);
         } else {
-            // It's safe, publish it!
             $this->model->update(['status' => 'published']);
         }
     }

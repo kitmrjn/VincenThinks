@@ -10,19 +10,19 @@ use Illuminate\Support\Facades\Log;
 class ContentFilter
 {
     /**
-     * Check content against local DB first, then AI.
-     *
+     * Check content safety.
      * @param string $text
-     * @return bool True if flagged (unsafe), False if safe.
+     * @param array $imagePaths Array of full system file paths to images.
      */
-    public static function check($text): bool
+    public static function check($text, array $imagePaths = []): bool
     {
-        // 0. Empty check
-        if (empty(trim($text ?? ''))) {
+        // 1. Text Empty Check (Skip only if NO images either)
+        if (empty(trim($text ?? '')) && empty($imagePaths)) {
             return false;
         }
 
-        // 1. FIRST LINE OF DEFENSE: Local Database (Instant)
+        // 2. FIRST LINE: Local Text Check
+        // If text is explicitly bad, we fail immediately (saves API tokens)
         $bannedWords = Cache::remember('banned_words_list', 3600, function () {
             return BannedWord::pluck('word')->toArray();
         });
@@ -35,117 +35,111 @@ class ContentFilter
             }
         }
 
-        // 2. SECOND LINE OF DEFENSE: Gemini AI
-        // [UPDATED] Check the Database Setting instead of .env
+        // 3. SECOND LINE: Gemini AI (Text + Images)
         $useAi = \App\Models\Setting::where('key', 'use_ai_moderation')->value('value');
         
-        // If strictly '1', we run the AI. 
         if ($useAi === '1') {
-            return self::checkWithGemini($text);
+            return self::checkWithGemini($text, $imagePaths);
         }
 
         return false;
     }
 
-    private static function checkWithGemini(string $text): bool
+    private static function checkWithGemini(string $text, array $imagePaths): bool
     {
         $apiKey = env('GEMINI_API_KEY');
 
-        // Fail Secure: If no API key, assume unsafe or log error (here we default to flagging to be safe)
         if (!$apiKey) {
             Log::error('ContentFilter: GEMINI_API_KEY is missing.');
             return true; 
         }
 
-        try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])
-            ->timeout(5) // Wait up to 5 seconds
-            ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => self::buildPrompt($text)]
-                        ]
+        // --- BUILD THE PAYLOAD ---
+        $parts = [];
+
+        // Add Text Part
+        if (!empty($text)) {
+            $parts[] = ['text' => self::buildPrompt($text ?: '[No text content]')];
+        }
+
+        // Add Image Parts
+        foreach ($imagePaths as $path) {
+            try {
+                $imageData = base64_encode(file_get_contents($path));
+                $mimeType = mime_content_type($path);
+                
+                $parts[] = [
+                    'inline_data' => [
+                        'mime_type' => $mimeType,
+                        'data' => $imageData
                     ]
-                ],
+                ];
+            } catch (\Exception $e) {
+                Log::error("ContentFilter: Failed to process image at $path. Error: " . $e->getMessage());
+                // Fail secure: if we can't check the image, assume it might be bad? 
+                // Or continue? Let's continue but log it.
+            }
+        }
+
+        try {
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+            ->timeout(10) // Increase timeout for image processing
+            ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
+                'contents' => [[ 'parts' => $parts ]],
                 'safetySettings' => [
                     ['category' => 'HARM_CATEGORY_HARASSMENT', 'threshold' => 'BLOCK_NONE'],
                     ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_NONE'],
-                    ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
+                    ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'], // Crucial for images
                     ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
                 ],
                 'generationConfig' => [
                     'temperature' => 0.0,
-                    // CRITICAL FIX: Increased from 15 to 100. 
-                    // This gives Gemini space to "think" before writing "FLAG".
                     'maxOutputTokens' => 100, 
                 ]
             ]);
 
             if ($response->failed()) {
                 Log::error('Gemini API Error: ' . $response->body());
-                return true; // Fail Secure
+                return true; 
             }
 
             $json = $response->json();
             
-            // Log raw response for debugging
-            Log::info("Gemini Raw JSON:", $json);
-
-            // CHECK 1: Input Blocked?
-            if (isset($json['promptFeedback']['blockReason'])) {
-                Log::info("Gemini Moderation: Input blocked due to " . $json['promptFeedback']['blockReason']);
-                return true; 
-            }
-
-            // CHECK 2: Output Blocked by Safety Filter?
+            // Standard parsing logic (Same as before)
+            if (isset($json['promptFeedback']['blockReason'])) return true;
+            
             $finishReason = $json['candidates'][0]['finishReason'] ?? 'UNKNOWN';
-            if ($finishReason === 'SAFETY' || $finishReason === 'OTHER') {
-                Log::info("Gemini Moderation: Output blocked. FinishReason: {$finishReason}");
-                return true;
-            }
+            if ($finishReason === 'SAFETY' || $finishReason === 'OTHER') return true;
 
-            // CHECK 3: Empty Response (The "Silence is Danger" Fix)
             $aiText = $json['candidates'][0]['content']['parts'][0]['text'] ?? '';
             $cleanResponse = strtoupper(trim($aiText));
 
-            if ($cleanResponse === '') {
-                Log::warning("Gemini Moderation: AI returned empty string. Treating as UNSAFE (Fail-Safe).");
-                return true; 
-            }
+            if ($cleanResponse === '') return true;
 
-            Log::info("Gemini Moderation Result: '{$cleanResponse}'");
-
-            // CHECK 4: Keyword Matching
-            // We check for "FLAG", "UNSAFE", or "YES" (some models say "YES" to "Is this bad?")
             $bad_signals = ['FLAG', 'UNSAFE', 'HATE', 'HARASSMENT', 'PROFANITY', 'YES', 'BLOCK'];
-            
             foreach ($bad_signals as $signal) {
-                if (str_contains($cleanResponse, $signal)) {
-                    return true;
-                }
+                if (str_contains($cleanResponse, $signal)) return true;
             }
 
             return false;
 
         } catch (\Exception $e) {
             Log::error("Gemini Connection Exception: " . $e->getMessage());
-            return true; // Fail Secure: If internet breaks, block the post.
+            return true; 
         }
     }
 
     private static function buildPrompt(string $text): string
     {
+        // Updated prompt to explicitly mention images
         return <<<EOT
 You are a content moderator. 
-Task: Analyze the following text for hate speech, harassment, extreme profanity, or bullying.
+Task: Analyze the attached text AND images for hate speech, harassment, nudity, gore, or extreme violence.
 
-Text: "{$text}"
+Text Content: "{$text}"
 
-If the text is unsafe, reply "FLAG".
-If the text is safe, reply "SAFE".
+If ANY part of the text or images is unsafe, reply "FLAG".
+If everything is safe, reply "SAFE".
 Answer:
 EOT;
     }

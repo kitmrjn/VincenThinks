@@ -22,24 +22,10 @@ class Reply extends Model
             }
         });
 
-        // 2. CREATED
-        static::created(function ($reply) {
-            // [FIX] Use dispatchSync so we WAIT for the AI result
-            CheckContentSafety::dispatchSync($reply);
-        });
-
         // 3. UPDATING (Edit Logic)
         static::updating(function ($reply) {
             if ($reply->isDirty('content')) {
                 $reply->status = 'pending_review';
-            }
-        });
-
-        // 4. UPDATED (Edit Logic)
-        static::updated(function ($reply) {
-            if ($reply->wasChanged('content')) {
-                // [FIX] Use dispatchSync here too
-                CheckContentSafety::dispatchSync($reply);
             }
         });
 
