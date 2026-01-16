@@ -47,6 +47,12 @@ class ContentFilter
 
     private static function checkWithGemini(string $text, array $imagePaths): bool
     {
+        // === DEBUG LOGGING START ===
+        Log::info("--- GEMINI CHECK START ---");
+        Log::info("Text Length: " . strlen($text));
+        Log::info("Image Count: " . count($imagePaths));
+        // ===========================
+
         $apiKey = env('GEMINI_API_KEY');
 
         if (!$apiKey) {
@@ -57,10 +63,8 @@ class ContentFilter
         // --- BUILD THE PAYLOAD ---
         $parts = [];
 
-        // Add Text Part
-        if (!empty($text)) {
-            $parts[] = ['text' => self::buildPrompt($text ?: '[No text content]')];
-        }
+        // Add Text Part (Always add prompt instructions, even if text is empty)
+        $parts[] = ['text' => self::buildPrompt($text ?: '[No text content]')];
 
         // Add Image Parts
         foreach ($imagePaths as $path) {
@@ -76,8 +80,6 @@ class ContentFilter
                 ];
             } catch (\Exception $e) {
                 Log::error("ContentFilter: Failed to process image at $path. Error: " . $e->getMessage());
-                // Fail secure: if we can't check the image, assume it might be bad? 
-                // Or continue? Let's continue but log it.
             }
         }
 
@@ -98,6 +100,9 @@ class ContentFilter
                 ]
             ]);
 
+            // === DEBUG LOGGING: API STATUS ===
+            Log::info("Gemini HTTP Status: " . $response->status());
+
             if ($response->failed()) {
                 Log::error('Gemini API Error: ' . $response->body());
                 return true; 
@@ -105,14 +110,27 @@ class ContentFilter
 
             $json = $response->json();
             
-            // Standard parsing logic (Same as before)
-            if (isset($json['promptFeedback']['blockReason'])) return true;
+            // === DEBUG LOGGING: TOKENS ===
+            if (isset($json['usageMetadata'])) {
+                 Log::info("TOKEN COUNT: " . ($json['usageMetadata']['promptTokenCount'] ?? 'N/A'));
+            }
+
+            // Standard parsing logic
+            if (isset($json['promptFeedback']['blockReason'])) {
+                Log::info("Gemini Blocked Input: " . $json['promptFeedback']['blockReason']);
+                return true;
+            }
             
             $finishReason = $json['candidates'][0]['finishReason'] ?? 'UNKNOWN';
-            if ($finishReason === 'SAFETY' || $finishReason === 'OTHER') return true;
+            if ($finishReason === 'SAFETY' || $finishReason === 'OTHER') {
+                Log::info("Gemini Blocked Output (Safety Filter): " . $finishReason);
+                return true;
+            }
 
             $aiText = $json['candidates'][0]['content']['parts'][0]['text'] ?? '';
             $cleanResponse = strtoupper(trim($aiText));
+            
+            Log::info("Gemini Response Text: " . $cleanResponse);
 
             if ($cleanResponse === '') return true;
 
@@ -131,7 +149,6 @@ class ContentFilter
 
     private static function buildPrompt(string $text): string
     {
-        // Updated prompt to explicitly mention images
         return <<<EOT
 You are a content moderator. 
 Task: Analyze the attached text AND images for hate speech, harassment, nudity, gore, or extreme violence.
