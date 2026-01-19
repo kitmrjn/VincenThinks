@@ -47,16 +47,19 @@ class Question extends Model {
 
         // Global Scope
         static::addGlobalScope('published', function (Builder $builder) {
-            if (!request()->is('admin*')) { 
-                // [FIX] Allow Published OR Own Content
-                $builder->where(function($query) {
-                    $query->where('status', 'published');
-                    
-                    if (Auth::check()) {
-                        $query->orWhere('user_id', Auth::id());
-                    }
-                });
+            // [FIX] Allow Admins to see EVERYTHING, regardless of the URL
+            if (Auth::check() && Auth::user()->is_admin) {
+                return;
             }
+
+            // Everyone else (Guest/Student) -> Apply filters
+            $builder->where(function($query) {
+                $query->where('status', 'published');
+                
+                if (Auth::check()) {
+                    $query->orWhere('user_id', Auth::id());
+                }
+            });
         });
     }
 

@@ -28,10 +28,23 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 text-sm font-medium">{{ $q->user->name ?? 'Unknown' }}</td>
                             <td class="px-6 py-4">
-                                <p class="font-bold text-gray-800 text-sm mb-1">{{ $q->title }}</p>
+                                <a href="{{ route('question.show', $q->id) }}" target="_blank" class="font-bold text-maroon-700 hover:underline text-sm mb-1 block">
+                                    {{ $q->title }} <i class='bx bx-link-external text-xs'></i>
+                                </a>
                                 <p class="text-xs text-gray-500 leading-relaxed">{{ Str::limit(strip_tags($q->content), 150) }}</p>
+                                
+                                {{-- [FIX] Show Images if present --}}
+                                @if($q->images->count() > 0)
+                                    <div class="mt-2 flex gap-2 overflow-x-auto">
+                                        @foreach($q->images as $img)
+                                            <a href="{{ asset('storage/' . $img->image_path) }}" target="_blank">
+                                                <img src="{{ asset('storage/' . $img->image_path) }}" class="h-16 w-16 object-cover rounded border border-red-300">
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </td>
-                            <td class="px-6 py-4 text-right space-x-2">
+                            <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                                 <form action="{{ route('admin.moderation.approve', ['type' => 'question', 'id' => $q->id]) }}" method="POST" class="inline">
                                     @csrf
                                     <button class="text-green-600 hover:text-green-800 text-xs font-bold border border-green-200 px-3 py-1 rounded hover:bg-green-50">Approve</button>
@@ -67,10 +80,28 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 text-sm font-medium">{{ $a->user->name ?? 'Unknown' }}</td>
                             <td class="px-6 py-4">
-                                <div class="text-xs text-gray-400 mb-1">On Question: {{ Str::limit($a->question->title ?? 'Deleted', 40) }}</div>
-                                <p class="text-sm text-gray-600 leading-relaxed">{{ Str::limit(strip_tags($a->content), 150) }}</p>
+                                <div class="text-xs text-gray-400 mb-1">
+                                    On Question: <a href="{{ route('question.show', $a->question_id) }}" target="_blank" class="hover:text-maroon-700 hover:underline">{{ Str::limit($a->question->title ?? 'Deleted', 40) }}</a>
+                                </div>
+                                <div class="text-sm text-gray-600 leading-relaxed relative">
+                                    {{ Str::limit(strip_tags($a->content), 150) }}
+                                    
+                                    {{-- [FIX] Detect Embedded Images --}}
+                                    @if(str_contains($a->content, '<img'))
+                                        <div class="mt-2 text-xs text-red-600 font-bold bg-red-50 inline-block px-2 py-1 rounded border border-red-100">
+                                            <i class='bx bx-image'></i> Contains Embedded Images
+                                        </div>
+                                        <div class="mt-1">
+                                            {{-- Render actual content in a safe box so admin can see the image --}}
+                                            <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="text-[10px] text-blue-600 hover:underline cursor-pointer">Show Preview</button>
+                                            <div class="hidden p-2 border border-gray-200 rounded mt-1 bg-gray-50 prose prose-sm max-w-full">
+                                                {!! $a->content !!}
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                             </td>
-                            <td class="px-6 py-4 text-right space-x-2">
+                            <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                                 <form action="{{ route('admin.moderation.approve', ['type' => 'answer', 'id' => $a->id]) }}" method="POST" class="inline">
                                     @csrf
                                     <button class="text-green-600 hover:text-green-800 text-xs font-bold border border-green-200 px-3 py-1 rounded hover:bg-green-50">Approve</button>
@@ -89,7 +120,7 @@
         @endif
     </div>
 
-    {{-- Flagged Replies (NEW SECTION) --}}
+    {{-- Flagged Replies --}}
     <h2 class="text-xl font-medium text-gray-800 mb-4">Flagged Replies ({{ $flaggedReplies->count() }})</h2>
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         @if($flaggedReplies->count() > 0)
@@ -107,11 +138,26 @@
                             <td class="px-6 py-4 text-sm font-medium">{{ $r->user->name ?? 'Unknown' }}</td>
                             <td class="px-6 py-4">
                                 <div class="text-xs text-gray-400 mb-1">
-                                    On Question: {{ Str::limit($r->answer->question->title ?? 'Unknown Question', 40) }}
+                                    On Question: <a href="{{ route('question.show', $r->answer->question_id) }}" target="_blank" class="hover:text-maroon-700 hover:underline">{{ Str::limit($r->answer->question->title ?? 'Unknown', 40) }}</a>
                                 </div>
-                                <p class="text-sm text-gray-600 leading-relaxed">{{ Str::limit(strip_tags($r->content), 150) }}</p>
+                                <div class="text-sm text-gray-600 leading-relaxed">
+                                    {{ Str::limit(strip_tags($r->content), 150) }}
+
+                                    {{-- [FIX] Detect Embedded Images --}}
+                                    @if(str_contains($r->content, '<img'))
+                                        <div class="mt-2 text-xs text-red-600 font-bold bg-red-50 inline-block px-2 py-1 rounded border border-red-100">
+                                            <i class='bx bx-image'></i> Contains Embedded Images
+                                        </div>
+                                        <div class="mt-1">
+                                            <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="text-[10px] text-blue-600 hover:underline cursor-pointer">Show Preview</button>
+                                            <div class="hidden p-2 border border-gray-200 rounded mt-1 bg-gray-50 prose prose-sm max-w-full">
+                                                {!! $r->content !!}
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
                             </td>
-                            <td class="px-6 py-4 text-right space-x-2">
+                            <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                                 <form action="{{ route('admin.moderation.approve', ['type' => 'reply', 'id' => $r->id]) }}" method="POST" class="inline">
                                     @csrf
                                     <button class="text-green-600 hover:text-green-800 text-xs font-bold border border-green-200 px-3 py-1 rounded hover:bg-green-50">Approve</button>
