@@ -18,14 +18,22 @@
                 {{-- REPLY AUTHOR FLAIR --}}
                 @if($reply->user->member_type === 'student' && $reply->user->course)
                     <span class="text-[9px] font-bold text-blue-600 bg-blue-50 px-1 py-0.5 rounded border border-blue-100 mr-2" title="{{ $reply->user->course->name }}">{{ $reply->user->course->acronym }}</span>
-                {{-- FIXED: Use departmentInfo --}}
                 @elseif($reply->user->member_type === 'teacher' && $reply->user->departmentInfo)
                     <span class="text-[9px] font-bold text-purple-600 bg-purple-50 px-1 py-0.5 rounded border border-purple-100 mr-2">{{ $reply->user->departmentInfo->name }}</span>
                 @endif
 
                 <span class="text-[10px] text-gray-400">{{ $reply->created_at->diffForHumans() }}</span>
-                @if($reply->created_at != $reply->updated_at)
-                    <span class="text-[10px] text-gray-300 italic ml-1">(edited)</span>
+                
+                {{-- [FIX] Only show (edited) if the difference is greater than 5 minutes --}}
+                @if($reply->updated_at->diffInMinutes($reply->created_at) > 5)
+                    <span class="text-[10px] text-gray-300 italic ml-1" title="Edited {{ $reply->updated_at->diffForHumans() }}">(edited)</span>
+                @endif
+
+                {{-- [NEW] PENDING REVIEW BADGE --}}
+                @if($reply->status === 'pending_review')
+                    <span class="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 ml-2 animate-pulse">
+                        <i class='bx bx-lock-alt align-middle'></i> Pending Review
+                    </span>
                 @endif
             </div>
         </div>

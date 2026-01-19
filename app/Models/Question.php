@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Jobs\CheckContentSafety; // [Import Job]
+use Illuminate\Support\Facades\Auth; // [FIX] Added Import
+use App\Jobs\CheckContentSafety;
 
 class Question extends Model {
     use HasFactory;
@@ -26,18 +27,18 @@ class Question extends Model {
 
         // 2. CREATED
         static::created(function ($question) {
-            // [FIX] Use dispatchSync so the user WAITS for the safety check.
-            //CheckContentSafety::dispatchSync($question);
+             // Dispatch safety check
+             // CheckContentSafety::dispatchSync($question);
         });
 
-        // 3. UPDATING (Edit Logic: Check Title or Content)
+        // 3. UPDATING
         static::updating(function ($question) {
             if ($question->isDirty('title') || $question->isDirty('content')) {
                 $question->status = 'pending_review';
             }
         });
 
-        // 4. UPDATED (Edit Logic)
+        // 4. UPDATED
         static::updated(function ($question) {
             if ($question->wasChanged('title') || $question->wasChanged('content')) {
                 CheckContentSafety::dispatch($question);
@@ -47,7 +48,14 @@ class Question extends Model {
         // Global Scope
         static::addGlobalScope('published', function (Builder $builder) {
             if (!request()->is('admin*')) { 
-                $builder->where('status', 'published');
+                // [FIX] Allow Published OR Own Content
+                $builder->where(function($query) {
+                    $query->where('status', 'published');
+                    
+                    if (Auth::check()) {
+                        $query->orWhere('user_id', Auth::id());
+                    }
+                });
             }
         });
     }

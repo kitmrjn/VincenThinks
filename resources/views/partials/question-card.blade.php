@@ -1,4 +1,4 @@
-<div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative mb-4 animate-fade-in-down">
+<div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative mb-4 animate-fade-in-down {{ $q->status === 'pending_review' ? 'ring-2 ring-red-100 bg-red-50/10' : '' }}">
     <div class="flex items-start">
         <div class="flex-shrink-0 mr-4">
             @if($q->user->avatar)
@@ -17,10 +17,17 @@
                         <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 ml-1">{{ $q->user->departmentInfo->acronym ?? $q->user->departmentInfo->name }}</span>
                     @endif
                     <span class="mx-1">•</span>
-                    <span>Just now</span>
+                    <span>{{ $q->created_at->diffForHumans() }}</span>
                     @if($q->category)
                         <span class="mx-2 text-gray-300">|</span>
                         <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200">{{ $q->category->acronym ?? $q->category->name }}</span>
+                    @endif
+
+                    {{-- [NEW] PENDING REVIEW BADGE --}}
+                    @if($q->status === 'pending_review')
+                        <span class="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-red-200 animate-pulse flex items-center">
+                            <i class='bx bx-lock-alt mr-1'></i> Pending Review
+                        </span>
                     @endif
                 </div>
             </div>
@@ -38,9 +45,13 @@
             </a>
             <div class="mt-4 flex items-center justify-between">
                 <div class="flex items-center space-x-4 text-sm text-gray-400 font-light">
-                    <span class="flex items-center"><i class='bx bx-message-alt mr-1 text-base'></i> 0 Answers</span>
-                    <span class="flex items-center"><i class='bx bx-show mr-1 text-lg'></i> 0 Views</span>
+                    <span class="flex items-center"><i class='bx bx-message-alt mr-1 text-base'></i> {{ $q->answers_count ?? 0 }} Answers</span>
+                    <span class="flex items-center"><i class='bx bx-show mr-1 text-lg'></i> {{ $q->views }} Views</span>
                 </div>
+                
+                @if($q->best_answer_id)
+                    <span class="text-green-600 text-xs font-bold flex items-center bg-green-50 px-2 py-1 rounded-full border border-green-100"><i class='bx bx-check-circle mr-1 text-sm'></i> Solved</span>
+                @endif
             </div>
         </div>
     </div>

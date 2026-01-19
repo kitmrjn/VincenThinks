@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder; 
-use App\Jobs\CheckContentSafety; // [Import Job]
+use Illuminate\Support\Facades\Auth; // [FIX] Added Import
+use App\Jobs\CheckContentSafety;
 
 class Reply extends Model
 {
@@ -32,7 +33,14 @@ class Reply extends Model
         // Global Scope
         static::addGlobalScope('published', function (Builder $builder) {
             if (!request()->is('admin*')) { 
-                $builder->where('status', 'published');
+                // [FIX] Group conditions: (Status is Published OR User is Owner)
+                $builder->where(function($query) {
+                    $query->where('status', 'published');
+                    
+                    if (Auth::check()) {
+                        $query->orWhere('user_id', Auth::id());
+                    }
+                });
             }
         });
     }

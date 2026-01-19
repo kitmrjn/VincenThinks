@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use App\Jobs\CheckContentSafety; // [Import Job]
+use Illuminate\Support\Facades\Auth; // [FIX] Added Import
+use App\Jobs\CheckContentSafety;
 
 class Answer extends Model
 {
@@ -34,10 +35,17 @@ class Answer extends Model
             }
         });
 
-        // Global Scope: Hide pending answers unless Admin
+        // Global Scope: Hide pending answers unless Admin OR Owner
         static::addGlobalScope('published', function (Builder $builder) {
             if (!request()->is('admin*')) {
-                $builder->where('status', 'published');
+                // [FIX] Allow Published OR Own Content
+                $builder->where(function($query) {
+                    $query->where('status', 'published');
+                    
+                    if (Auth::check()) {
+                        $query->orWhere('user_id', Auth::id());
+                    }
+                });
             }
         });
     }

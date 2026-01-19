@@ -5,7 +5,8 @@
         content: '', 
         showHelp: false,
         maxImages: {{ $maxImages }},
-        
+        quill: null,
+
         init() {
             this.content = this.$refs.input.value;
 
@@ -24,7 +25,8 @@
                 toolbarOptions[2].push('image');
             }
 
-            let quill = new Quill(this.$refs.editor, {
+            // [FIX] Assign to component state 'this.quill' instead of a local variable
+            this.quill = new Quill(this.$refs.editor, {
                 theme: 'snow',
                 placeholder: '{{ $placeholder }}',
                 modules: {
@@ -38,14 +40,14 @@
             });
 
             if (this.content) { 
-                quill.root.innerHTML = this.content; 
+                this.quill.root.innerHTML = this.content; 
             }
 
-            quill.on('text-change', () => {
-                if (quill.getText().trim().length === 0) {
+            this.quill.on('text-change', () => {
+                if (this.quill.getText().trim().length === 0) {
                     this.$refs.input.value = ''; 
                 } else {
-                    this.$refs.input.value = quill.root.innerHTML;
+                    this.$refs.input.value = this.quill.root.innerHTML;
                 }
             });
 
@@ -58,7 +60,9 @@
                     'ql-image': 'Upload Image', 'ql-list': 'List', 
                     'ql-clean': 'Clear Formatting', 'ql-header': 'Text Size'
                 };
-                const toolbar = quill.getModule('toolbar').container;
+                
+                // [FIX] Use this.quill to find the toolbar for THIS specific editor
+                const toolbar = this.quill.getModule('toolbar').container;
                 Object.keys(tooltipMap).forEach(className => {
                     const buttons = toolbar.querySelectorAll('.' + className);
                     buttons.forEach(btn => btn.setAttribute('title', tooltipMap[className]));
@@ -67,15 +71,15 @@
 
             // --- IMAGE LOGIC ---
             this.handleImageClick = function() {
-                // 1. COUNT EXISTING IMAGES
-                const imgCount = this.$refs.editor.querySelectorAll('img').length;
+                // [FIX] Use this.quill directly. No more confusion between editors.
+                const imgCount = this.quill.root.querySelectorAll('img').length;
                 
                 if (imgCount >= this.maxImages) {
                     alert('Limit reached: You can only upload ' + this.maxImages + ' image(s) here.');
                     return;
                 }
 
-                this.selectLocalImage(quill);
+                this.selectLocalImage(this.quill);
             };
 
             this.selectLocalImage = function(editor) {

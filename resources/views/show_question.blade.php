@@ -68,13 +68,11 @@
                 }
             }
 
-            // [NEW] AUTO-REFRESH LOGIC FOR PENDING POSTS
-            // This checks if the post is hidden/pending and reloads the page every 3 seconds
+            // [NEW] Auto-reload if question is pending (checks for approval every 3s)
             @if($question->status === 'pending_review')
-                console.log("Post is under review. Auto-refreshing to check status...");
                 setInterval(function() {
                     window.location.reload();
-                }, 3000); // 3 seconds
+                }, 3000); 
             @endif
         </script>
     @endpush
@@ -105,19 +103,19 @@
 
     <div class="max-w-3xl mx-auto px-4 pb-12">
 
-        {{-- SAFETY WARNING BANNER --}}
+        {{-- [NEW] LARGE SAFETY WARNING BANNER --}}
         @if($question->status === 'pending_review')
-            <div class="bg-yellow-50 text-yellow-800 p-4 rounded-lg border border-yellow-200 mb-6 shadow-sm flex items-center justify-center animate-pulse">
-                <i class='bx bx-time-five text-2xl mr-3'></i> 
+            <div class="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 mb-6 shadow-sm flex items-center animate-pulse">
+                <i class='bx bx-lock-alt text-2xl mr-3'></i> 
                 <div>
-                    <strong>Under Review:</strong> This post is hidden while our AI checks it for safety. 
-                    <span class="text-sm block opacity-80">Only you and the admins can see this right now.</span>
+                    <strong class="block text-sm font-bold uppercase tracking-wide">Pending Review</strong>
+                    <span class="text-sm opacity-90">This question is currently hidden from the public while we check it for safety. Only you and the admins can see it.</span>
                 </div>
             </div>
         @endif
 
         {{-- QUESTION CARD --}}
-        <div class="bg-white rounded-xl shadow-sm p-8 mb-8 border border-gray-200 relative">
+        <div class="bg-white rounded-xl shadow-sm p-8 mb-8 border {{ $question->status === 'pending_review' ? 'border-red-300 ring-2 ring-red-50' : 'border-gray-200' }} relative transition-all">
             
             {{-- HEADER --}}
             <div class="flex justify-between items-start mb-6">
@@ -144,7 +142,7 @@
                         </div>
                         <div class="text-xs text-gray-500 font-light flex items-center flex-wrap mt-1">
                             <span>{{ $question->created_at->diffForHumans() }}</span>
-                            {{-- [FIX] Only show Edited if the difference is greater than 5 minutes --}}
+                            
                             @if($question->updated_at->diffInMinutes($question->created_at) > 5)
                                 <span class="mx-1">•</span>
                                 <span class="italic" title="Edited {{ $question->updated_at->diffForHumans() }}">(edited)</span>
@@ -157,6 +155,14 @@
                                 <span class="mx-2 text-gray-300">|</span>
                                 <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200" title="{{ $question->category->name }}">
                                     {{ $question->category->acronym ?? $question->category->name }}
+                                </span>
+                            @endif
+
+                            {{-- [NEW] SMALL BADGE IN HEADER --}}
+                            @if($question->status === 'pending_review')
+                                <span class="mx-2 text-gray-300">|</span>
+                                <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-red-200 animate-pulse flex items-center">
+                                    <i class='bx bx-lock-alt mr-1'></i> Pending Review
                                 </span>
                             @endif
                         </div>
@@ -270,6 +276,11 @@
                             <i class='bx bxs-trophy text-base mr-1'></i> Top Rated
                         </div>
                     @endif
+                    @if($answer->status === 'pending_review')
+                        <div class="bg-red-100 text-red-700 text-[10px] font-bold px-3 py-1 rounded-full border border-red-300 shadow-sm flex items-center animate-pulse">
+                            <i class='bx bx-error-circle text-base mr-1'></i> Pending Review (Hidden from others)
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Action Buttons --}}
@@ -314,7 +325,6 @@
                             </div>
                             <span class="text-xs text-gray-400 font-light block mt-0.5">
                                 {{ $answer->created_at->diffForHumans() }}
-                                {{-- [FIX] Only show Edited if difference > 5 mins --}}
                                 @if($answer->updated_at->diffInMinutes($answer->created_at) > 5) 
                                     <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span> 
                                 @endif

@@ -1,8 +1,9 @@
 @forelse($questions as $q)
     <div class="bg-white rounded-xl shadow-sm p-5 border transition duration-200 group relative 
+        {{ $q->status === 'pending_review' ? 'ring-2 ring-red-100 bg-red-50/20' : '' }}
         {{ $q->best_answer_id 
             ? 'border-green-500 ring-1 ring-green-500' 
-            : 'border-gray-100 hover:border-maroon-200 hover:shadow-md' 
+            : ($q->status !== 'pending_review' ? 'border-gray-100 hover:border-maroon-200 hover:shadow-md' : 'border-red-200') 
         }}">
         
         @if($q->best_answer_id)
@@ -36,6 +37,13 @@
                             @if($q->category)
                                 <span class="text-gray-300">|</span>
                                 <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200 whitespace-nowrap" title="{{ $q->category->name }}">{{ $q->category->acronym ?? $q->category->name }}</span>
+                            @endif
+
+                            {{-- [FIX] PENDING REVIEW BADGE --}}
+                            @if($q->status === 'pending_review')
+                                <span class="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-red-200 animate-pulse flex items-center shadow-sm whitespace-nowrap">
+                                    <i class='bx bx-lock-alt mr-1'></i> Pending Review
+                                </span>
                             @endif
                         </div>
                     </div>
