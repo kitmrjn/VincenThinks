@@ -16,14 +16,19 @@
         </div>
     @endif
 
-    {{-- MAIN INTERFACE (TABS + TABLES) --}}
+    {{-- MAIN INTERFACE --}}
     <div x-data="{ 
             activeTab: 'questions',
             modalOpen: false,
             selectedItem: null,
-            openReview(item, type) {
+            formatDate(dateString) {
+                const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                return new Date(dateString).toLocaleDateString('en-US', options);
+            },
+            openReview(item, type, url) {
                 this.selectedItem = item;
                 this.selectedItem.type = type;
+                this.selectedItem.public_url = url; // Store URL
                 this.modalOpen = true;
             }
         }" class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-[600px] flex flex-col">
@@ -76,7 +81,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($flaggedQuestions as $q)
-                            <tr class="hover:bg-blue-50/50 transition-colors group cursor-pointer" @click="openReview({{ $q->toJson() }}, 'question')">
+                            <tr class="hover:bg-blue-50/50 transition-colors group cursor-pointer" @click="openReview({{ $q->toJson() }}, 'question', '{{ route('question.show', $q->id) }}')">
                                 <td class="px-6 py-3">
                                     <div class="flex items-center">
                                         <div class="h-8 w-8 rounded-full bg-maroon-100 text-maroon-700 flex items-center justify-center text-xs font-bold mr-3 border border-maroon-200">
@@ -126,7 +131,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($flaggedAnswers as $a)
-                            <tr class="hover:bg-blue-50/50 transition-colors group cursor-pointer" @click="openReview({{ json_encode($a->load('question')) }}, 'answer')">
+                            <tr class="hover:bg-blue-50/50 transition-colors group cursor-pointer" @click="openReview({{ json_encode($a->load('question')) }}, 'answer', '{{ route('question.show', $a->question_id) }}#answer-{{ $a->id }}')">
                                 <td class="px-6 py-3">
                                     <div class="flex items-center">
                                         <div class="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold mr-3 border border-blue-200">
@@ -174,7 +179,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($flaggedReplies as $r)
-                            <tr class="hover:bg-blue-50/50 transition-colors group cursor-pointer" @click="openReview({{ json_encode($r->load('answer.question')) }}, 'reply')">
+                            <tr class="hover:bg-blue-50/50 transition-colors group cursor-pointer" @click="openReview({{ json_encode($r->load('answer.question')) }}, 'reply', '{{ route('question.show', $r->answer->question_id) }}#reply-{{ $r->id }}')">
                                 <td class="px-6 py-3">
                                     <div class="flex items-center">
                                         <div class="h-8 w-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold mr-3 border border-purple-200">
@@ -225,12 +230,15 @@
                      class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-gray-200">
                     
                     <template x-if="selectedItem">
-                        <div class="flex flex-col max-h-[80vh]">
+                        <div class="flex flex-col max-h-[85vh]">
                             {{-- Modal Header --}}
                             <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
                                 <div>
                                     <h3 class="text-lg font-bold text-gray-800">Review Content</h3>
-                                    <p class="text-xs text-gray-500">ID: <span x-text="selectedItem.id"></span> • Type: <span class="uppercase font-bold" x-text="selectedItem.type"></span></p>
+                                    <p class="text-xs text-gray-500">
+                                        ID: <span x-text="selectedItem.id"></span> • 
+                                        Type: <span class="uppercase font-bold" x-text="selectedItem.type"></span>
+                                    </p>
                                 </div>
                                 <button @click="modalOpen = false" class="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition">
                                     <i class='bx bx-x text-xl'></i>
@@ -239,18 +247,49 @@
 
                             {{-- Modal Body --}}
                             <div class="px-6 py-6 overflow-y-auto">
-                                <div class="bg-red-50 text-red-800 text-xs p-3 rounded-lg border border-red-100 mb-4 flex items-start">
-                                    <i class='bx bx-error-circle text-lg mr-2 mt-0.5'></i>
-                                    <div><strong>AI Flagged:</strong> Potentially unsafe content detected.</div>
+                                
+                                {{-- 1. Author Info Section --}}
+                                <div class="flex items-center mb-6">
+                                    <div class="h-10 w-10 rounded-full bg-maroon-50 text-maroon-700 flex items-center justify-center text-sm font-bold border border-maroon-100 mr-3">
+                                        <span x-text="selectedItem.user.name.charAt(0)"></span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-bold text-gray-800" x-text="selectedItem.user.name"></div>
+                                        <div class="text-xs text-gray-500">
+                                            Posted on <span x-text="formatDate(selectedItem.created_at)"></span>
+                                        </div>
+                                    </div>
                                 </div>
 
+                                {{-- 2. Context Box (Show Parent Info) --}}
+                                <template x-if="selectedItem.type === 'answer' && selectedItem.question">
+                                    <div class="mb-4 bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
+                                        <strong>Answering Question:</strong> 
+                                        <span class="italic" x-text="selectedItem.question.title"></span>
+                                    </div>
+                                </template>
+
+                                <template x-if="selectedItem.type === 'reply' && selectedItem.answer && selectedItem.answer.question">
+                                    <div class="mb-4 bg-purple-50 border border-purple-100 rounded-lg p-3 text-sm text-purple-800">
+                                        <strong>Replying to Answer on:</strong> 
+                                        <span class="italic" x-text="selectedItem.answer.question.title"></span>
+                                    </div>
+                                </template>
+
+                                {{-- 3. AI Warning --}}
+                                <div class="bg-red-50 text-red-800 text-xs p-3 rounded-lg border border-red-100 mb-4 flex items-start">
+                                    <i class='bx bx-error-circle text-lg mr-2 mt-0.5'></i>
+                                    <div><strong>AI Flagged:</strong> Potentially unsafe content detected by automated systems.</div>
+                                </div>
+
+                                {{-- 4. Content --}}
                                 <template x-if="selectedItem.title">
                                     <h4 class="text-xl font-bold text-gray-900 mb-4 leading-tight" x-text="selectedItem.title"></h4>
                                 </template>
 
                                 <div class="prose prose-sm prose-stone max-w-none p-4 bg-gray-50 rounded-xl border border-gray-100 mb-4" x-html="selectedItem.content"></div>
 
-                                {{-- Images Grid --}}
+                                {{-- 5. Images --}}
                                 <template x-if="selectedItem.images && selectedItem.images.length > 0">
                                     <div>
                                         <label class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Attachments</label>
@@ -269,17 +308,32 @@
                             </div>
 
                             {{-- Modal Footer --}}
-                            <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-100 flex-shrink-0">
-                                <form :action="'/admin/moderation/' + selectedItem.type + '/' + selectedItem.id + '/delete'" method="POST">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" onclick="return confirm('Delete permanently?')" class="text-red-600 hover:text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold border border-red-200 hover:border-red-600 transition">Delete</button>
-                                </form>
-                                <form :action="'/admin/moderation/' + selectedItem.type + '/' + selectedItem.id + '/approve'" method="POST">
-                                    @csrf
-                                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm transition flex items-center">
-                                        <i class='bx bx-check mr-1.5 text-lg'></i> Approve
-                                    </button>
-                                </form>
+                            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-100 flex-shrink-0">
+                                {{-- Left: Context Link --}}
+                                <div>
+                                    <template x-if="selectedItem.public_url">
+                                        <a :href="selectedItem.public_url" target="_blank" class="text-blue-600 hover:text-blue-800 text-sm font-bold hover:underline flex items-center transition">
+                                            <i class='bx bx-link-external mr-1'></i> View Context
+                                        </a>
+                                    </template>
+                                </div>
+
+                                {{-- Right: Actions --}}
+                                <div class="flex gap-3">
+                                    {{-- [UPDATED] Delete button now matches Approve button structure --}}
+                                    <form :action="'/admin/moderation/' + selectedItem.type + '/' + selectedItem.id + '/delete'" method="POST">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" onclick="return confirm('Delete permanently?')" class="text-red-600 hover:text-white hover:bg-red-600 px-6 py-2 rounded-lg text-sm font-bold border border-red-200 hover:border-red-600 transition flex items-center">
+                                            <i class='bx bx-trash mr-1.5 text-lg'></i> Delete
+                                        </button>
+                                    </form>
+                                    <form :action="'/admin/moderation/' + selectedItem.type + '/' + selectedItem.id + '/approve'" method="POST">
+                                        @csrf
+                                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm transition flex items-center">
+                                            <i class='bx bx-check mr-1.5 text-lg'></i> Approve
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </template>
