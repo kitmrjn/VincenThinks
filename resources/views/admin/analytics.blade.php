@@ -8,7 +8,7 @@
                 <div class="p-3 rounded-full bg-blue-50 text-blue-600 mr-4"><i class='bx bx-user text-2xl'></i></div>
                 <div>
                     <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Users</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $stats['total_users'] }}</p>
+                    <p class="text-xl font-bold text-gray-800" id="stat-total-users">{{ $stats['total_users'] }}</p>
                 </div>
             </div>
 
@@ -16,7 +16,7 @@
                 <div class="p-3 rounded-full bg-orange-50 text-orange-600 mr-4"><i class='bx bx-question-mark text-2xl'></i></div>
                 <div>
                     <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Questions</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $stats['total_questions'] }}</p>
+                    <p class="text-xl font-bold text-gray-800" id="stat-total-questions">{{ $stats['total_questions'] }}</p>
                 </div>
             </div>
 
@@ -24,7 +24,7 @@
                 <div class="p-3 rounded-full bg-green-50 text-green-600 mr-4"><i class='bx bx-check-circle text-2xl'></i></div>
                 <div>
                     <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Solved</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $stats['total_solved'] }}</p>
+                    <p class="text-xl font-bold text-gray-800" id="stat-total-solved">{{ $stats['total_solved'] }}</p>
                 </div>
             </div>
 
@@ -32,7 +32,7 @@
                 <div class="p-3 rounded-full bg-indigo-50 text-indigo-600 mr-4"><i class='bx bx-book-open text-2xl'></i></div>
                 <div>
                     <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Courses</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $stats['total_courses'] }}</p>
+                    <p class="text-xl font-bold text-gray-800" id="stat-total-courses">{{ $stats['total_courses'] }}</p>
                 </div>
             </div>
 
@@ -40,7 +40,7 @@
                 <div class="p-3 rounded-full bg-teal-50 text-teal-600 mr-4"><i class='bx bx-category text-2xl'></i></div>
                 <div>
                     <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Categories</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $stats['total_categories'] }}</p>
+                    <p class="text-xl font-bold text-gray-800" id="stat-total-categories">{{ $stats['total_categories'] }}</p>
                 </div>
             </div>
 
@@ -48,7 +48,7 @@
                 <div class="p-3 rounded-full bg-purple-50 text-purple-600 mr-4"><i class='bx bx-buildings text-2xl'></i></div>
                 <div>
                     <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Departments</p>
-                    <p class="text-xl font-bold text-gray-800">{{ $stats['total_departments'] }}</p>
+                    <p class="text-xl font-bold text-gray-800" id="stat-total-departments">{{ $stats['total_departments'] }}</p>
                 </div>
             </div>
 
@@ -56,7 +56,7 @@
                 <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4"><i class='bx bx-error text-2xl'></i></div>
                 <div>
                     <p class="text-xs text-red-400 font-bold uppercase tracking-wider">Pending Reports</p>
-                    <p class="text-xl font-bold text-red-700">{{ $stats['pending_reports'] }}</p>
+                    <p class="text-xl font-bold text-red-700" id="stat-pending-reports">{{ $stats['pending_reports'] }}</p>
                 </div>
             </div>
         </div>
@@ -162,17 +162,17 @@
 
     </div>
 
-    {{-- Chart Initialization Script --}}
+    {{-- Chart Initialization & Polling Script --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Data passed from Controller
+            // Data passed from Controller for initial render
             const growthData = @json($charts['growth']);
             const distData = @json($charts['distribution']);
             const resData = @json($charts['resolution']);
 
             // 1. Growth Line Chart
-            new Chart(document.getElementById('growthChart'), {
+            window.growthChart = new Chart(document.getElementById('growthChart'), {
                 type: 'line',
                 data: {
                     labels: growthData.labels,
@@ -198,7 +198,7 @@
             });
 
             // 2. Distribution Doughnut Chart
-            new Chart(document.getElementById('distChart'), {
+            window.distChart = new Chart(document.getElementById('distChart'), {
                 type: 'doughnut',
                 data: {
                     labels: distData.labels,
@@ -218,7 +218,7 @@
             });
 
             // 3. Resolution Doughnut Chart
-            new Chart(document.getElementById('resolutionChart'), {
+            window.resolutionChart = new Chart(document.getElementById('resolutionChart'), {
                 type: 'doughnut',
                 data: {
                     labels: resData.labels,
@@ -239,6 +239,47 @@
                     plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } }
                 }
             });
+
+            // --- Real-Time Polling Logic ---
+            const updateInterval = 3000; // 3 seconds
+
+            function updateCharts() {
+                fetch("{{ route('admin.analytics.data') }}")
+                    .then(response => response.json())
+                    .then(data => {
+                        // 1. Update Text Stats
+                        if (document.getElementById('stat-total-users')) document.getElementById('stat-total-users').innerText = data.stats.total_users;
+                        if (document.getElementById('stat-total-questions')) document.getElementById('stat-total-questions').innerText = data.stats.total_questions;
+                        if (document.getElementById('stat-total-solved')) document.getElementById('stat-total-solved').innerText = data.stats.total_solved;
+                        if (document.getElementById('stat-total-courses')) document.getElementById('stat-total-courses').innerText = data.stats.total_courses;
+                        if (document.getElementById('stat-total-categories')) document.getElementById('stat-total-categories').innerText = data.stats.total_categories;
+                        if (document.getElementById('stat-total-departments')) document.getElementById('stat-total-departments').innerText = data.stats.total_departments;
+                        if (document.getElementById('stat-pending-reports')) document.getElementById('stat-pending-reports').innerText = data.stats.pending_reports;
+
+                        // 2. Update Charts
+                        if (window.growthChart) {
+                            window.growthChart.data.labels = data.charts.growth.labels;
+                            window.growthChart.data.datasets[0].data = data.charts.growth.data;
+                            window.growthChart.update();
+                        }
+
+                        if (window.distChart) {
+                            window.distChart.data.labels = data.charts.distribution.labels;
+                            window.distChart.data.datasets[0].data = data.charts.distribution.data;
+                            window.distChart.update();
+                        }
+
+                        if (window.resolutionChart) {
+                            window.resolutionChart.data.labels = data.charts.resolution.labels;
+                            window.resolutionChart.data.datasets[0].data = data.charts.resolution.data;
+                            window.resolutionChart.update();
+                        }
+                    })
+                    .catch(error => console.error('Error fetching analytics:', error));
+            }
+
+            // Start polling
+            setInterval(updateCharts, updateInterval);
         });
     </script>
 </x-admin-layout>

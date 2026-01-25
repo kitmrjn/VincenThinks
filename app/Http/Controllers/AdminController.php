@@ -129,7 +129,7 @@ class AdminController extends Controller
         return view('admin.dashboard', $data);
     }
 
-    // --- REAL-TIME POLLING ENDPOINT ---
+    // --- REAL-TIME POLLING ENDPOINT (DASHBOARD) ---
     public function fetchEvents(Request $request) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
@@ -157,7 +157,7 @@ class AdminController extends Controller
         ]);
     }
 
-    // --- ANALYTICS (STATS) ---
+    // --- ANALYTICS (STATS VIEW) ---
     public function analytics() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
@@ -179,6 +179,28 @@ class AdminController extends Controller
             ['stats' => $stats, 'charts' => $charts], 
             $topContent
         ));
+    }
+
+    // --- REAL-TIME ANALYTICS DATA (POLLING) ---
+    public function fetchAnalyticsData() {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+
+        // These methods are now cached in the service
+        $stats = $this->analyticsService->getFullAnalytics();
+        $growthData = $this->analyticsService->getGrowthChartData();
+        $catData = $this->analyticsService->getCategoryDistribution();
+
+        return response()->json([
+            'stats' => $stats,
+            'charts' => [
+                'growth' => $growthData,
+                'distribution' => $catData,
+                'resolution' => [
+                    'labels' => ['Solved', 'Unsolved'],
+                    'data' => [$stats['total_solved'], $stats['unsolved_count']]
+                ]
+            ]
+        ]);
     }
 
     // --- BANNED WORDS MANAGEMENT ---

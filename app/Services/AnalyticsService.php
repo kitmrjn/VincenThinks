@@ -9,7 +9,7 @@ use App\Models\Department;
 use App\Models\Course;
 use App\Models\Category;
 use App\Models\AuditLog;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class AnalyticsService
 {
@@ -28,56 +28,65 @@ class AnalyticsService
 
     /**
      * Fetch comprehensive stats for the Analytics page.
+     * Cached for 5 seconds for near real-time updates.
      */
     public function getFullAnalytics(): array
     {
-        $solvedCount = Question::whereNotNull('best_answer_id')->count();
-        $totalQuestions = Question::count();
+        return Cache::remember('analytics_full_stats', 5, function () {
+            $solvedCount = Question::whereNotNull('best_answer_id')->count();
+            $totalQuestions = Question::count();
 
-        return [
-            'total_users' => User::count(),
-            'total_questions' => $totalQuestions,
-            'total_solved' => $solvedCount,
-            'total_departments' => Department::count(),
-            'total_courses' => Course::count(),
-            'total_categories' => Category::count(),
-            'pending_reports' => Report::count(),
-            // Calculated field for charts
-            'unsolved_count' => $totalQuestions - $solvedCount,
-        ];
+            return [
+                'total_users' => User::count(),
+                'total_questions' => $totalQuestions,
+                'total_solved' => $solvedCount,
+                'total_departments' => Department::count(),
+                'total_courses' => Course::count(),
+                'total_categories' => Category::count(),
+                'pending_reports' => Report::count(),
+                // Calculated field for charts
+                'unsolved_count' => $totalQuestions - $solvedCount,
+            ];
+        });
     }
 
     /**
      * Generate data for the "Questions over Time" chart (Last 7 Days).
+     * Cached for 5 seconds.
      */
     public function getGrowthChartData(): array
     {
-        $growthQuery = Question::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
-            ->get();
+        return Cache::remember('analytics_growth_chart', 5, function () {
+            $growthQuery = Question::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+                ->where('created_at', '>=', now()->subDays(7))
+                ->groupBy('date')
+                ->orderBy('date', 'ASC')
+                ->get();
 
-        return [
-            'labels' => $growthQuery->pluck('date'),
-            'data' => $growthQuery->pluck('count')
-        ];
+            return [
+                'labels' => $growthQuery->pluck('date'),
+                'data' => $growthQuery->pluck('count')
+            ];
+        });
     }
 
     /**
      * Generate data for the "Questions per Category" chart.
+     * Cached for 5 seconds.
      */
     public function getCategoryDistribution(): array
     {
-        $distQuery = Category::withCount('questions')->get();
-        return [
-            'labels' => $distQuery->pluck('name'),
-            'data' => $distQuery->pluck('questions_count')
-        ];
+        return Cache::remember('analytics_category_dist', 5, function () {
+            $distQuery = Category::withCount('questions')->get();
+            return [
+                'labels' => $distQuery->pluck('name'),
+                'data' => $distQuery->pluck('questions_count')
+            ];
+        });
     }
 
     /**
-     * Get trending questions (most viewed) and top contributors.
+     * Get trending questions and top contributors.
      */
     public function getTopContent(): array
     {

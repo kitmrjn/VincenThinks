@@ -36,8 +36,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/analytics', [AdminController::class, 'analytics'])->name('admin.analytics');
     
-    // [NEW] Real-Time Polling Route
+    // [NEW] Real-Time Polling Routes
     Route::get('/admin/analytics/events', [AdminController::class, 'fetchEvents'])->name('admin.analytics.events');
+    Route::get('/admin/analytics/data', [AdminController::class, 'fetchAnalyticsData'])->name('admin.analytics.data');
     
     Route::get('/admin/reports', [AdminController::class, 'reports'])->name('admin.reports');
     
