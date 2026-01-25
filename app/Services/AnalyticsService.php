@@ -42,8 +42,6 @@ class AnalyticsService
 
     /**
      * Fetch comprehensive stats.
-     * FLOW METRICS (Users, Questions, Solved) are filtered by $range.
-     * STOCK METRICS (Depts, Courses, Pending) remain total.
      */
     public function getFullAnalytics($range = 'week'): array
     {
@@ -61,7 +59,7 @@ class AnalyticsService
             $totalDepartments = Department::count();
             $totalCourses = Course::count();
             $totalCategories = Category::count();
-            $pendingReports = Report::count(); // Always show current backlog size
+            $pendingReports = Report::count(); 
 
             return [
                 'total_users' => $newUsers,
@@ -71,7 +69,6 @@ class AnalyticsService
                 'total_courses' => $totalCourses,
                 'total_categories' => $totalCategories,
                 'pending_reports' => $pendingReports,
-                // Calculated for resolution chart logic (if needed elsewhere)
                 'unsolved_count' => $newQuestions - $solvedCount,
             ];
         });
@@ -85,7 +82,6 @@ class AnalyticsService
         return Cache::remember("analytics_growth_chart_{$range}", 5, function () use ($range) {
             $startDate = $this->getDateRange($range);
             
-            // Determine grouping format
             if ($range === 'day') {
                 $select = "DATE_FORMAT(created_at, '%H:00') as label";
             } elseif ($range === 'year') {
@@ -148,11 +144,29 @@ class AnalyticsService
         });
     }
 
-    public function getTopContent(): array
+    /**
+     * Get trending content and contributors filtered by range.
+     */
+    public function getTopContent($range = 'week'): array
     {
-        return [
-            'trendingQuestions' => Question::with('category')->orderBy('views', 'desc')->take(5)->get(),
-            'topContributors' => User::withCount('answers')->orderBy('answers_count', 'desc')->take(5)->get()
-        ];
+        return Cache::remember("analytics_top_content_{$range}", 5, function () use ($range) {
+            $startDate = $this->getDateRange($range);
+
+            return [
+                'trendingQuestions' => Question::with('category')
+                    ->where('created_at', '>=', $startDate) // Created within range
+                    ->orderBy('views', 'desc')
+                    ->take(5)
+                    ->get(),
+                
+                'topContributors' => User::withCount(['answers' => function ($query) use ($startDate) {
+                        $query->where('created_at', '>=', $startDate); // Count answers only within range
+                    }])
+                    ->having('answers_count', '>', 0) // Only users active in this period
+                    ->orderBy('answers_count', 'desc')
+                    ->take(5)
+                    ->get()
+            ];
+        });
     }
 }

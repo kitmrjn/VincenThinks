@@ -125,7 +125,8 @@
                                 <th class="pb-3 font-normal text-right">Answers Posted</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-50">
+                        {{-- Added ID for JS --}}
+                        <tbody class="divide-y divide-gray-50" id="top-contributors-body">
                             @foreach($topContributors as $contributor)
                             <tr class="group hover:bg-gray-50">
                                 <td class="py-3 flex items-center">
@@ -162,7 +163,8 @@
                         <th class="px-6 py-3 font-normal text-right">Date Posted</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                {{-- Added ID for JS --}}
+                <tbody class="divide-y divide-gray-100" id="trending-content-body">
                     @foreach($trendingQuestions as $q)
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4">
@@ -220,7 +222,7 @@
             if(document.getElementById('label-dist-range')) document.getElementById('label-dist-range').innerText = labelText;
             if(document.getElementById('label-res-range')) document.getElementById('label-res-range').innerText = labelText;
 
-            // Stat Card Labels (To indicate context)
+            // Stat Card Labels
             if(document.getElementById('label-users')) document.getElementById('label-users').innerText = 'New Users (' + (range === 'day' ? 'Today' : range) + ')';
             if(document.getElementById('label-questions')) document.getElementById('label-questions').innerText = 'New Questions (' + (range === 'day' ? 'Today' : range) + ')';
             if(document.getElementById('label-solved')) document.getElementById('label-solved').innerText = 'Solved (' + (range === 'day' ? 'Today' : range) + ')';
@@ -306,11 +308,11 @@
 
             // --- Real-Time Polling Logic ---
             const updateInterval = 3000; // 3 seconds
-            window.updateCharts = function() { // Expose to window for button clicks
+            window.updateCharts = function() { 
                 fetch("{{ route('admin.analytics.data') }}?range=" + currentRange)
                     .then(response => response.json())
                     .then(data => {
-                        // 1. Update Text Stats (Filtered)
+                        // 1. Update Text Stats
                         if (document.getElementById('stat-total-users')) document.getElementById('stat-total-users').innerText = data.stats.total_users;
                         if (document.getElementById('stat-total-questions')) document.getElementById('stat-total-questions').innerText = data.stats.total_questions;
                         if (document.getElementById('stat-total-solved')) document.getElementById('stat-total-solved').innerText = data.stats.total_solved;
@@ -319,7 +321,7 @@
                         if (document.getElementById('stat-total-departments')) document.getElementById('stat-total-departments').innerText = data.stats.total_departments;
                         if (document.getElementById('stat-pending-reports')) document.getElementById('stat-pending-reports').innerText = data.stats.pending_reports;
 
-                        // 2. Update Charts (Filtered)
+                        // 2. Update Charts
                         if (window.growthChart) {
                             window.growthChart.data.labels = data.charts.growth.labels;
                             window.growthChart.data.datasets[0].data = data.charts.growth.data;
@@ -337,8 +339,78 @@
                             window.resolutionChart.data.datasets[0].data = data.charts.resolution.data;
                             window.resolutionChart.update();
                         }
+
+                        // 3. Update Trending Content & Contributors
+                        if (data.top_content) {
+                            updateTopTables(data.top_content);
+                        }
                     })
                     .catch(error => console.error('Error fetching analytics:', error));
+            }
+
+            function updateTopTables(content) {
+                // Update Contributors Table
+                const contBody = document.getElementById('top-contributors-body');
+                if (contBody) {
+                    contBody.innerHTML = '';
+                    content.topContributors.forEach(user => {
+                        let badgeClass = 'bg-gray-100 text-gray-500';
+                        let roleName = user.member_type.charAt(0).toUpperCase() + user.member_type.slice(1);
+                        if (user.is_admin) { badgeClass = 'bg-purple-100 text-purple-600'; roleName = 'Admin'; }
+                        else if (user.member_type === 'teacher') { badgeClass = 'bg-blue-100 text-blue-600'; }
+
+                        const row = `
+                            <tr class="group hover:bg-gray-50">
+                                <td class="py-3 flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-maroon-700 text-white flex items-center justify-center text-xs mr-3">
+                                        ${user.name.charAt(0)}
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700">${user.name}</span>
+                                </td>
+                                <td class="py-3 text-sm text-gray-500">
+                                    <span class="px-2 py-1 rounded text-xs ${badgeClass}">${roleName}</span>
+                                </td>
+                                <td class="py-3 text-right text-sm font-bold text-gray-700">${user.answers_count}</td>
+                            </tr>
+                        `;
+                        contBody.insertAdjacentHTML('beforeend', row);
+                    });
+                }
+
+                // Update Trending Questions Table
+                const trendBody = document.getElementById('trending-content-body');
+                if (trendBody) {
+                    trendBody.innerHTML = '';
+                    content.trendingQuestions.forEach(q => {
+                        const date = new Date(q.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const category = q.category ? q.category.name : 'Uncategorized';
+                        // Note: Route generation in JS is tricky, we use a placeholder or data attribute if possible. 
+                        // Simplified approach: Construct URL assuming standard pattern.
+                        const url = `/question/${q.id}`; 
+
+                        const row = `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <a href="${url}" target="_blank" class="text-maroon-700 hover:underline font-medium text-sm">
+                                        ${q.title.length > 50 ? q.title.substring(0, 50) + '...' : q.title}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                        ${category}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 flex items-center">
+                                    <i class='bx bx-show mr-2 text-gray-400'></i> ${q.views.toLocaleString()}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500 text-right">
+                                    ${date}
+                                </td>
+                            </tr>
+                        `;
+                        trendBody.insertAdjacentHTML('beforeend', row);
+                    });
+                }
             }
 
             // Start polling

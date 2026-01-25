@@ -114,12 +114,13 @@ class AdminController extends Controller
     public function analytics() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
-        // Initial Load (Default to Week to match buttons)
+        // Initial Load (Default to Week)
         $stats = $this->analyticsService->getFullAnalytics('week');
         $growthData = $this->analyticsService->getGrowthChartData('week');
         $catData = $this->analyticsService->getCategoryDistribution('week');
         $resData = $this->analyticsService->getResolutionStats('week');
-        $topContent = $this->analyticsService->getTopContent();
+        // [UPDATED] Pass default range
+        $topContent = $this->analyticsService->getTopContent('week');
 
         $charts = [
             'growth' => $growthData,
@@ -139,12 +140,12 @@ class AdminController extends Controller
 
         $range = $request->input('range', 'week'); 
 
-        // [UPDATED] Pass range to stats so cards update too
         $stats = $this->analyticsService->getFullAnalytics($range);
-        
         $growthData = $this->analyticsService->getGrowthChartData($range);
         $catData = $this->analyticsService->getCategoryDistribution($range);
         $resData = $this->analyticsService->getResolutionStats($range);
+        // [UPDATED] Fetch top content for the specific range
+        $topContent = $this->analyticsService->getTopContent($range);
 
         return response()->json([
             'stats' => $stats,
@@ -152,7 +153,9 @@ class AdminController extends Controller
                 'growth' => $growthData,
                 'distribution' => $catData,
                 'resolution' => $resData
-            ]
+            ],
+            // [UPDATED] Add to JSON response
+            'top_content' => $topContent
         ]);
     }
 
