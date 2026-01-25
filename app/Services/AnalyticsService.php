@@ -10,11 +10,12 @@ use App\Models\Course;
 use App\Models\Category;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class AnalyticsService
 {
     /**
-     * Fetch quick stats for the main Dashboard.
+     * Fetch quick stats for the main Dashboard (Lifetime / Recent).
      */
     public function getDashboardStats(): array
     {
@@ -27,67 +28,126 @@ class AnalyticsService
     }
 
     /**
-     * Fetch comprehensive stats for the Analytics page.
-     * Cached for 5 seconds for near real-time updates.
+     * Helper to determine date range
      */
-    public function getFullAnalytics(): array
+    private function getDateRange($range)
     {
-        return Cache::remember('analytics_full_stats', 5, function () {
-            $solvedCount = Question::whereNotNull('best_answer_id')->count();
-            $totalQuestions = Question::count();
+        return match ($range) {
+            'day' => now()->subDay(),
+            'month' => now()->subMonth(),
+            'year' => now()->subYear(),
+            default => now()->subWeek(), // 'week'
+        };
+    }
+
+    /**
+     * Fetch comprehensive stats.
+     * FLOW METRICS (Users, Questions, Solved) are filtered by $range.
+     * STOCK METRICS (Depts, Courses, Pending) remain total.
+     */
+    public function getFullAnalytics($range = 'week'): array
+    {
+        return Cache::remember("analytics_full_stats_{$range}", 5, function () use ($range) {
+            $startDate = $this->getDateRange($range);
+
+            // Flow Metrics (Filtered by Date)
+            $newUsers = User::where('created_at', '>=', $startDate)->count();
+            $newQuestions = Question::where('created_at', '>=', $startDate)->count();
+            $solvedCount = Question::where('created_at', '>=', $startDate)
+                ->whereNotNull('best_answer_id')
+                ->count();
+
+            // Stock Metrics (Snapshots - Always Total)
+            $totalDepartments = Department::count();
+            $totalCourses = Course::count();
+            $totalCategories = Category::count();
+            $pendingReports = Report::count(); // Always show current backlog size
 
             return [
-                'total_users' => User::count(),
-                'total_questions' => $totalQuestions,
+                'total_users' => $newUsers,
+                'total_questions' => $newQuestions,
                 'total_solved' => $solvedCount,
-                'total_departments' => Department::count(),
-                'total_courses' => Course::count(),
-                'total_categories' => Category::count(),
-                'pending_reports' => Report::count(),
-                // Calculated field for charts
-                'unsolved_count' => $totalQuestions - $solvedCount,
+                'total_departments' => $totalDepartments,
+                'total_courses' => $totalCourses,
+                'total_categories' => $totalCategories,
+                'pending_reports' => $pendingReports,
+                // Calculated for resolution chart logic (if needed elsewhere)
+                'unsolved_count' => $newQuestions - $solvedCount,
             ];
         });
     }
 
     /**
-     * Generate data for the "Questions over Time" chart (Last 7 Days).
-     * Cached for 5 seconds.
+     * Generate data for the "Questions over Time" chart.
      */
-    public function getGrowthChartData(): array
+    public function getGrowthChartData($range = 'week'): array
     {
-        return Cache::remember('analytics_growth_chart', 5, function () {
-            $growthQuery = Question::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-                ->where('created_at', '>=', now()->subDays(7))
-                ->groupBy('date')
-                ->orderBy('date', 'ASC')
+        return Cache::remember("analytics_growth_chart_{$range}", 5, function () use ($range) {
+            $startDate = $this->getDateRange($range);
+            
+            // Determine grouping format
+            if ($range === 'day') {
+                $select = "DATE_FORMAT(created_at, '%H:00') as label";
+            } elseif ($range === 'year') {
+                $select = "DATE_FORMAT(created_at, '%Y-%m') as label";
+            } else {
+                $select = "DATE(created_at) as label";
+            }
+
+            $query = Question::selectRaw("$select, COUNT(*) as count")
+                ->where('created_at', '>=', $startDate)
+                ->groupBy('label')
+                ->orderBy('label', 'ASC')
                 ->get();
 
             return [
-                'labels' => $growthQuery->pluck('date'),
-                'data' => $growthQuery->pluck('count')
+                'labels' => $query->pluck('label'),
+                'data' => $query->pluck('count')
             ];
         });
     }
 
     /**
      * Generate data for the "Questions per Category" chart.
-     * Cached for 5 seconds.
      */
-    public function getCategoryDistribution(): array
+    public function getCategoryDistribution($range = 'week'): array
     {
-        return Cache::remember('analytics_category_dist', 5, function () {
-            $distQuery = Category::withCount('questions')->get();
+        return Cache::remember("analytics_category_dist_{$range}", 5, function () use ($range) {
+            $startDate = $this->getDateRange($range);
+
+            $distQuery = Category::withCount(['questions' => function ($query) use ($startDate) {
+                $query->where('created_at', '>=', $startDate);
+            }])
+            ->get()
+            ->where('questions_count', '>', 0); 
+
             return [
-                'labels' => $distQuery->pluck('name'),
-                'data' => $distQuery->pluck('questions_count')
+                'labels' => $distQuery->pluck('name')->values(),
+                'data' => $distQuery->pluck('questions_count')->values()
             ];
         });
     }
 
     /**
-     * Get trending questions and top contributors.
+     * Generate Solved vs Unsolved for the selected range.
      */
+    public function getResolutionStats($range = 'week'): array
+    {
+        return Cache::remember("analytics_resolution_{$range}", 5, function () use ($range) {
+            $startDate = $this->getDateRange($range);
+
+            $totalInPeriod = Question::where('created_at', '>=', $startDate)->count();
+            $solvedInPeriod = Question::where('created_at', '>=', $startDate)
+                ->whereNotNull('best_answer_id')
+                ->count();
+
+            return [
+                'labels' => ['Solved', 'Unsolved'],
+                'data' => [$solvedInPeriod, $totalInPeriod - $solvedInPeriod]
+            ];
+        });
+    }
+
     public function getTopContent(): array
     {
         return [

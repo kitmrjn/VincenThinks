@@ -1,13 +1,31 @@
 <x-admin-layout>
     <div class="mb-10">
-        <h1 class="text-3xl font-light text-gray-800 mb-6">Platform Analytics</h1>
+        {{-- Header & Range Filters --}}
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+            <h1 class="text-3xl font-light text-gray-800">Platform Analytics</h1>
+            
+            <div class="mt-4 md:mt-0 bg-white p-1 rounded-lg border border-gray-200 inline-flex shadow-sm">
+                <button onclick="setRange('day')" id="btn-day" class="px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-50 focus:outline-none transition-colors">
+                    Day
+                </button>
+                <button onclick="setRange('week')" id="btn-week" class="px-4 py-2 text-sm font-medium rounded-md bg-maroon-50 text-maroon-700 shadow-sm focus:outline-none transition-colors">
+                    Week
+                </button>
+                <button onclick="setRange('month')" id="btn-month" class="px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-50 focus:outline-none transition-colors">
+                    Month
+                </button>
+                <button onclick="setRange('year')" id="btn-year" class="px-4 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-50 focus:outline-none transition-colors">
+                    Year
+                </button>
+            </div>
+        </div>
         
         {{-- 1. Stat Cards Row --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex items-center">
                 <div class="p-3 rounded-full bg-blue-50 text-blue-600 mr-4"><i class='bx bx-user text-2xl'></i></div>
                 <div>
-                    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Users</p>
+                    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider" id="label-users">Users</p>
                     <p class="text-xl font-bold text-gray-800" id="stat-total-users">{{ $stats['total_users'] }}</p>
                 </div>
             </div>
@@ -15,7 +33,7 @@
             <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex items-center">
                 <div class="p-3 rounded-full bg-orange-50 text-orange-600 mr-4"><i class='bx bx-question-mark text-2xl'></i></div>
                 <div>
-                    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Questions</p>
+                    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider" id="label-questions">Questions</p>
                     <p class="text-xl font-bold text-gray-800" id="stat-total-questions">{{ $stats['total_questions'] }}</p>
                 </div>
             </div>
@@ -23,7 +41,7 @@
             <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 flex items-center">
                 <div class="p-3 rounded-full bg-green-50 text-green-600 mr-4"><i class='bx bx-check-circle text-2xl'></i></div>
                 <div>
-                    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Solved</p>
+                    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider" id="label-solved">Solved</p>
                     <p class="text-xl font-bold text-gray-800" id="stat-total-solved">{{ $stats['total_solved'] }}</p>
                 </div>
             </div>
@@ -64,14 +82,20 @@
         {{-- 2. Main Charts Row --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 class="text-gray-800 font-medium mb-4">Question Growth (7 Days)</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-gray-800 font-medium">Question Growth</h3>
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded" id="label-growth-range">Last 7 Days</span>
+                </div>
                 <div class="h-64">
                     <canvas id="growthChart"></canvas>
                 </div>
             </div>
 
             <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 class="text-gray-800 font-medium mb-4">Questions by Category</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-gray-800 font-medium">Questions by Category</h3>
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded" id="label-dist-range">Last 7 Days</span>
+                </div>
                 <div class="h-64">
                     <canvas id="distChart"></canvas>
                 </div>
@@ -81,7 +105,10 @@
         {{-- 3. Deep Dive Row (Resolution & Contributors) --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 class="text-gray-800 font-medium mb-4">Resolution Status</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-gray-800 font-medium">Resolution Status</h3>
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded" id="label-res-range">Last 7 Days</span>
+                </div>
                 <div class="h-64">
                     <canvas id="resolutionChart"></canvas>
                 </div>
@@ -165,8 +192,45 @@
     {{-- Chart Initialization & Polling Script --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let currentRange = 'week'; // Default
+
+        // Exposed function to change range
+        window.setRange = function(range) {
+            currentRange = range;
+            
+            // Update UI Buttons
+            ['day', 'week', 'month', 'year'].forEach(r => {
+                const btn = document.getElementById('btn-' + r);
+                if (r === range) {
+                    btn.classList.add('bg-maroon-50', 'text-maroon-700', 'shadow-sm');
+                    btn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                } else {
+                    btn.classList.remove('bg-maroon-50', 'text-maroon-700', 'shadow-sm');
+                    btn.classList.add('text-gray-500', 'hover:bg-gray-50');
+                }
+            });
+
+            // Update Labels
+            const labelText = range === 'day' ? 'Last 24 Hours' : 
+                              range === 'week' ? 'Last 7 Days' : 
+                              range === 'month' ? 'Last 30 Days' : 'Last 12 Months';
+            
+            // Chart Labels
+            if(document.getElementById('label-growth-range')) document.getElementById('label-growth-range').innerText = labelText;
+            if(document.getElementById('label-dist-range')) document.getElementById('label-dist-range').innerText = labelText;
+            if(document.getElementById('label-res-range')) document.getElementById('label-res-range').innerText = labelText;
+
+            // Stat Card Labels (To indicate context)
+            if(document.getElementById('label-users')) document.getElementById('label-users').innerText = 'New Users (' + (range === 'day' ? 'Today' : range) + ')';
+            if(document.getElementById('label-questions')) document.getElementById('label-questions').innerText = 'New Questions (' + (range === 'day' ? 'Today' : range) + ')';
+            if(document.getElementById('label-solved')) document.getElementById('label-solved').innerText = 'Solved (' + (range === 'day' ? 'Today' : range) + ')';
+
+            // Trigger immediate update
+            updateCharts(); 
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Data passed from Controller for initial render
+            // Data passed from Controller for initial render (Default: Week)
             const growthData = @json($charts['growth']);
             const distData = @json($charts['distribution']);
             const resData = @json($charts['resolution']);
@@ -242,12 +306,11 @@
 
             // --- Real-Time Polling Logic ---
             const updateInterval = 3000; // 3 seconds
-
-            function updateCharts() {
-                fetch("{{ route('admin.analytics.data') }}")
+            window.updateCharts = function() { // Expose to window for button clicks
+                fetch("{{ route('admin.analytics.data') }}?range=" + currentRange)
                     .then(response => response.json())
                     .then(data => {
-                        // 1. Update Text Stats
+                        // 1. Update Text Stats (Filtered)
                         if (document.getElementById('stat-total-users')) document.getElementById('stat-total-users').innerText = data.stats.total_users;
                         if (document.getElementById('stat-total-questions')) document.getElementById('stat-total-questions').innerText = data.stats.total_questions;
                         if (document.getElementById('stat-total-solved')) document.getElementById('stat-total-solved').innerText = data.stats.total_solved;
@@ -256,7 +319,7 @@
                         if (document.getElementById('stat-total-departments')) document.getElementById('stat-total-departments').innerText = data.stats.total_departments;
                         if (document.getElementById('stat-pending-reports')) document.getElementById('stat-pending-reports').innerText = data.stats.pending_reports;
 
-                        // 2. Update Charts
+                        // 2. Update Charts (Filtered)
                         if (window.growthChart) {
                             window.growthChart.data.labels = data.charts.growth.labels;
                             window.growthChart.data.datasets[0].data = data.charts.growth.data;
