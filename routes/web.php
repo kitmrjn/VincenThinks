@@ -11,8 +11,6 @@ use Illuminate\Support\Facades\Auth;
 // LANDING PAGE & FEED LOGIC
 // ===========================
 
-// 1. Root URL ('/')
-// If guest -> Show Landing Page. If logged in -> Redirect to Feed.
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('feed');
@@ -20,12 +18,7 @@ Route::get('/', function () {
     return view('welcome');
 })->name('landing');
 
-// 2. The Main Forum Feed ('/feed')
-// This is the route your Landing Page buttons link to.
 Route::get('/feed', [ForumController::class, 'index'])->name('feed');
-
-// 3. 'Home' Redirect
-// Fixes "Route [home] not defined" errors if your controllers redirect to 'home'.
 Route::redirect('/home', '/feed')->name('home');
 
 // ===========================
@@ -42,6 +35,10 @@ Route::middleware(['auth'])->group(function () {
     // ADMIN ROUTES
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/analytics', [AdminController::class, 'analytics'])->name('admin.analytics');
+    
+    // [NEW] Real-Time Polling Route
+    Route::get('/admin/analytics/events', [AdminController::class, 'fetchEvents'])->name('admin.analytics.events');
+    
     Route::get('/admin/reports', [AdminController::class, 'reports'])->name('admin.reports');
     
     // Moderation
@@ -100,19 +97,17 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/user/avatar', [UserProfileController::class, 'updateAvatar'])->name('user.avatar.update');
 
-    // Questions & Answers (WITH MIDDLEWARE CHECK)
+    // Questions & Answers
     Route::middleware(['verified.custom'])->group(function () {
         Route::post('/post-question', [ForumController::class, 'storeQuestion'])->name('question.store');
         Route::post('/question/{id}/answer', [ForumController::class, 'storeAnswer'])->name('answer.store');
         Route::post('/answer/{id}/reply', [ForumController::class, 'storeReply'])->name('reply.store');
     });
 
-    // Other Interaction Routes
     Route::post('/question/{id}/report', [ForumController::class, 'reportQuestion'])->name('question.report');
     Route::post('/answer/{id}/rate', [ForumController::class, 'rateAnswer'])->name('answer.rate');
     Route::post('/answer/{id}/best', [ForumController::class, 'markAsBest'])->name('answer.best');
 
-    // Notifications
     Route::get('/notifications/{id}/read', [ForumController::class, 'markNotification'])->name('notifications.read_one');
     Route::post('/notifications/mark-as-read', function () {
         auth()->user()->unreadNotifications->markAsRead();

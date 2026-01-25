@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Reply;
 use App\Models\Report;
 use App\Models\Setting;
+use App\Models\AnalyticsEvent;
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\NewActivity;
 use App\Http\Requests\StoreQuestionRequest;
@@ -17,7 +18,7 @@ use App\Http\Requests\StoreReplyRequest;
 use App\Http\Requests\UpdateQuestionRequest;
 use App\Http\Requests\UpdateAnswerRequest;
 use App\Http\Requests\UpdateReplyRequest;
-use App\Jobs\CheckContentSafety; // [Import Job]
+use App\Jobs\CheckContentSafety;
 
 // Services
 use App\Services\ForumService;
@@ -62,21 +63,23 @@ class ForumController extends Controller
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
-        // [SAFETY CHECK] Force sync dispatch and reload ignoring scopes
-        // If API fails (429), status remains 'pending_review' (Fail Safe)
-        CheckContentSafety::dispatchSync($question);
-        $question = Question::withoutGlobalScope('published')->find($question->id);
+        // [FIX] Step 1: Create the Event FIRST
+        AnalyticsEvent::create([
+            'type' => 'new_question',
+            'message' => 'New Question: ' . substr($request->title, 0, 30) . '...',
+            'meta_data' => ['user_id' => Auth::id(), 'question_id' => $question->id]
+        ]);
 
-        $message = 'Question posted successfully!';
-        if ($question->status === 'pending_review') {
-            $message = 'Your post has been flagged for review and will appear once approved.';
-        }
+        // [FIX] Step 2: Dispatch AI Job SECOND (so it can delete the event if needed)
+        CheckContentSafety::dispatch($question);
+
+        $message = 'Your post is being processed and will appear shortly.';
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => $question->status
+                'status' => 'pending_review'
             ]);
         }
 
@@ -84,15 +87,11 @@ class ForumController extends Controller
     }
 
     public function show($id) {
-        // [FIX] Use 'withoutGlobalScope' so we can find the question even if it is Pending
         $question = Question::withoutGlobalScope('published')
             ->with([
                 'user.course', 
                 'user.departmentInfo',
                 'images',
-                'answers' => function($query) {
-                    // [OPTIONAL] You can modify this to show pending answers to admins if needed
-                },
                 'answers.user.course', 
                 'answers.user.departmentInfo',
                 'answers.ratings', 
@@ -102,14 +101,12 @@ class ForumController extends Controller
                 'answers.replies.children.user.departmentInfo'
             ])->findOrFail($id);
 
-        // [SECURITY] If it is hidden, ONLY allow the Owner or Admin to see it
         if ($question->status !== 'published') {
             if (!Auth::check() || (Auth::id() !== $question->user_id && !Auth::user()->is_admin)) {
-                abort(404); // Fake a 404 for everyone else
+                abort(404);
             }
         }
 
-        // [Logic] View counting logic
         $sessionKey = 'viewed_question_' . $id;
         if (!session()->has($sessionKey)) {
             $question->timestamps = false;
@@ -143,17 +140,17 @@ class ForumController extends Controller
             'content' => $request->content
         ]);
 
-        // [SAFETY CHECK] Force sync dispatch explicitly
-        CheckContentSafety::dispatchSync($answer);
-        
-        // [RELOAD] Force reload ignoring the 'published' scope to get real status
-        $answer = Answer::withoutGlobalScope('published')->find($answer->id);
+        // [FIX] Create Event FIRST
+        AnalyticsEvent::create([
+            'type' => 'new_answer',
+            'message' => 'New Answer on Question #' . $id,
+            'meta_data' => ['user_id' => Auth::id(), 'question_id' => $id, 'answer_id' => $answer->id]
+        ]);
 
-        $message = 'Answer posted!';
-        // Check if it was flagged (or API failed)
-        if ($answer->status === 'pending_review') {
-            return redirect()->back()->with('error', 'Your answer is pending moderation and will appear shortly if approved.'); 
-        }
+        // [FIX] Dispatch Job SECOND
+        CheckContentSafety::dispatch($answer);
+
+        $message = 'Answer posted! It is being processed.';
 
         if ($question->user_id !== Auth::id()) {
             $question->user->notify(new NewActivity(
@@ -174,24 +171,23 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        // [SAFETY CHECK] Force sync dispatch explicitly
-        CheckContentSafety::dispatchSync($reply);
+        // [FIX] Create Event FIRST
+        AnalyticsEvent::create([
+            'type' => 'new_reply',
+            'message' => 'New Reply posted.',
+            'meta_data' => ['user_id' => Auth::id(), 'answer_id' => $answerId, 'reply_id' => $reply->id]
+        ]);
 
-        // [RELOAD] Force reload ignoring the 'published' scope
-        $reply = Reply::withoutGlobalScope('published')->find($reply->id);
+        // [FIX] Dispatch Job SECOND
+        CheckContentSafety::dispatch($reply);
 
-        $message = 'Reply posted.';
+        $message = 'Reply posted! It is being processed.';
         
-        // Check if flagged (or API failed)
-        if ($reply->status === 'pending_review') {
-             return redirect()->back()->with('error', 'Your reply contains sensitive content and is pending moderation.');
-        }
-
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => $reply->status
+                'status' => 'pending_review'
             ]);
         }
 
@@ -242,14 +238,24 @@ class ForumController extends Controller
             'reason' => $finalReason
         ]);
 
+        AnalyticsEvent::create([
+            'type' => 'report_filed',
+            'message' => 'New Report filed: ' . $finalReason,
+            'meta_data' => ['user_id' => Auth::id(), 'question_id' => $id]
+        ]);
+
         return redirect()->back()->with('message', 'Reported to admins.');
     }
 
     public function destroyQuestion($id) {
         $question = Question::with('images')->findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('delete', $question);
+
+        AnalyticsEvent::whereJsonContains('meta_data->question_id', (int)$id)->delete();
+        AnalyticsEvent::where('type', 'ai_flagged')
+            ->whereJsonContains('meta_data->id', (int)$id)
+            ->whereJsonContains('meta_data->model', 'Question')
+            ->delete();
 
         $this->imageService->deleteAllForQuestion($question);
         $question->delete();
@@ -259,26 +265,26 @@ class ForumController extends Controller
 
     public function destroyAnswer($id) {
         $answer = Answer::findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('delete', $answer);
+        
+        AnalyticsEvent::whereJsonContains('meta_data->answer_id', (int)$id)->delete();
+        AnalyticsEvent::where('type', 'ai_flagged')
+            ->whereJsonContains('meta_data->id', (int)$id)
+            ->whereJsonContains('meta_data->model', 'Answer')
+            ->delete();
         
         $answer->delete();
         return redirect()->back()->with('success', 'Answer deleted.');
     }
 
-    public function markNotification(Request $request, $id)
-    {
+    public function markNotification(Request $request, $id) {
         $notification = Auth::user()->notifications()->findOrFail($id);
         $notification->markAsRead();
         return redirect($notification->data['url'] ?? route('home'));
     }
 
-    public function editQuestion($id)
-    {
+    public function editQuestion($id) {
         $question = Question::with('images')->findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('update', $question);
 
         $limit = $this->getEditLimit();
@@ -292,8 +298,6 @@ class ForumController extends Controller
 
     public function updateQuestion(UpdateQuestionRequest $request, $id) {
         $question = Question::findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('update', $question);
 
         $limit = $this->getEditLimit();
@@ -315,13 +319,13 @@ class ForumController extends Controller
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
-        return redirect()->route('question.show', $id)->with('success', 'Question updated.');
+        CheckContentSafety::dispatch($question);
+
+        return redirect()->route('question.show', $id)->with('success', 'Question updated and under review.');
     }
 
     public function editAnswer($id) {
         $answer = Answer::findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('update', $answer);
         
         $limit = $this->getEditLimit();
@@ -333,8 +337,6 @@ class ForumController extends Controller
 
     public function updateAnswer(UpdateAnswerRequest $request, $id) {
         $answer = Answer::findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('update', $answer);
         
         $limit = $this->getEditLimit();
@@ -344,13 +346,13 @@ class ForumController extends Controller
 
         $answer->update(['content' => $request->content]);
         
+        CheckContentSafety::dispatch($answer);
+        
         return redirect()->route('question.show', $answer->question_id)->with('success', 'Answer updated.');
     }
 
     public function editReply($id) {
         $reply = Reply::findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('update', $reply);
         
         $limit = $this->getEditLimit();
@@ -362,8 +364,6 @@ class ForumController extends Controller
 
     public function updateReply(UpdateReplyRequest $request, $id) {
         $reply = Reply::findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('update', $reply);
         
         $limit = $this->getEditLimit();
@@ -372,6 +372,9 @@ class ForumController extends Controller
         }
 
         $reply->update(['content' => $request->content]);
+        
+        CheckContentSafety::dispatch($reply);
+
         return redirect()->route('question.show', $reply->answer->question_id)->with('success', 'Reply updated.');
     }
 
@@ -379,9 +382,6 @@ class ForumController extends Controller
         $answer = Answer::findOrFail($id);
         $question = $answer->question;
 
-        // "Mark as Best" is unique: Only the Question Owner can do it.
-        // We can use a Policy here too if we add a 'markAsBest' method to QuestionPolicy,
-        // but for now, checking ownership directly or using Gate is standard.
         if (Auth::id() !== $question->user_id) { abort(403); }
 
         if ($question->best_answer_id === $answer->id) {
@@ -401,14 +401,24 @@ class ForumController extends Controller
         $question->timestamps = false;
         $question->save();
         
+        AnalyticsEvent::create([
+            'type' => 'question_solved',
+            'message' => 'Question marked as solved.',
+            'meta_data' => ['question_id' => $question->id]
+        ]);
+        
         return redirect()->back()->with('success', 'Best answer updated!');
     }
 
     public function destroyReply($id) {
         $reply = Reply::findOrFail($id);
-        
-        // [Security] Use Policy
         $this->authorize('delete', $reply);
+        
+        AnalyticsEvent::whereJsonContains('meta_data->reply_id', (int)$id)->delete();
+        AnalyticsEvent::where('type', 'ai_flagged')
+            ->whereJsonContains('meta_data->id', (int)$id)
+            ->whereJsonContains('meta_data->model', 'Reply')
+            ->delete();
         
         $reply->delete();
         return redirect()->back()->with('success', 'Reply deleted.');
