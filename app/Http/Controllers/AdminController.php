@@ -114,12 +114,10 @@ class AdminController extends Controller
     public function analytics() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
 
-        // Initial Load (Default to Week)
         $stats = $this->analyticsService->getFullAnalytics('week');
         $growthData = $this->analyticsService->getGrowthChartData('week');
         $catData = $this->analyticsService->getCategoryDistribution('week');
         $resData = $this->analyticsService->getResolutionStats('week');
-        // [UPDATED] Pass default range
         $topContent = $this->analyticsService->getTopContent('week');
 
         $charts = [
@@ -144,7 +142,6 @@ class AdminController extends Controller
         $growthData = $this->analyticsService->getGrowthChartData($range);
         $catData = $this->analyticsService->getCategoryDistribution($range);
         $resData = $this->analyticsService->getResolutionStats($range);
-        // [UPDATED] Fetch top content for the specific range
         $topContent = $this->analyticsService->getTopContent($range);
 
         return response()->json([
@@ -154,7 +151,6 @@ class AdminController extends Controller
                 'distribution' => $catData,
                 'resolution' => $resData
             ],
-            // [UPDATED] Add to JSON response
             'top_content' => $topContent
         ]);
     }
@@ -228,6 +224,8 @@ class AdminController extends Controller
         $logs = AuditLog::with('admin')->latest()->paginate(20);
         return view('admin.audit-logs', compact('logs'));
     }
+
+    // --- CATEGORIES ---
     public function categories() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $categories = Category::withCount('questions')->get();
@@ -240,6 +238,22 @@ class AdminController extends Controller
         $this->logAction('Created Category', null, "Category: {$category->name}");
         return redirect()->route('admin.categories')->with('success', 'Category created successfully!');
     }
+    // [NEW] Update Category
+    public function updateCategory(Request $request, $id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        $category = Category::findOrFail($id);
+        $request->validate([
+            'name' => 'required|unique:categories,name,' . $id,
+            'acronym' => 'nullable|string|max:10|unique:categories,acronym,' . $id
+        ]);
+        $category->update([
+            'name' => $request->name,
+            'acronym' => $request->acronym ? strtoupper($request->acronym) : null,
+            'slug' => Str::slug($request->name)
+        ]);
+        $this->logAction('Updated Category', null, "Category: {$category->name}");
+        return redirect()->back()->with('success', 'Category updated.');
+    }
     public function deleteCategory($id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $category = Category::findOrFail($id);
@@ -247,6 +261,8 @@ class AdminController extends Controller
         $this->logAction('Deleted Category', null, "Category Name: {$category->name}");
         return redirect()->route('admin.categories')->with('success', 'Category deleted.');
     }
+
+    // --- COURSES ---
     public function courses() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $courses = Course::orderBy('type')->orderBy('name')->get();
@@ -260,6 +276,25 @@ class AdminController extends Controller
         $this->logAction('Created Course', null, "Course: {$course->acronym}");
         return redirect()->route('admin.courses')->with('success', 'Course added.');
     }
+    // [NEW] Update Course
+    public function updateCourse(Request $request, $id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        $course = Course::findOrFail($id);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'acronym' => 'required|string|max:20', 
+            'type' => 'required|in:College,SHS,JHS,Other',
+            'other_type' => 'required_if:type,Other|nullable|string|max:50',
+        ]);
+        $finalType = $request->type === 'Other' ? $request->other_type : $request->type;
+        $course->update([
+            'name' => $request->name,
+            'acronym' => strtoupper($request->acronym),
+            'type' => $finalType
+        ]);
+        $this->logAction('Updated Course', null, "Course: {$course->acronym}");
+        return redirect()->back()->with('success', 'Course updated.');
+    }
     public function deleteCourse($id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $course = Course::findOrFail($id);
@@ -267,6 +302,7 @@ class AdminController extends Controller
         $this->logAction('Deleted Course', null, "Course: {$course->acronym}");
         return redirect()->route('admin.courses')->with('success', 'Course deleted.');
     }
+
     public function deleteQuestion($id) {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $question = Question::findOrFail($id);
@@ -395,6 +431,8 @@ class AdminController extends Controller
             'ip_address' => request()->ip(),
         ]);
     }
+
+    // --- DEPARTMENTS ---
     public function departments() {
         if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
         $departments = Department::all();
@@ -404,6 +442,18 @@ class AdminController extends Controller
         $request->validate(['name' => 'required|unique:departments,name', 'acronym' => 'nullable|string|max:50']);
         Department::create($request->only(['name', 'acronym']));
         return back()->with('success', 'Department added.');
+    }
+    // [NEW] Update Department
+    public function updateDepartment(Request $request, $id) {
+        if (!Auth::check() || !Auth::user()->is_admin) { abort(403); }
+        $dept = Department::findOrFail($id);
+        $request->validate([
+            'name' => 'required|unique:departments,name,' . $id, 
+            'acronym' => 'nullable|string|max:50'
+        ]);
+        $dept->update($request->only(['name', 'acronym']));
+        $this->logAction('Updated Department', null, "Dept: {$dept->name}");
+        return redirect()->back()->with('success', 'Department updated.');
     }
     public function deleteDepartment($id) {
         Department::findOrFail($id)->delete();

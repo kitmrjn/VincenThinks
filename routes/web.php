@@ -70,14 +70,17 @@ Route::middleware(['auth'])->group(function () {
     // Content Management
     Route::get('/admin/departments', [AdminController::class, 'departments'])->name('admin.departments');
     Route::post('/admin/department', [AdminController::class, 'storeDepartment'])->name('admin.department.store');
+    Route::put('/admin/department/{id}', [AdminController::class, 'updateDepartment'])->name('admin.department.update'); // [NEW]
     Route::delete('/admin/department/{id}', [AdminController::class, 'deleteDepartment'])->name('admin.department.delete');
 
     Route::get('/admin/categories', [AdminController::class, 'categories'])->name('admin.categories');
     Route::post('/admin/category', [AdminController::class, 'storeCategory'])->name('admin.category.store');
+    Route::put('/admin/category/{id}', [AdminController::class, 'updateCategory'])->name('admin.category.update'); // [NEW]
     Route::delete('/admin/category/{id}', [AdminController::class, 'deleteCategory'])->name('admin.category.delete');
 
     Route::get('/admin/courses', [AdminController::class, 'courses'])->name('admin.courses');
     Route::post('/admin/course', [AdminController::class, 'storeCourse'])->name('admin.course.store');
+    Route::put('/admin/course/{id}', [AdminController::class, 'updateCourse'])->name('admin.course.update'); // [NEW]
     Route::delete('/admin/course/{id}', [AdminController::class, 'deleteCourse'])->name('admin.course.delete');
 
     // Settings
