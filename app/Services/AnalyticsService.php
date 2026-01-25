@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Report;
 use App\Models\User;
 use App\Models\Question;
+use App\Models\Answer; // Added
+use App\Models\Reply;  // Added
 use App\Models\Department;
 use App\Models\Course;
 use App\Models\Category;
@@ -19,8 +21,15 @@ class AnalyticsService
      */
     public function getDashboardStats(): array
     {
+        // [FIXED] Calculate total pending items (Reports + AI Flags) to match JS polling logic
+        $aiPendingCount = Question::where('status', 'pending_review')->count()
+                        + Answer::where('status', 'pending_review')->count()
+                        + Reply::where('status', 'pending_review')->count();
+
+        $totalPending = Report::count() + $aiPendingCount;
+
         return [
-            'pendingReports' => Report::count(),
+            'pendingReports' => $totalPending, // Now returns the combined total (e.g., 50)
             'newUsersToday' => User::whereDate('created_at', today())->count(),
             'totalQuestions' => Question::count(),
             'recentLogs' => AuditLog::with('admin')->latest()->take(5)->get()
