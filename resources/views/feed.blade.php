@@ -14,13 +14,29 @@
     @endpush
 
     {{-- Main Container --}}
-    <div x-data="{ mobileMenuOpen: false, createModalOpen: false, searchOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative pb-24 lg:pb-0">
+    <div x-data="{ mobileMenuOpen: false, createModalOpen: false, searchOpen: false, sortOpen: false, filterOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative pb-24 lg:pb-0">
 
-        {{-- MODAL COMPONENT --}}
         <x-create-question-modal :categories="$categories" />
 
-        {{-- MOBILE SEARCH: BOTTOM SHEET --}}
-        <div x-cloak x-show="searchOpen" class="fixed inset-0 z-[80] bg-gray-900/40 backdrop-blur-[2px] lg:hidden" @click="searchOpen = false"></div>
+        {{-- ================================================= --}}
+        {{--  MOBILE BOTTOM SHEETS (Search, Categories, Sort, Filter) --}}
+        {{-- ================================================= --}}
+        
+        {{-- Shared Backdrop for ALL mobile sheets --}}
+        <div 
+            x-cloak 
+            x-show="searchOpen || mobileMenuOpen || sortOpen || filterOpen" 
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-[80] bg-gray-900/40 backdrop-blur-[2px] lg:hidden"
+            @click="searchOpen = false; mobileMenuOpen = false; sortOpen = false; filterOpen = false"
+        ></div>
+
+        {{-- 1. SEARCH SHEET --}}
         <div 
             x-cloak x-show="searchOpen" 
             x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500"
@@ -29,9 +45,7 @@
             x-transition:leave="transition ease-in duration-300"
             x-transition:leave-start="translate-y-0"
             x-transition:leave-end="translate-y-full"
-            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] lg:hidden pb-safe"
-            @click.away="searchOpen = false"
-            x-init="$watch('searchOpen', value => { if(value) $nextTick(() => $refs.mobileSearchInput.focus()) })"
+            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-xl lg:hidden pb-safe"
         >
             <div class="w-full flex justify-center pt-3 pb-1" @click="searchOpen = false"><div class="w-12 h-1.5 bg-gray-300 rounded-full"></div></div>
             <div class="p-4 pt-2">
@@ -48,8 +62,7 @@
             </div>
         </div>
 
-        {{-- MOBILE CATEGORIES: BOTTOM SHEET --}}
-        <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-[80] bg-gray-900/40 backdrop-blur-[2px] lg:hidden" @click="mobileMenuOpen = false"></div>
+        {{-- 2. CATEGORIES SHEET --}}
         <div 
             x-cloak x-show="mobileMenuOpen" 
             x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500"
@@ -58,23 +71,19 @@
             x-transition:leave="transition ease-in duration-300"
             x-transition:leave-start="translate-y-0"
             x-transition:leave-end="translate-y-full"
-            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] lg:hidden flex flex-col max-h-[85vh] pb-safe"
-            @click.away="mobileMenuOpen = false"
+            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-xl lg:hidden flex flex-col max-h-[85vh] pb-safe"
         >
-            <div class="w-full flex flex-col items-center pt-3 pb-4 border-b border-gray-100 flex-shrink-0" @click="mobileMenuOpen = false">
+            <div class="w-full flex flex-col items-center pt-3 pb-4 border-b border-gray-100" @click="mobileMenuOpen = false">
                 <div class="w-12 h-1.5 bg-gray-300 rounded-full mb-4"></div>
                 <h3 class="text-lg font-bold text-gray-800">Select a Topic</h3>
             </div>
-
             <div class="overflow-y-auto p-4 custom-scrollbar">
                 <a href="{{ route('feed') }}" class="flex items-center justify-between p-4 mb-3 rounded-xl border transition-all {{ !request('category') ? 'bg-maroon-50 border-maroon-200 text-maroon-700 shadow-sm' : 'bg-white border-gray-100 text-gray-700 hover:border-maroon-200' }}">
                     <span class="font-bold flex items-center"><i class='bx bx-grid-alt mr-3 text-xl'></i> All Topics</span>
                     @if(!request('category')) <i class='bx bx-check text-xl'></i> @endif
                 </a>
-
                 <div class="h-px bg-gray-100 w-full my-2"></div>
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 mt-2">Categories</p>
-
                 <div class="grid grid-cols-2 gap-3">
                     @foreach($categories as $cat)
                         <a href="{{ route('feed', array_merge(request()->query(), ['category' => $cat->id])) }}" 
@@ -84,7 +93,6 @@
                                 : 'bg-gray-50 border-transparent text-gray-600 hover:bg-white hover:border-gray-200 hover:shadow-sm' 
                            }}"
                         >
-                            {{-- UPDATE: Display Acronym if available, else Name --}}
                             <span class="font-bold text-sm truncate">{{ $cat->acronym ?? $cat->name }}</span>
                             <span class="text-[10px] opacity-80 font-light mt-0.5">{{ $cat->questions_count ?? 0 }} questions</span>
                         </a>
@@ -93,9 +101,78 @@
             </div>
         </div>
 
+        {{-- 3. SORT SHEET --}}
+        <div 
+            x-cloak x-show="sortOpen" 
+            x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-xl lg:hidden flex flex-col pb-safe"
+        >
+            <div class="w-full flex flex-col items-center pt-3 pb-4 border-b border-gray-100" @click="sortOpen = false">
+                <div class="w-12 h-1.5 bg-gray-300 rounded-full mb-4"></div>
+                <h3 class="text-lg font-bold text-gray-800">Sort By</h3>
+            </div>
+            <div class="p-4 space-y-2">
+                @php $sort = request('sort'); @endphp
+                <a href="{{ route('feed', array_merge(request()->except('sort'), ['sort' => null])) }}" class="flex items-center justify-between p-4 rounded-xl {{ !$sort ? 'bg-maroon-50 text-maroon-700 font-bold' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span><i class='bx bx-time-five mr-2'></i> Newest</span>
+                    @if(!$sort) <i class='bx bx-check text-xl'></i> @endif
+                </a>
+                <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'popular'])) }}" class="flex items-center justify-between p-4 rounded-xl {{ $sort === 'popular' ? 'bg-maroon-50 text-maroon-700 font-bold' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span><i class='bx bx-trending-up mr-2'></i> Popular</span>
+                    @if($sort === 'popular') <i class='bx bx-check text-xl'></i> @endif
+                </a>
+                <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'discussed'])) }}" class="flex items-center justify-between p-4 rounded-xl {{ $sort === 'discussed' ? 'bg-maroon-50 text-maroon-700 font-bold' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span><i class='bx bx-comment-detail mr-2'></i> Hot (Most Discussed)</span>
+                    @if($sort === 'discussed') <i class='bx bx-check text-xl'></i> @endif
+                </a>
+            </div>
+        </div>
+
+        {{-- 4. FILTER SHEET --}}
+        <div 
+            x-cloak x-show="filterOpen" 
+            x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-xl lg:hidden flex flex-col pb-safe"
+        >
+            <div class="w-full flex flex-col items-center pt-3 pb-4 border-b border-gray-100" @click="filterOpen = false">
+                <div class="w-12 h-1.5 bg-gray-300 rounded-full mb-4"></div>
+                <h3 class="text-lg font-bold text-gray-800">Filter Questions</h3>
+            </div>
+            <div class="p-4 space-y-2">
+                @php $filter = request('filter'); @endphp
+                <a href="{{ route('feed', array_merge(request()->except('filter'), ['filter' => null])) }}" class="flex items-center justify-between p-4 rounded-xl {{ !$filter ? 'bg-maroon-50 text-maroon-700 font-bold' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span>All Questions</span>
+                    @if(!$filter) <i class='bx bx-check text-xl'></i> @endif
+                </a>
+                <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'solved'])) }}" class="flex items-center justify-between p-4 rounded-xl {{ $filter === 'solved' ? 'bg-maroon-50 text-maroon-700 font-bold' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span><i class='bx bx-check-circle mr-2 text-green-600'></i> Solved</span>
+                    @if($filter === 'solved') <i class='bx bx-check text-xl'></i> @endif
+                </a>
+                <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'unsolved'])) }}" class="flex items-center justify-between p-4 rounded-xl {{ $filter === 'unsolved' ? 'bg-maroon-50 text-maroon-700 font-bold' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span><i class='bx bx-question-mark mr-2 text-orange-400'></i> Unsolved</span>
+                    @if($filter === 'unsolved') <i class='bx bx-check text-xl'></i> @endif
+                </a>
+                <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'no_answers'])) }}" class="flex items-center justify-between p-4 rounded-xl {{ $filter === 'no_answers' ? 'bg-maroon-50 text-maroon-700 font-bold' : 'text-gray-600 hover:bg-gray-50' }}">
+                    <span><i class='bx bx-message-square-x mr-2 text-gray-400'></i> No Answers</span>
+                    @if($filter === 'no_answers') <i class='bx bx-check text-xl'></i> @endif
+                </a>
+            </div>
+        </div>
+
         {{-- DESKTOP SIDEBAR --}}
         <aside class="hidden lg:block w-64 flex-shrink-0">
             <div class="sticky top-24 space-y-6">
+                {{-- Filter by Category Widget --}}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5" x-data="{ search: '' }">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter by Category</h3>
                     <div class="relative mb-4">
@@ -105,15 +182,15 @@
                     <nav class="space-y-1 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                         <a href="{{ route('feed') }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>All Discussions</span></a>
                         @foreach($categories as $cat)
-                            {{-- Desktop typically has more space, so we keep the Name, but you can change to Acronym if preferred --}}
                             <a href="{{ route('feed', array_merge(request()->query(), ['category' => $cat->id])) }}" x-show="$el.innerText.toLowerCase().includes(search.toLowerCase())" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>{{ $cat->name }}</span></a>
                         @endforeach
                     </nav>
                 </div>
 
+                {{-- Top Contributors Widget --}}
                 @if(isset($topContributors) && $topContributors->count() > 0)
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Top Contributors (Week)</h3>
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Top Contributors</h3>
                         <ul class="space-y-4">
                             @foreach($topContributors as $user)
                                 <li class="flex items-center justify-between">
@@ -140,6 +217,8 @@
                         </ul>
                     </div>
                 @endif
+
+                {{-- Quick Links Widget --}}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
                     <ul class="space-y-3 text-sm text-gray-600">
@@ -152,6 +231,7 @@
 
         {{-- MAIN FEED AREA --}}
         <main class="flex-1 min-w-0">
+            
             <div id="js-flash-message" style="display: none;" class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
                 <i class='bx bx-check-circle text-xl mr-2'></i>
                 <span id="js-flash-text"></span>
@@ -182,7 +262,10 @@
                                     </div>
                                 @endif
                             </div>
-                            <button @click="createModalOpen = true" class="flex-grow text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full py-2.5 px-5 text-sm text-gray-500 font-light transition duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-100">
+                            <button 
+                                @click="createModalOpen = true"
+                                class="flex-grow text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full py-2.5 px-5 text-sm text-gray-500 font-light transition duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-100"
+                            >
                                 What do you want to ask, {{ Auth::user()->name }}?
                             </button>
                             <div class="flex items-center gap-2 text-gray-400">
@@ -207,81 +290,58 @@
                 </div>
             @endauth
 
-            {{-- Feed Header & Filters --}}
-            <div class="flex flex-col sm:flex-row items-center justify-between mb-4 space-y-4 sm:space-y-0">
-                <h2 class="text-2xl font-light text-gray-800 flex items-center">
-                    <i class='bx bx-message-square-dots text-maroon-700 mr-2 font-thin'></i> 
+            {{-- ================================================= --}}
+            {{--  CLEAN ACTION BAR (Replaces Horizontal Scrolling) --}}
+            {{-- ================================================= --}}
+            <div class="flex items-center justify-between mb-6">
+                {{-- Header --}}
+                <h2 class="text-xl sm:text-2xl font-light text-gray-800 flex items-center">
                     @if(request('category'))
-                        {{ optional($categories->find(request('category')))->name ?? 'Unknown' }} Discussions
+                        {{-- UPDATE: Display Acronym if available --}}
+                        <span class="font-semibold text-maroon-700 mr-2">{{ optional($categories->find(request('category')))->acronym ?? 'Topic' }}</span>
                     @else
-                        Recent Discussions
+                        Recent
                     @endif
+                    Discussions
                 </h2>
-                
-                <form action="{{ route('feed') }}" method="GET" class="hidden lg:block relative w-72" id="search-form">
-                    @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
-                    <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
-                    <input type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="search-input-js w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700 text-sm font-light bg-white shadow-sm transition">
-                </form>
-            </div>
-            
-            <div class="flex items-center space-x-2 mb-6 overflow-x-auto custom-scrollbar pb-2">
-                @php
-                    $currentFilter = request('filter');
-                    $currentSort = request('sort');
-                    $baseClasses = "px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap";
-                    $activeClasses = "bg-maroon-700 text-white border-maroon-700 shadow-sm";
-                    $inactiveClasses = "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700";
-                @endphp
 
-                <a href="{{ route('feed', array_merge(request()->except(['filter', 'sort']), ['page' => 1])) }}" class="{{ $baseClasses }} {{ (!$currentFilter && !$currentSort) ? $activeClasses : $inactiveClasses }}">All</a>
-                
-                <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'solved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'solved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-check-circle mr-1'></i> Solved</a>
-                <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-question-mark mr-1'></i> Unsolved</a>
-                <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-message-square-x mr-1'></i> No Answers</a>
-            
-                <div class="h-6 w-px bg-gray-300 mx-2"></div>
-
-                <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'popular', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentSort === 'popular' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-trending-up mr-1'></i> Popular</a>
-                <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'discussed', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentSort === 'discussed' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-comment-detail mr-1'></i> Hot</a>
-            </div>
-
-            @if(request('search'))
-                <div class="mb-4 text-sm text-gray-500 font-light flex items-center">
-                    <span>Showing results for: <strong>"{{ request('search') }}"</strong></span>
-                    <a href="{{ route('feed') }}" class="ml-2 text-maroon-700 hover:underline flex items-center"><i class='bx bx-x'></i> Clear</a>
+                {{-- Action Buttons (Mobile Only - Triggers Sheets) --}}
+                <div class="flex items-center gap-2 lg:hidden">
+                    <button @click="sortOpen = true" class="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm text-xs font-medium text-gray-700 active:bg-gray-50">
+                        <i class='bx bx-sort-alt-2 mr-1 text-base'></i>
+                        {{ request('sort') ? ucfirst(request('sort')) : 'Sort' }}
+                    </button>
+                    <button @click="filterOpen = true" class="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm text-xs font-medium text-gray-700 active:bg-gray-50">
+                        <i class='bx bx-filter-alt mr-1 text-base'></i>
+                        {{ request('filter') ? ucfirst(str_replace('_', ' ', request('filter'))) : 'Filter' }}
+                    </button>
                 </div>
-            @endif
+
+                {{-- Desktop Filter Bar (Visible only on LG screens) --}}
+                <div class="hidden lg:flex items-center space-x-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
+                    <a href="{{ route('feed') }}" class="px-3 py-1.5 rounded-md text-xs font-bold transition {{ !request('filter') && !request('sort') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-500 hover:bg-gray-50' }}">All</a>
+                    <div class="w-px h-4 bg-gray-200"></div>
+                    <a href="{{ route('feed', ['filter' => 'solved']) }}" class="px-3 py-1.5 rounded-md text-xs font-bold transition {{ request('filter') == 'solved' ? 'bg-maroon-50 text-maroon-700' : 'text-gray-500 hover:bg-gray-50' }}">Solved</a>
+                    <a href="{{ route('feed', ['filter' => 'unsolved']) }}" class="px-3 py-1.5 rounded-md text-xs font-bold transition {{ request('filter') == 'unsolved' ? 'bg-maroon-50 text-maroon-700' : 'text-gray-500 hover:bg-gray-50' }}">Unsolved</a>
+                </div>
+            </div>
 
             <div id="feed-container" class="space-y-6 pb-12">
                 @include('partials.question-list')
             </div>
         </main>
 
-        {{-- MOBILE NAV --}}
+        {{-- MOBILE NAV (Unchanged) --}}
         <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-[80] pb-safe">
             <div class="flex justify-between items-center h-16 px-6">
-                <a href="{{ route('feed') }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('feed') && !request('search') && !request('category') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
-                    <i class='bx {{ request()->routeIs('feed') && !request('search') && !request('category') ? 'bxs-home' : 'bx-home-alt' }} text-2xl'></i>
-                </a>
-                <button @click="mobileMenuOpen = !mobileMenuOpen; searchOpen = false" class="flex flex-col items-center justify-center space-y-1 {{ $mobileMenuOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
-                    <i class='bx {{ request('category') ? 'bxs-grid-alt text-maroon-700' : 'bx-category' }} text-2xl'></i>
-                </button>
-                <div class="relative -top-5">
-                    <button @click="createModalOpen = true" class="w-14 h-14 bg-maroon-700 rounded-full flex items-center justify-center text-white shadow-lg shadow-maroon-700/40 border-4 border-gray-50 hover:scale-105 active:scale-95 transition-all duration-200">
-                        <i class='bx bx-plus text-3xl'></i>
-                    </button>
-                </div>
-                <button @click="searchOpen = !searchOpen; mobileMenuOpen = false" class="flex flex-col items-center justify-center space-y-1 {{ $searchOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
-                    <i class='bx bx-search text-2xl'></i>
-                </button>
-                <a href="{{ route('user.profile', Auth::id() ?? 0) }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('user.profile') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
-                    <i class='bx {{ request()->routeIs('user.profile') ? 'bxs-user' : 'bx-user' }} text-2xl'></i>
-                </a>
+                <a href="{{ route('feed') }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('feed') && !request('search') && !request('category') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}"><i class='bx {{ request()->routeIs('feed') && !request('search') && !request('category') ? 'bxs-home' : 'bx-home-alt' }} text-2xl'></i></a>
+                <button @click="mobileMenuOpen = !mobileMenuOpen; searchOpen = false; sortOpen = false; filterOpen = false" class="flex flex-col items-center justify-center space-y-1 {{ $mobileMenuOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}"><i class='bx {{ request('category') ? 'bxs-grid-alt text-maroon-700' : 'bx-category' }} text-2xl'></i></button>
+                <div class="relative -top-5"><button @click="createModalOpen = true" class="w-14 h-14 bg-maroon-700 rounded-full flex items-center justify-center text-white shadow-lg shadow-maroon-700/40 border-4 border-gray-50 hover:scale-105 active:scale-95 transition-all duration-200"><i class='bx bx-plus text-3xl'></i></button></div>
+                <button @click="searchOpen = !searchOpen; mobileMenuOpen = false; sortOpen = false; filterOpen = false" class="flex flex-col items-center justify-center space-y-1 {{ $searchOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}"><i class='bx bx-search text-2xl'></i></button>
+                <a href="{{ route('user.profile', Auth::id() ?? 0) }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('user.profile') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}"><i class='bx {{ request()->routeIs('user.profile') ? 'bxs-user' : 'bx-user' }} text-2xl'></i></a>
             </div>
         </nav>
     </div>
-
     @push('scripts')
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
