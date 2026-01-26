@@ -3,7 +3,7 @@
 <div
     x-show="createModalOpen"
     x-cloak
-    class="fixed inset-0 z-[100] overflow-y-auto" 
+    class="fixed inset-0 z-[100] overflow-hidden" 
     role="dialog"
     aria-modal="true"
     x-data="{
@@ -20,7 +20,9 @@
             this.images = [];
             this.previews = [];
             this.isLoading = false;
-            document.getElementById('file-upload').value = ''; 
+            // Safely reset file input if it exists
+            const fileInput = document.getElementById('file-upload');
+            if(fileInput) fileInput.value = ''; 
         },
         
         handleFileSelect(e) {
@@ -39,7 +41,8 @@
             this.previews.splice(index, 1);
             if(this.previews.length === 0) {
                 this.images = [];
-                document.getElementById('file-upload').value = '';
+                const fileInput = document.getElementById('file-upload');
+                if(fileInput) fileInput.value = '';
             }
         },
 
@@ -79,26 +82,19 @@
                         flashBox.style.display = 'flex';
                         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-                        // Reset base classes to remove any previous colors
+                        // Reset base classes
                         flashBox.className = 'p-4 rounded-lg border mb-6 shadow-sm flex items-center'; 
                         
                         if (data.status === 'pending_review') {
-                            // [STYLE] Yellow/Orange for Review
                             flashBox.classList.add('bg-yellow-50', 'text-yellow-800', 'border-yellow-200');
                             if(flashIcon) flashIcon.className = 'bx bx-info-circle text-xl mr-2';
-                            
-                            // [TIMING] Long delay (4 seconds) so user can read
                             setTimeout(() => { window.location.reload(); }, 4000);
                         } else {
-                            // [STYLE] Green for Success
                             flashBox.classList.add('bg-green-50', 'text-green-700', 'border-green-200');
                             if(flashIcon) flashIcon.className = 'bx bx-check-circle text-xl mr-2';
-                            
-                            // [TIMING] Short delay (0.5 seconds) for quick feedback
                             setTimeout(() => { window.location.reload(); }, 500);
                         }
                     } else {
-                         // Fallback if element missing
                          window.location.reload();
                     }
 
@@ -127,7 +123,7 @@
         @click="closeModal"
     ></div>
 
-    {{-- Modal Panel --}}
+    {{-- Modal Panel Container --}}
     <div
         x-show="createModalOpen"
         x-transition:enter="transition ease-out duration-300"
@@ -136,9 +132,11 @@
         x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-        class="relative min-h-[calc(100vh-2rem)] sm:min-h-0 sm:flex sm:items-center sm:justify-center p-4 w-full pointer-events-none"
+        class="fixed inset-0 z-[110] flex items-end sm:items-center justify-center sm:p-4 pointer-events-none"
     >
-        <div class="pointer-events-auto relative w-full max-w-2xl transform rounded-xl bg-white shadow-2xl transition-all sm:my-8 flex flex-col max-h-[90vh]">
+        {{-- Actual Modal Box --}}
+        {{-- MOBILE FIX: Use h-[85vh] or h-full to prevent keyboard issues. Added 'flex flex-col' for sticky footer. --}}
+        <div class="pointer-events-auto w-full h-[90vh] sm:h-auto sm:max-h-[90vh] bg-white sm:rounded-xl rounded-t-2xl shadow-2xl flex flex-col max-w-2xl relative">
             
             {{-- Header --}}
             <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 flex-shrink-0">
@@ -149,7 +147,7 @@
             </div>
 
             {{-- Scrollable Form Area --}}
-            <div class="overflow-y-auto custom-scrollbar p-6">
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
                 <form x-ref="form" enctype="multipart/form-data" @submit.prevent="submitForm">
                     
                     {{-- 1. Category Pills --}}
@@ -180,8 +178,8 @@
                         >
                     </div>
 
-                    {{-- 3. Trix Editor with Updated Placeholder --}}
-                    <div class="mb-6">
+                    {{-- 3. Trix Editor (Wrapper for Mobile CSS) --}}
+                    <div class="mb-6 trix-wrapper">
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Details</label>
                         <x-trix-editor name="content" placeholder="Add details, or images to support your question..." />
                     </div>
@@ -219,19 +217,19 @@
                             </template>
                         </div>
                     </div>
-
                 </form>
             </div>
 
-            {{-- Footer / Actions --}}
-            <div class="border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-gray-50 rounded-b-xl flex-shrink-0">
-                <span class="text-xs text-gray-400" x-text="selectedCategory ? 'Posting to selected topic' : 'Select a topic...'"></span>
-                <div class="flex items-center space-x-3">
+            {{-- Footer / Actions (Sticky) --}}
+            {{-- MODIFIED: Added 'pt-4 pb-8 sm:py-4' for better bottom spacing on mobile --}}
+            <div class="border-t border-gray-100 px-6 pt-4 pb-8 sm:py-4 flex items-center justify-between bg-gray-50 sm:rounded-b-xl rounded-none flex-shrink-0">
+                <span class="text-xs text-gray-400 hidden sm:inline" x-text="selectedCategory ? 'Posting to selected topic' : 'Select a topic...'"></span>
+                <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
                     <button @click="closeModal" class="px-4 py-2 text-gray-500 text-sm font-medium hover:text-gray-700 transition">Cancel</button>
                     <button 
                         @click="submitForm" 
                         :disabled="!title || !selectedCategory || isLoading"
-                        class="px-6 py-2 rounded-lg text-white font-medium text-sm shadow-md transition flex items-center"
+                        class="px-6 py-2 rounded-lg text-white font-medium text-sm shadow-md transition flex items-center justify-center w-full sm:w-auto"
                         :class="(!title || !selectedCategory || isLoading) ? 'bg-gray-300 cursor-not-allowed' : 'bg-maroon-700 hover:bg-maroon-800 hover:scale-105'"
                     >
                         <span x-text="isLoading ? 'Posting...' : 'Post Question'"></span>

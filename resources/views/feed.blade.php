@@ -20,10 +20,11 @@
         </style>
     @endpush
 
-    {{-- Main Container with x-data for Modal State --}}
+    {{-- Main Container --}}
+    {{-- NOTE: createModalOpen is initialized here and passed down --}}
     <div x-data="{ mobileMenuOpen: false, createModalOpen: false, searchOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative pb-24 lg:pb-0">
 
-        {{-- MODAL COMPONENT --}}
+        {{-- MODAL COMPONENT (Uses createModalOpen from parent scope) --}}
         <x-create-question-modal :categories="$categories" />
 
         {{-- MOBILE FILTER DRAWER --}}
@@ -229,7 +230,7 @@
         </main>
 
         {{-- PROFESSIONAL STICKY BOTTOM NAV (Mobile) --}}
-        <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 pb-safe">
+        <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-[90] pb-safe">
             <div class="flex justify-between items-center h-16 px-6">
                 {{-- 1. Home --}}
                 <a href="{{ route('feed') }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('feed') && !request('search') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
@@ -256,8 +257,8 @@
                     <i class='bx bx-search text-2xl'></i>
                 </button>
 
-                {{-- 5. Profile (Corrected: Links to Public Profile) --}}
-                <a href="{{ route('user.profile', Auth::id()) }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('user.profile') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                {{-- 5. Profile --}}
+                <a href="{{ route('user.profile', Auth::id() ?? 0) }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('user.profile') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
                     <i class='bx {{ request()->routeIs('user.profile') ? 'bxs-user' : 'bx-user' }} text-2xl'></i>
                 </a>
             </div>

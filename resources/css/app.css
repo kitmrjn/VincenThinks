@@ -10,3 +10,36 @@
         margin-bottom: env(safe-area-inset-bottom);
     }
 }
+
+/* =========================================
+   MOBILE FIX: Trix Editor Responsiveness
+   ========================================= */
+trix-toolbar .trix-button-row {
+    flex-wrap: wrap !important; /* Forces buttons to wrap on small screens */
+    justify-content: flex-start !important;
+    gap: 4px;
+}
+
+trix-toolbar .trix-button-group {
+    margin-bottom: 5px !important;
+    border-color: #e5e7eb !important; /* Matches Tailwind gray-200 */
+}
+
+trix-editor {
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border-radius: 0.5rem; /* rounded-lg */
+    padding: 0.75rem;
+}
+
+/* Hide less critical formatting buttons on very small screens to save space */
+@media (max-width: 380px) {
+    .trix-button--icon-increase-nesting-level,
+    .trix-button--icon-decrease-nesting-level,
+    .trix-button--icon-quote,
+    .trix-button--icon-code {
+        display: none !important;
+    }
+}
