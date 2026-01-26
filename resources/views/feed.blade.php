@@ -8,24 +8,23 @@
             .custom-scrollbar::-webkit-scrollbar { width: 4px; }
             .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
             .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+            
+            /* Hide scrollbar for horizontal scrolling areas but allow functionality */
+            .hide-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .hide-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
         </style>
     @endpush
 
     {{-- Main Container with x-data for Modal State --}}
-    <div x-data="{ mobileMenuOpen: false, createModalOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative">
+    <div x-data="{ mobileMenuOpen: false, createModalOpen: false, searchOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative pb-24 lg:pb-0">
 
         {{-- MODAL COMPONENT --}}
         <x-create-question-modal :categories="$categories" />
-
-        {{-- MOBILE FAB --}}
-        @auth
-            <button 
-                @click="createModalOpen = true"
-                class="lg:hidden fixed bottom-6 right-6 z-40 bg-maroon-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-maroon-800 hover:scale-105 transition transform focus:outline-none focus:ring-4 focus:ring-maroon-300"
-            >
-                <i class='bx bx-plus text-3xl'></i>
-            </button>
-        @endauth
 
         {{-- MOBILE FILTER DRAWER --}}
         <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
@@ -64,7 +63,7 @@
                     </nav>
                 </div>
 
-                {{-- [NEW] TOP CONTRIBUTORS WIDGET --}}
+                {{-- TOP CONTRIBUTORS WIDGET --}}
                 @if(isset($topContributors) && $topContributors->count() > 0)
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Top Contributors (Week)</h3>
@@ -126,6 +125,15 @@
                 </div>
             @endif
 
+            {{-- MOBILE SEARCH BAR (Toggled via Bottom Nav) --}}
+            <div x-cloak x-show="searchOpen" class="lg:hidden mb-4 transition-all duration-300 ease-in-out">
+                <form action="{{ route('feed') }}" method="GET" class="relative">
+                     @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
+                    <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
+                    <input type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="search-input-js w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700 text-sm font-light bg-white shadow-sm transition">
+                </form>
+            </div>
+
             @auth
                 @if (!$verification_required || Auth::user()->hasVerifiedEmail())
                     <div class="hidden lg:block bg-white rounded-xl shadow-sm p-4 mb-8 border border-gray-200">
@@ -177,14 +185,12 @@
                         Recent Discussions
                     @endif
                 </h2>
-                <button @click="mobileMenuOpen = true" class="lg:hidden w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 py-2 rounded-lg text-sm font-medium text-gray-600 shadow-sm">
-                    <i class='bx bx-filter'></i> <span>Filter Topics</span>
-                </button>
                 
-                <form action="{{ route('feed') }}" method="GET" class="hidden sm:block relative w-72" id="search-form">
+                {{-- Desktop Search --}}
+                <form action="{{ route('feed') }}" method="GET" class="hidden lg:block relative w-72" id="search-form">
                     @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
                     <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
-                    <input type="text" id="search-input" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700 text-sm font-light bg-white shadow-sm transition">
+                    <input type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="search-input-js w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700 text-sm font-light bg-white shadow-sm transition">
                 </form>
             </div>
             
@@ -203,7 +209,7 @@
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-question-mark mr-1'></i> Unsolved</a>
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-message-square-x mr-1'></i> No Answers</a>
             
-                {{-- [NEW] SORTING DIVIDER --}}
+                {{-- SORTING DIVIDER --}}
                 <div class="h-6 w-px bg-gray-300 mx-2"></div>
 
                 <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'popular', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentSort === 'popular' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-trending-up mr-1'></i> Popular</a>
@@ -221,6 +227,42 @@
                 @include('partials.question-list')
             </div>
         </main>
+
+        {{-- PROFESSIONAL STICKY BOTTOM NAV (Mobile) --}}
+        <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 pb-safe">
+            <div class="flex justify-between items-center h-16 px-6">
+                {{-- 1. Home --}}
+                <a href="{{ route('feed') }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('feed') && !request('search') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                    <i class='bx {{ request()->routeIs('feed') && !request('search') ? 'bxs-home' : 'bx-home-alt' }} text-2xl'></i>
+                </a>
+
+                {{-- 2. Topics (Drawer) --}}
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="flex flex-col items-center justify-center space-y-1 {{ $mobileMenuOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                    <i class='bx bx-category text-2xl'></i>
+                </button>
+
+                {{-- 3. Ask (Prominent Center) --}}
+                <div class="relative -top-5">
+                    <button 
+                        @click="createModalOpen = true" 
+                        class="w-14 h-14 bg-maroon-700 rounded-full flex items-center justify-center text-white shadow-lg shadow-maroon-700/40 border-4 border-gray-50 hover:scale-105 active:scale-95 transition-all duration-200"
+                    >
+                        <i class='bx bx-plus text-3xl'></i>
+                    </button>
+                </div>
+
+                {{-- 4. Search (Toggle) --}}
+                <button @click="searchOpen = !searchOpen" class="flex flex-col items-center justify-center space-y-1 {{ $searchOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                    <i class='bx bx-search text-2xl'></i>
+                </button>
+
+                {{-- 5. Profile (Corrected: Links to Public Profile) --}}
+                <a href="{{ route('user.profile', Auth::id()) }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('user.profile') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                    <i class='bx {{ request()->routeIs('user.profile') ? 'bxs-user' : 'bx-user' }} text-2xl'></i>
+                </a>
+            </div>
+        </nav>
+
     </div>
 
     @push('scripts')
@@ -229,35 +271,44 @@
         
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                const searchInput = document.getElementById('search-input');
+                // Select both desktop and mobile search inputs
+                const searchInputs = document.querySelectorAll('.search-input-js');
                 const feedContainer = document.getElementById('feed-container');
                 let timeout = null;
 
-                searchInput.addEventListener('input', function() {
-                    clearTimeout(timeout);
-                    const query = this.value;
-                    const url = new URL(window.location.href);
-                    
-                    if (query.length > 0) {
-                        url.searchParams.set('search', query);
-                    } else {
-                        url.searchParams.delete('search');
-                    }
-                    
-                    window.history.pushState({}, '', url);
+                searchInputs.forEach(input => {
+                    input.addEventListener('input', function() {
+                        clearTimeout(timeout);
+                        const query = this.value;
+                        
+                        // Sync values between inputs
+                        searchInputs.forEach(otherInput => {
+                            if (otherInput !== this) otherInput.value = query;
+                        });
 
-                    timeout = setTimeout(() => {
-                        fetch(url, {
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(response => response.text())
-                        .then(html => {
-                            feedContainer.innerHTML = html;
-                        })
-                        .catch(error => console.error('Error:', error));
-                    }, 300);
+                        const url = new URL(window.location.href);
+                        
+                        if (query.length > 0) {
+                            url.searchParams.set('search', query);
+                        } else {
+                            url.searchParams.delete('search');
+                        }
+                        
+                        window.history.pushState({}, '', url);
+
+                        timeout = setTimeout(() => {
+                            fetch(url, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.text())
+                            .then(html => {
+                                feedContainer.innerHTML = html;
+                            })
+                            .catch(error => console.error('Error:', error));
+                        }, 300);
+                    });
                 });
             });
         </script>

@@ -37,8 +37,14 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
+                        {{-- UPDATED: Links to Public Profile (The Good UI) --}}
+                        <x-dropdown-link :href="route('user.profile', Auth::id())">
                             {{ __('Profile') }}
+                        </x-dropdown-link>
+
+                        {{-- ADDED: Links to Settings (The Edit Form) --}}
+                        <x-dropdown-link :href="route('profile.edit')">
+                            {{ __('Settings') }}
                         </x-dropdown-link>
 
                         <form method="POST" action="{{ route('logout') }}">
@@ -79,8 +85,14 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
+                {{-- UPDATED: Mobile Drawer links to Public Profile --}}
+                <x-responsive-nav-link :href="route('user.profile', Auth::id())">
                     {{ __('Profile') }}
+                </x-responsive-nav-link>
+
+                 {{-- ADDED: Mobile Drawer links to Settings --}}
+                 <x-responsive-nav-link :href="route('profile.edit')">
+                    {{ __('Settings') }}
                 </x-responsive-nav-link>
 
                 <form method="POST" action="{{ route('logout') }}">
