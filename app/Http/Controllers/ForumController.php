@@ -40,10 +40,11 @@ class ForumController extends Controller
         return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     }
 
-    // [NEW] Updated index method to accept AnalyticsService
-    public function index(Request $request, AnalyticsService $analyticsService) {
+   public function index(Request $request, AnalyticsService $analyticsService) {
         $questions = $this->forumService->getFilteredFeed($request->all());
-        $categories = Category::all();
+        
+        // FIX: Use withCount('questions') to populate the 'questions_count' attribute
+        $categories = Category::withCount('questions')->get();
 
         // Get Top Contributors (Defaulting to 'week' range)
         $topContributors = $analyticsService->getTopContent('week')['topContributors'];

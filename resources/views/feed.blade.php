@@ -8,42 +8,88 @@
             .custom-scrollbar::-webkit-scrollbar { width: 4px; }
             .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
             .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-            
-            /* Hide scrollbar for horizontal scrolling areas but allow functionality */
-            .hide-scrollbar::-webkit-scrollbar {
-                display: none;
-            }
-            .hide-scrollbar {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         </style>
     @endpush
 
     {{-- Main Container --}}
-    {{-- NOTE: createModalOpen is initialized here and passed down --}}
     <div x-data="{ mobileMenuOpen: false, createModalOpen: false, searchOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative pb-24 lg:pb-0">
 
-        {{-- MODAL COMPONENT (Uses createModalOpen from parent scope) --}}
+        {{-- MODAL COMPONENT --}}
         <x-create-question-modal :categories="$categories" />
 
-        {{-- MOBILE FILTER DRAWER --}}
-        <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-            <div x-show="mobileMenuOpen" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="mobileMenuOpen = false"></div>
-            <div x-show="mobileMenuOpen" class="relative mr-auto flex h-full w-4/5 max-w-xs flex-col overflow-y-auto bg-white shadow-2xl">
-                <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-                    <h2 class="text-lg font-bold text-gray-800 flex items-center"><i class='bx bx-category text-maroon-700 mr-2'></i> Categories</h2>
-                    <button @click="mobileMenuOpen = false" class="text-gray-400 hover:text-gray-600 transition"><i class='bx bx-x text-3xl'></i></button>
-                </div>
-                <nav class="p-4 space-y-1">
-                    <a href="{{ route('feed') }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}"><i class='bx bx-grid-alt mr-3 text-lg'></i> All Topics</a>
+        {{-- MOBILE SEARCH: BOTTOM SHEET --}}
+        <div x-cloak x-show="searchOpen" class="fixed inset-0 z-[80] bg-gray-900/40 backdrop-blur-[2px] lg:hidden" @click="searchOpen = false"></div>
+        <div 
+            x-cloak x-show="searchOpen" 
+            x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] lg:hidden pb-safe"
+            @click.away="searchOpen = false"
+            x-init="$watch('searchOpen', value => { if(value) $nextTick(() => $refs.mobileSearchInput.focus()) })"
+        >
+            <div class="w-full flex justify-center pt-3 pb-1" @click="searchOpen = false"><div class="w-12 h-1.5 bg-gray-300 rounded-full"></div></div>
+            <div class="p-4 pt-2">
+                <form action="{{ route('feed') }}" method="GET" class="relative">
+                    @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
+                    <div class="flex items-center gap-3">
+                        <div class="relative flex-grow">
+                            <i class='bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-maroon-700 text-xl'></i>
+                            <input x-ref="mobileSearchInput" type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="search-input-js w-full pl-11 pr-4 py-3.5 border-0 bg-gray-100 rounded-xl focus:ring-2 focus:ring-maroon-700 text-base font-normal placeholder-gray-500 transition-all">
+                        </div>
+                        <button type="button" @click="searchOpen = false" class="p-2 text-gray-500 font-medium hover:text-gray-800">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- MOBILE CATEGORIES: BOTTOM SHEET --}}
+        <div x-cloak x-show="mobileMenuOpen" class="fixed inset-0 z-[80] bg-gray-900/40 backdrop-blur-[2px] lg:hidden" @click="mobileMenuOpen = false"></div>
+        <div 
+            x-cloak x-show="mobileMenuOpen" 
+            x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] lg:hidden flex flex-col max-h-[85vh] pb-safe"
+            @click.away="mobileMenuOpen = false"
+        >
+            <div class="w-full flex flex-col items-center pt-3 pb-4 border-b border-gray-100 flex-shrink-0" @click="mobileMenuOpen = false">
+                <div class="w-12 h-1.5 bg-gray-300 rounded-full mb-4"></div>
+                <h3 class="text-lg font-bold text-gray-800">Select a Topic</h3>
+            </div>
+
+            <div class="overflow-y-auto p-4 custom-scrollbar">
+                <a href="{{ route('feed') }}" class="flex items-center justify-between p-4 mb-3 rounded-xl border transition-all {{ !request('category') ? 'bg-maroon-50 border-maroon-200 text-maroon-700 shadow-sm' : 'bg-white border-gray-100 text-gray-700 hover:border-maroon-200' }}">
+                    <span class="font-bold flex items-center"><i class='bx bx-grid-alt mr-3 text-xl'></i> All Topics</span>
+                    @if(!request('category')) <i class='bx bx-check text-xl'></i> @endif
+                </a>
+
+                <div class="h-px bg-gray-100 w-full my-2"></div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 mt-2">Categories</p>
+
+                <div class="grid grid-cols-2 gap-3">
                     @foreach($categories as $cat)
-                        <a href="{{ route('feed', array_merge(request()->query(), ['category' => $cat->id])) }}" class="flex items-center px-4 py-3 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50' }}">
-                            <span class="w-2 h-2 rounded-full bg-gray-300 mr-3 {{ request('category') == $cat->id ? 'bg-maroon-700' : '' }}"></span>
-                            {{ $cat->name }}
+                        <a href="{{ route('feed', array_merge(request()->query(), ['category' => $cat->id])) }}" 
+                           class="flex flex-col p-3 rounded-xl border transition-all h-full justify-center
+                           {{ request('category') == $cat->id 
+                                ? 'bg-maroon-700 text-white border-maroon-700 shadow-md transform scale-[1.02]' 
+                                : 'bg-gray-50 border-transparent text-gray-600 hover:bg-white hover:border-gray-200 hover:shadow-sm' 
+                           }}"
+                        >
+                            {{-- UPDATE: Display Acronym if available, else Name --}}
+                            <span class="font-bold text-sm truncate">{{ $cat->acronym ?? $cat->name }}</span>
+                            <span class="text-[10px] opacity-80 font-light mt-0.5">{{ $cat->questions_count ?? 0 }} questions</span>
                         </a>
                     @endforeach
-                </nav>
+                </div>
             </div>
         </div>
 
@@ -59,12 +105,12 @@
                     <nav class="space-y-1 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                         <a href="{{ route('feed') }}" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ !request('category') ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>All Discussions</span></a>
                         @foreach($categories as $cat)
+                            {{-- Desktop typically has more space, so we keep the Name, but you can change to Acronym if preferred --}}
                             <a href="{{ route('feed', array_merge(request()->query(), ['category' => $cat->id])) }}" x-show="$el.innerText.toLowerCase().includes(search.toLowerCase())" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition {{ request('category') == $cat->id ? 'bg-maroon-50 text-maroon-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"><span>{{ $cat->name }}</span></a>
                         @endforeach
                     </nav>
                 </div>
 
-                {{-- TOP CONTRIBUTORS WIDGET --}}
                 @if(isset($topContributors) && $topContributors->count() > 0)
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Top Contributors (Week)</h3>
@@ -79,7 +125,6 @@
                                                 {{ substr($user->name, 0, 1) }}
                                             </div>
                                         @endif
-                                        
                                         <div class="flex flex-col">
                                             <a href="{{ route('user.profile', $user->id) }}" class="text-sm font-medium text-gray-700 hover:text-maroon-700 line-clamp-1">
                                                 {{ $user->name }}
@@ -95,7 +140,6 @@
                         </ul>
                     </div>
                 @endif
-
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
                     <ul class="space-y-3 text-sm text-gray-600">
@@ -108,7 +152,6 @@
 
         {{-- MAIN FEED AREA --}}
         <main class="flex-1 min-w-0">
-            
             <div id="js-flash-message" style="display: none;" class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
                 <i class='bx bx-check-circle text-xl mr-2'></i>
                 <span id="js-flash-text"></span>
@@ -126,15 +169,6 @@
                 </div>
             @endif
 
-            {{-- MOBILE SEARCH BAR (Toggled via Bottom Nav) --}}
-            <div x-cloak x-show="searchOpen" class="lg:hidden mb-4 transition-all duration-300 ease-in-out">
-                <form action="{{ route('feed') }}" method="GET" class="relative">
-                     @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
-                    <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
-                    <input type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="search-input-js w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-maroon-700 focus:ring-1 focus:ring-maroon-700 text-sm font-light bg-white shadow-sm transition">
-                </form>
-            </div>
-
             @auth
                 @if (!$verification_required || Auth::user()->hasVerifiedEmail())
                     <div class="hidden lg:block bg-white rounded-xl shadow-sm p-4 mb-8 border border-gray-200">
@@ -148,10 +182,7 @@
                                     </div>
                                 @endif
                             </div>
-                            <button 
-                                @click="createModalOpen = true"
-                                class="flex-grow text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full py-2.5 px-5 text-sm text-gray-500 font-light transition duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-100"
-                            >
+                            <button @click="createModalOpen = true" class="flex-grow text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full py-2.5 px-5 text-sm text-gray-500 font-light transition duration-200 focus:outline-none focus:ring-2 focus:ring-maroon-100">
                                 What do you want to ask, {{ Auth::user()->name }}?
                             </button>
                             <div class="flex items-center gap-2 text-gray-400">
@@ -187,7 +218,6 @@
                     @endif
                 </h2>
                 
-                {{-- Desktop Search --}}
                 <form action="{{ route('feed') }}" method="GET" class="hidden lg:block relative w-72" id="search-form">
                     @if(request('category')) <input type="hidden" name="category" value="{{ request('category') }}"> @endif
                     <i class='bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg'></i>
@@ -210,7 +240,6 @@
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-question-mark mr-1'></i> Unsolved</a>
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-message-square-x mr-1'></i> No Answers</a>
             
-                {{-- SORTING DIVIDER --}}
                 <div class="h-6 w-px bg-gray-300 mx-2"></div>
 
                 <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'popular', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentSort === 'popular' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-trending-up mr-1'></i> Popular</a>
@@ -229,41 +258,28 @@
             </div>
         </main>
 
-        {{-- PROFESSIONAL STICKY BOTTOM NAV (Mobile) --}}
-        <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-[90] pb-safe">
+        {{-- MOBILE NAV --}}
+        <nav class="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-[80] pb-safe">
             <div class="flex justify-between items-center h-16 px-6">
-                {{-- 1. Home --}}
-                <a href="{{ route('feed') }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('feed') && !request('search') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
-                    <i class='bx {{ request()->routeIs('feed') && !request('search') ? 'bxs-home' : 'bx-home-alt' }} text-2xl'></i>
+                <a href="{{ route('feed') }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('feed') && !request('search') && !request('category') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                    <i class='bx {{ request()->routeIs('feed') && !request('search') && !request('category') ? 'bxs-home' : 'bx-home-alt' }} text-2xl'></i>
                 </a>
-
-                {{-- 2. Topics (Drawer) --}}
-                <button @click="mobileMenuOpen = !mobileMenuOpen" class="flex flex-col items-center justify-center space-y-1 {{ $mobileMenuOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
-                    <i class='bx bx-category text-2xl'></i>
+                <button @click="mobileMenuOpen = !mobileMenuOpen; searchOpen = false" class="flex flex-col items-center justify-center space-y-1 {{ $mobileMenuOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                    <i class='bx {{ request('category') ? 'bxs-grid-alt text-maroon-700' : 'bx-category' }} text-2xl'></i>
                 </button>
-
-                {{-- 3. Ask (Prominent Center) --}}
                 <div class="relative -top-5">
-                    <button 
-                        @click="createModalOpen = true" 
-                        class="w-14 h-14 bg-maroon-700 rounded-full flex items-center justify-center text-white shadow-lg shadow-maroon-700/40 border-4 border-gray-50 hover:scale-105 active:scale-95 transition-all duration-200"
-                    >
+                    <button @click="createModalOpen = true" class="w-14 h-14 bg-maroon-700 rounded-full flex items-center justify-center text-white shadow-lg shadow-maroon-700/40 border-4 border-gray-50 hover:scale-105 active:scale-95 transition-all duration-200">
                         <i class='bx bx-plus text-3xl'></i>
                     </button>
                 </div>
-
-                {{-- 4. Search (Toggle) --}}
-                <button @click="searchOpen = !searchOpen" class="flex flex-col items-center justify-center space-y-1 {{ $searchOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
+                <button @click="searchOpen = !searchOpen; mobileMenuOpen = false" class="flex flex-col items-center justify-center space-y-1 {{ $searchOpen ?? false ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
                     <i class='bx bx-search text-2xl'></i>
                 </button>
-
-                {{-- 5. Profile --}}
                 <a href="{{ route('user.profile', Auth::id() ?? 0) }}" class="flex flex-col items-center justify-center space-y-1 {{ request()->routeIs('user.profile') ? 'text-maroon-700' : 'text-gray-400 hover:text-gray-600' }}">
                     <i class='bx {{ request()->routeIs('user.profile') ? 'bxs-user' : 'bx-user' }} text-2xl'></i>
                 </a>
             </div>
         </nav>
-
     </div>
 
     @push('scripts')
@@ -272,7 +288,6 @@
         
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                // Select both desktop and mobile search inputs
                 const searchInputs = document.querySelectorAll('.search-input-js');
                 const feedContainer = document.getElementById('feed-container');
                 let timeout = null;
@@ -282,13 +297,11 @@
                         clearTimeout(timeout);
                         const query = this.value;
                         
-                        // Sync values between inputs
                         searchInputs.forEach(otherInput => {
                             if (otherInput !== this) otherInput.value = query;
                         });
 
                         const url = new URL(window.location.href);
-                        
                         if (query.length > 0) {
                             url.searchParams.set('search', query);
                         } else {
@@ -298,15 +311,9 @@
                         window.history.pushState({}, '', url);
 
                         timeout = setTimeout(() => {
-                            fetch(url, {
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
+                            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                             .then(response => response.text())
-                            .then(html => {
-                                feedContainer.innerHTML = html;
-                            })
+                            .then(html => { feedContainer.innerHTML = html; })
                             .catch(error => console.error('Error:', error));
                         }, 300);
                     });
