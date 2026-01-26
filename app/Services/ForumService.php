@@ -19,9 +19,9 @@ class ForumService
     public function getFilteredFeed(array $filters): LengthAwarePaginator
     {
         $query = Question::with(['user.course', 'user.departmentInfo', 'category', 'images'])
-                         ->withCount('answers')
-                         ->latest();
+                         ->withCount('answers');
 
+        // 1. Search Logic
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function($q) use ($search) {
@@ -30,6 +30,7 @@ class ForumService
             });
         }
 
+        // 2. Status Filters
         if (!empty($filters['filter'])) {
             switch ($filters['filter']) {
                 case 'solved': $query->whereNotNull('best_answer_id'); break;
@@ -38,8 +39,34 @@ class ForumService
             }
         }
 
+        // 3. Category Filter
         if (!empty($filters['category'])) {
             $query->where('category_id', $filters['category']);
+        }
+
+        // 4. [NEW] Sorting Logic
+        // Always put Pinned posts first, then apply the specific sort
+        $query->orderByDesc('is_pinned');
+
+        if (!empty($filters['sort'])) {
+            switch ($filters['sort']) {
+                case 'popular':
+                    // Sort by Views
+                    $query->orderByDesc('views');
+                    break;
+                case 'discussed':
+                    // Sort by Answer Count
+                    $query->orderByDesc('answers_count');
+                    break;
+                case 'oldest':
+                    $query->oldest();
+                    break;
+                default:
+                    $query->latest();
+            }
+        } else {
+            // Default sort
+            $query->latest();
         }
 
         return $query->paginate(10)->onEachSide(1);
@@ -98,7 +125,6 @@ class ForumService
             }
         }
 
-        // Notify if it's high quality (4+) and the highest
         if ($isHighest && $myScore >= 4 && $answer->user_id !== $user->id) {
             $answer->user->notify(new NewActivity(
                 'Your answer is now the Top Rated solution!',

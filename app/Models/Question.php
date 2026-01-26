@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth; // [FIX] Added Import
+use Illuminate\Support\Facades\Auth;
 use App\Jobs\CheckContentSafety;
 
 class Question extends Model {
@@ -13,7 +13,7 @@ class Question extends Model {
     
     protected $fillable = [
         'user_id', 'title', 'content', 'category_id', 
-        'image', 'best_answer_id', 'views', 'status'
+        'image', 'best_answer_id', 'views', 'status', 'is_pinned' // [FIX] Added is_pinned
     ];
 
     protected static function booted()
@@ -27,7 +27,6 @@ class Question extends Model {
 
         // 2. CREATED
         static::created(function ($question) {
-             // Dispatch safety check
              // CheckContentSafety::dispatchSync($question);
         });
 
@@ -47,12 +46,10 @@ class Question extends Model {
 
         // Global Scope
         static::addGlobalScope('published', function (Builder $builder) {
-            // [FIX] Allow Admins to see EVERYTHING, regardless of the URL
             if (Auth::check() && Auth::user()->is_admin) {
                 return;
             }
 
-            // Everyone else (Guest/Student) -> Apply filters
             $builder->where(function($query) {
                 $query->where('status', 'published');
                 

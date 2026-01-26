@@ -63,6 +63,39 @@
                         @endforeach
                     </nav>
                 </div>
+
+                {{-- [NEW] TOP CONTRIBUTORS WIDGET --}}
+                @if(isset($topContributors) && $topContributors->count() > 0)
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Top Contributors (Week)</h3>
+                        <ul class="space-y-4">
+                            @foreach($topContributors as $user)
+                                <li class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        @if($user->avatar)
+                                            <img src="{{ asset('storage/' . $user->avatar) }}" class="w-8 h-8 rounded-full object-cover border border-gray-100 mr-3">
+                                        @else
+                                            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-maroon-700 mr-3">
+                                                {{ substr($user->name, 0, 1) }}
+                                            </div>
+                                        @endif
+                                        
+                                        <div class="flex flex-col">
+                                            <a href="{{ route('user.profile', $user->id) }}" class="text-sm font-medium text-gray-700 hover:text-maroon-700 line-clamp-1">
+                                                {{ $user->name }}
+                                            </a>
+                                            <span class="text-[10px] text-gray-400">{{ $user->member_type === 'teacher' ? 'Teacher' : 'Student' }}</span>
+                                        </div>
+                                    </div>
+                                    <span class="bg-maroon-50 text-maroon-700 text-xs font-bold px-2 py-0.5 rounded-full" title="{{ $user->answers_count }} Answers">
+                                        {{ $user->answers_count }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
                     <ul class="space-y-3 text-sm text-gray-600">
@@ -76,20 +109,17 @@
         {{-- MAIN FEED AREA --}}
         <main class="flex-1 min-w-0">
             
-            {{-- [NEW] Hidden container for JS Alerts (Used by the Modal) --}}
             <div id="js-flash-message" style="display: none;" class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
                 <i class='bx bx-check-circle text-xl mr-2'></i>
                 <span id="js-flash-text"></span>
             </div>
 
-            {{-- Standard Session Success Message --}}
             @if(session('success') || session('status'))
                 <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
                     <i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') ?? session('status') }}
                 </div>
             @endif
 
-            {{-- Standard Session Error Message --}}
             @if(session('error'))
                 <div class="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 mb-6 shadow-sm flex items-center">
                     <i class='bx bx-error-circle text-xl mr-2'></i> {{ session('error') }}
@@ -161,15 +191,23 @@
             <div class="flex items-center space-x-2 mb-6 overflow-x-auto custom-scrollbar pb-2">
                 @php
                     $currentFilter = request('filter');
+                    $currentSort = request('sort');
                     $baseClasses = "px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap";
                     $activeClasses = "bg-maroon-700 text-white border-maroon-700 shadow-sm";
                     $inactiveClasses = "bg-white text-gray-600 border-gray-200 hover:border-maroon-700 hover:text-maroon-700";
                 @endphp
 
-                <a href="{{ route('feed', array_merge(request()->except('filter'), ['page' => 1])) }}" class="{{ $baseClasses }} {{ !$currentFilter ? $activeClasses : $inactiveClasses }}">All</a>
+                <a href="{{ route('feed', array_merge(request()->except(['filter', 'sort']), ['page' => 1])) }}" class="{{ $baseClasses }} {{ (!$currentFilter && !$currentSort) ? $activeClasses : $inactiveClasses }}">All</a>
+                
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'solved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'solved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-check-circle mr-1'></i> Solved</a>
                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'unsolved', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'unsolved' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-question-mark mr-1'></i> Unsolved</a>
-                 <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-message-square-x mr-1'></i> No Answers</a>
+                <a href="{{ route('feed', array_merge(request()->query(), ['filter' => 'no_answers', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentFilter === 'no_answers' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-message-square-x mr-1'></i> No Answers</a>
+            
+                {{-- [NEW] SORTING DIVIDER --}}
+                <div class="h-6 w-px bg-gray-300 mx-2"></div>
+
+                <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'popular', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentSort === 'popular' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-trending-up mr-1'></i> Popular</a>
+                <a href="{{ route('feed', array_merge(request()->query(), ['sort' => 'discussed', 'page' => 1])) }}" class="{{ $baseClasses }} {{ $currentSort === 'discussed' ? $activeClasses : $inactiveClasses }}"><i class='bx bx-comment-detail mr-1'></i> Hot</a>
             </div>
 
             @if(request('search'))
@@ -179,7 +217,6 @@
                 </div>
             @endif
 
-            {{-- Questions Feed (Updated to use Partial) --}}
             <div id="feed-container" class="space-y-6 pb-12">
                 @include('partials.question-list')
             </div>
@@ -207,10 +244,8 @@
                         url.searchParams.delete('search');
                     }
                     
-                    // Update URL without reloading
                     window.history.pushState({}, '', url);
 
-                    // Debounce the AJAX call (wait 300ms after typing stops)
                     timeout = setTimeout(() => {
                         fetch(url, {
                             headers: {

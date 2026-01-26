@@ -23,6 +23,7 @@ use App\Jobs\CheckContentSafety;
 // Services
 use App\Services\ForumService;
 use App\Services\ImageService;
+use App\Services\AnalyticsService; // [NEW] Import
 
 class ForumController extends Controller
 {
@@ -39,15 +40,19 @@ class ForumController extends Controller
         return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     }
 
-    public function index(Request $request) {
+    // [NEW] Updated index method to accept AnalyticsService
+    public function index(Request $request, AnalyticsService $analyticsService) {
         $questions = $this->forumService->getFilteredFeed($request->all());
         $categories = Category::all();
+
+        // Get Top Contributors (Defaulting to 'week' range)
+        $topContributors = $analyticsService->getTopContent('week')['topContributors'];
 
         if ($request->ajax()) {
             return view('partials.question-list', compact('questions'))->render();
         }
         
-        return view('feed', compact('questions', 'categories'));
+        return view('feed', compact('questions', 'categories', 'topContributors'));
     }
 
     public function storeQuestion(StoreQuestionRequest $request) {
@@ -63,14 +68,12 @@ class ForumController extends Controller
             $this->imageService->attachQuestionImages($question, $request->file('images'));
         }
 
-        // [FIX] Step 1: Create the Event FIRST
         AnalyticsEvent::create([
             'type' => 'new_question',
             'message' => 'New Question: ' . substr($request->title, 0, 30) . '...',
             'meta_data' => ['user_id' => Auth::id(), 'question_id' => $question->id]
         ]);
 
-        // [FIX] Step 2: Dispatch AI Job SECOND (so it can delete the event if needed)
         CheckContentSafety::dispatch($question);
 
         $message = 'Your post is being processed and will appear shortly.';
@@ -140,14 +143,12 @@ class ForumController extends Controller
             'content' => $request->content
         ]);
 
-        // [FIX] Create Event FIRST
         AnalyticsEvent::create([
             'type' => 'new_answer',
             'message' => 'New Answer on Question #' . $id,
             'meta_data' => ['user_id' => Auth::id(), 'question_id' => $id, 'answer_id' => $answer->id]
         ]);
 
-        // [FIX] Dispatch Job SECOND
         CheckContentSafety::dispatch($answer);
 
         $message = 'Answer posted! It is being processed.';
@@ -171,14 +172,12 @@ class ForumController extends Controller
             'parent_id' => $request->parent_id
         ]);
 
-        // [FIX] Create Event FIRST
         AnalyticsEvent::create([
             'type' => 'new_reply',
             'message' => 'New Reply posted.',
             'meta_data' => ['user_id' => Auth::id(), 'answer_id' => $answerId, 'reply_id' => $reply->id]
         ]);
 
-        // [FIX] Dispatch Job SECOND
         CheckContentSafety::dispatch($reply);
 
         $message = 'Reply posted! It is being processed.';

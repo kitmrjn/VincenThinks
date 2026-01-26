@@ -1,9 +1,11 @@
 @forelse($questions as $q)
     <div class="bg-white rounded-xl shadow-sm p-5 border transition duration-200 group relative 
         {{ $q->status === 'pending_review' ? 'ring-2 ring-red-100 bg-red-50/20' : '' }}
+        {{-- [NEW] Styling for Pinned Posts --}}
+        {{ $q->is_pinned ? 'border-amber-400 ring-1 ring-amber-400 bg-amber-50/30' : '' }}
         {{ $q->best_answer_id 
             ? 'border-green-500 ring-1 ring-green-500' 
-            : ($q->status !== 'pending_review' ? 'border-gray-100 hover:border-maroon-200 hover:shadow-md' : 'border-red-200') 
+            : ($q->status !== 'pending_review' && !$q->is_pinned ? 'border-gray-100 hover:border-maroon-200 hover:shadow-md' : '') 
         }}">
         
         @if($q->best_answer_id)
@@ -12,7 +14,14 @@
             </div>
         @endif
 
-        <div class="flex items-start {{ $q->best_answer_id ? 'mt-2' : '' }}">
+        {{-- [NEW] Pinned Badge --}}
+        @if($q->is_pinned)
+            <div class="absolute -top-3 right-4 bg-amber-100 text-amber-800 border border-amber-400 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide shadow-sm flex items-center gap-1 z-10">
+                <i class='bx bx-pin text-base'></i> Pinned
+            </div>
+        @endif
+
+        <div class="flex items-start {{ $q->best_answer_id || $q->is_pinned ? 'mt-2' : '' }}">
             <div class="flex-shrink-0 mr-4">
                 @if($q->user->avatar)
                     <img src="{{ asset('storage/' . $q->user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200" alt="{{ $q->user->name }}">
@@ -39,7 +48,6 @@
                                 <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200 whitespace-nowrap" title="{{ $q->category->name }}">{{ $q->category->acronym ?? $q->category->name }}</span>
                             @endif
 
-                            {{-- [FIX] PENDING REVIEW BADGE --}}
                             @if($q->status === 'pending_review')
                                 <span class="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-red-200 animate-pulse flex items-center shadow-sm whitespace-nowrap">
                                     <i class='bx bx-lock-alt mr-1'></i> Pending Review
@@ -70,11 +78,18 @@
                         </div>
                     @endif
                 </a>
-                <div class="mt-4 flex items-center justify-between">
+                
+                {{-- [NEW] Updated Footer with Actions --}}
+                <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
                     <div class="flex items-center space-x-4 text-sm text-gray-400 font-light">
                         <span class="flex items-center"><i class='bx bx-message-alt mr-1 text-base'></i> {{ $q->answers_count }} Answers</span>
                         <span class="flex items-center"><i class='bx bx-show mr-1 text-lg'></i> {{ $q->views ?? 0 }} Views</span>
                     </div>
+
+                    {{-- [NEW] "Answer" Button --}}
+                    <a href="{{ route('question.show', $q->id) }}#answer-form" class="text-xs font-bold text-maroon-700 hover:text-maroon-900 bg-maroon-50 hover:bg-maroon-100 px-3 py-1.5 rounded-lg transition flex items-center">
+                        <i class='bx bx-edit mr-1'></i> Answer
+                    </a>
                 </div>
             </div>
         </div>
