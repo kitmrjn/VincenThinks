@@ -227,7 +227,7 @@
                         <div class="flex items-center gap-4">
                             <div class="flex-shrink-0">
                                 @if(Auth::user()->avatar)
-                                    <img src="{{ asset('storage/' . $user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                                    <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
                                 @else
                                     <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-maroon-700 font-bold">
                                         {{ substr(Auth::user()->name, 0, 1) }}
