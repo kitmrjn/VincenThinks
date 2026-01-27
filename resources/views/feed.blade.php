@@ -5,6 +5,7 @@
             .line-clamp-3 pre { overflow: hidden; }
             .prose img { display: block; max-width: 100%; max-height: 300px; width: auto; height: auto; margin: 10px 0; border-radius: 6px; object-fit: contain; }
             [x-cloak] { display: none !important; }
+            /* Hide Scrollbars */
             .custom-scrollbar::-webkit-scrollbar { width: 4px; }
             .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
             .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
@@ -14,7 +15,6 @@
     @endpush
 
     {{-- Main Container --}}
-    {{-- ADDED: leaderboardOpen: false --}}
     <div x-data="{ mobileMenuOpen: false, createModalOpen: false, searchOpen: false, sortOpen: false, filterOpen: false, leaderboardOpen: false }" class="max-w-7xl mx-auto w-full mt-6 px-4 flex flex-col lg:flex-row gap-8 relative pb-24 lg:pb-0">
 
         <x-create-question-modal :categories="$categories" />
@@ -37,8 +37,36 @@
             @click="searchOpen = false; mobileMenuOpen = false; sortOpen = false; filterOpen = false; leaderboardOpen = false"
         ></div>
 
-        {{-- 1. SEARCH SHEET (Unchanged) --}}
-        <div x-cloak x-show="searchOpen" x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-xl lg:hidden pb-safe">
+        {{-- 1. SEARCH SHEET (Bottom-Fixed with Keyboard Sync) --}}
+        <div x-cloak x-show="searchOpen" 
+            {{-- Slide Up Animation --}}
+            x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500" 
+            x-transition:enter-start="translate-y-full" 
+            x-transition:enter-end="translate-y-0" 
+            x-transition:leave="transition ease-in duration-300" 
+            x-transition:leave-start="translate-y-0" 
+            x-transition:leave-end="translate-y-full" 
+            {{-- STYLE: Fixed Bottom --}}
+            class="fixed bottom-0 left-0 w-full z-[100] bg-white rounded-t-2xl shadow-xl lg:hidden pb-safe"
+            {{-- LOGIC: Keyboard Avoidance --}}
+            x-init="
+                if (window.visualViewport) {
+                    const handler = () => {
+                        if (!searchOpen) return;
+                        // Calculate if keyboard is up (screen height vs visual height)
+                        const offset = window.innerHeight - window.visualViewport.height;
+                        // If offset is significant (>100px), push the modal up
+                        if (offset > 100) {
+                            $el.style.bottom = `${offset}px`;
+                        } else {
+                            $el.style.bottom = '0px';
+                        }
+                    };
+                    window.visualViewport.addEventListener('resize', handler);
+                    window.visualViewport.addEventListener('scroll', handler);
+                }
+            "
+        >
             <div class="w-full flex justify-center pt-3 pb-1" @click="searchOpen = false"><div class="w-12 h-1.5 bg-gray-300 rounded-full"></div></div>
             <div class="p-4 pt-2">
                 <form action="{{ route('feed') }}" method="GET" class="relative">
@@ -46,7 +74,14 @@
                     <div class="flex items-center gap-3">
                         <div class="relative flex-grow">
                             <i class='bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-maroon-700 text-xl'></i>
-                            <input x-ref="mobileSearchInput" type="text" name="search" placeholder="Search questions..." value="{{ request('search') }}" class="search-input-js w-full pl-11 pr-4 py-3.5 border-0 bg-gray-100 rounded-xl focus:ring-2 focus:ring-maroon-700 text-base font-normal placeholder-gray-500 transition-all">
+                            {{-- x-trap ensures focus, inputmode='search' helps iOS show the 'Go' button --}}
+                            <input x-trap.noscroll="searchOpen" 
+                                   type="text" 
+                                   name="search" 
+                                   inputmode="search"
+                                   placeholder="Search questions..." 
+                                   value="{{ request('search') }}" 
+                                   class="search-input-js w-full pl-11 pr-4 py-3.5 border-0 bg-gray-100 rounded-xl focus:ring-2 focus:ring-maroon-700 text-base font-normal placeholder-gray-500 transition-all">
                         </div>
                         <button type="button" @click="searchOpen = false" class="p-2 text-gray-500 font-medium hover:text-gray-800">Cancel</button>
                     </div>
@@ -105,17 +140,8 @@
             </div>
         </div>
 
-        {{-- 5. LEADERBOARD SHEET (NEW) --}}
-        <div 
-            x-cloak x-show="leaderboardOpen" 
-            x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500"
-            x-transition:enter-start="translate-y-full"
-            x-transition:enter-end="translate-y-0"
-            x-transition:leave="transition ease-in duration-300"
-            x-transition:leave-start="translate-y-0"
-            x-transition:leave-end="translate-y-full"
-            class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-xl lg:hidden flex flex-col max-h-[85vh] pb-safe"
-        >
+        {{-- 5. LEADERBOARD SHEET (Unchanged) --}}
+        <div x-cloak x-show="leaderboardOpen" x-transition:enter="transition cubic-bezier(0.32, 0.72, 0, 1) duration-500" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="fixed bottom-0 left-0 w-full z-[90] bg-white rounded-t-2xl shadow-xl lg:hidden flex flex-col max-h-[85vh] pb-safe">
             <div class="w-full flex flex-col items-center pt-3 pb-4 border-b border-gray-100" @click="leaderboardOpen = false">
                 <div class="w-12 h-1.5 bg-gray-300 rounded-full mb-4"></div>
                 <h3 class="text-lg font-bold text-gray-800 flex items-center"><i class='bx bx-trophy text-yellow-500 mr-2'></i> Top Contributors</h3>
