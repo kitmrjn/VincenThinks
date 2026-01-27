@@ -32,12 +32,7 @@
             {{-- RIGHT SIDE: Icons & Profile --}}
             <div class="flex items-center space-x-1 sm:space-x-4">
                 
-                {{-- 1. Mobile Filter Button (Toggles the Sidebar Drawer) --}}
-                <button @click="mobileMenuOpen = !mobileMenuOpen" 
-                        class="lg:hidden text-white p-2 hover:bg-white/10 rounded-full transition flex items-center justify-center mr-1"
-                        title="Filter Topics">
-                    <i class='bx bx-filter-alt text-xl'></i>
-                </button>
+                {{-- REMOVED: Mobile Filter Button (Redundant) --}}
 
                 @auth
                     {{-- 2. Notifications --}}
