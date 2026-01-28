@@ -67,13 +67,6 @@
                     icon.classList.add('bx-up-arrow-alt');
                 }
             }
-
-            // [NEW] Auto-reload if question is pending (checks for approval every 3s)
-            @if($question->status === 'pending_review')
-                setInterval(function() {
-                    window.location.reload();
-                }, 3000); 
-            @endif
         </script>
     @endpush
 
@@ -96,11 +89,14 @@
         @if(session('success'))
             <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center"><i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') }}</div>
         @endif
+        
+        {{-- [UPDATED] Warning Flash Message --}}
         @if(session('warning'))
             <div class="bg-yellow-50 text-yellow-800 p-4 rounded-lg border border-yellow-200 mb-6 shadow-sm flex items-center">
                 <i class='bx bx-info-circle text-xl mr-2'></i> {{ session('warning') }}
             </div>
         @endif
+        
         @if(session('error'))
             <div class="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 mb-6 shadow-sm flex items-center"><i class='bx bx-block text-xl mr-2'></i> {{ session('error') }}</div>
         @endif
