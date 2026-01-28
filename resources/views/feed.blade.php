@@ -243,6 +243,12 @@
 
         {{-- MAIN FEED AREA --}}
         <main class="flex-1 min-w-0">
+            {{-- [FIX] Added JS Flash Message Placeholder --}}
+            <div id="js-flash-message" style="display: none;" class="p-4 rounded-lg border mb-6 shadow-sm flex items-center">
+                <i class='bx bx-info-circle text-xl mr-2'></i> 
+                <span id="js-flash-text"></span>
+            </div>
+        
             @if(session('success'))
                 <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center"><i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') }}</div>
             @endif

@@ -23,7 +23,7 @@ use App\Jobs\CheckContentSafety;
 // Services
 use App\Services\ForumService;
 use App\Services\ImageService;
-use App\Services\AnalyticsService; // [NEW] Import
+use App\Services\AnalyticsService;
 
 class ForumController extends Controller
 {
@@ -42,11 +42,7 @@ class ForumController extends Controller
 
    public function index(Request $request, AnalyticsService $analyticsService) {
         $questions = $this->forumService->getFilteredFeed($request->all());
-        
-        // FIX: Use withCount('questions') to populate the 'questions_count' attribute
         $categories = Category::withCount('questions')->get();
-
-        // Get Top Contributors (Defaulting to 'week' range)
         $topContributors = $analyticsService->getTopContent('week')['topContributors'];
 
         if ($request->ajax()) {
@@ -57,7 +53,6 @@ class ForumController extends Controller
     }
 
     public function storeQuestion(StoreQuestionRequest $request) {
-        
         $question = Question::create([
             'user_id' => Auth::id(),
             'title' => $request->title,
@@ -75,19 +70,25 @@ class ForumController extends Controller
             'meta_data' => ['user_id' => Auth::id(), 'question_id' => $question->id]
         ]);
 
-        CheckContentSafety::dispatch($question);
+        // Run synchronously so user sees result immediately
+        CheckContentSafety::dispatchSync($question);
+        $question->refresh(); 
 
-        $message = 'Your post is being processed and will appear shortly.';
+        $message = $question->status === 'published' 
+            ? 'Question posted successfully!' 
+            : 'Your post is under review and will appear shortly.';
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => 'pending_review'
+                'status' => $question->status
             ]);
         }
 
-        return redirect()->back()->with('success', $message);
+        // [FIX] Use 'warning' if pending, 'success' if published
+        $flashType = $question->status === 'published' ? 'success' : 'warning';
+        return redirect()->back()->with($flashType, $message);
     }
 
     public function show($id) {
@@ -150,11 +151,14 @@ class ForumController extends Controller
             'meta_data' => ['user_id' => Auth::id(), 'question_id' => $id, 'answer_id' => $answer->id]
         ]);
 
-        CheckContentSafety::dispatch($answer);
+        CheckContentSafety::dispatchSync($answer);
+        $answer->refresh();
 
-        $message = 'Answer posted! It is being processed.';
+        $message = $answer->status === 'published'
+            ? 'Answer posted!'
+            : 'Answer posted! It is being processed.';
 
-        if ($question->user_id !== Auth::id()) {
+        if ($answer->status === 'published' && $question->user_id !== Auth::id()) {
             $question->user->notify(new NewActivity(
                 Auth::user()->name . " answered your question.",
                 route('question.show', $question->id),
@@ -162,7 +166,9 @@ class ForumController extends Controller
             ));
         }
 
-        return redirect()->back()->with('success', $message);
+        // [FIX] Return warning if pending
+        $flashType = $answer->status === 'published' ? 'success' : 'warning';
+        return redirect()->back()->with($flashType, $message);
     }
 
     public function storeReply(StoreReplyRequest $request, $answerId) {
@@ -179,30 +185,37 @@ class ForumController extends Controller
             'meta_data' => ['user_id' => Auth::id(), 'answer_id' => $answerId, 'reply_id' => $reply->id]
         ]);
 
-        CheckContentSafety::dispatch($reply);
+        CheckContentSafety::dispatchSync($reply);
+        $reply->refresh();
 
-        $message = 'Reply posted! It is being processed.';
+        $message = $reply->status === 'published'
+            ? 'Reply posted!'
+            : 'Reply posted! It is being processed.';
         
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => 'pending_review'
+                'status' => $reply->status
             ]);
         }
 
-        $answer = Answer::findOrFail($answerId);
-        $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
+        if ($reply->status === 'published') {
+            $answer = Answer::findOrFail($answerId);
+            $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
 
-        if ($userToNotify && $userToNotify->id !== Auth::id()) {
-            $userToNotify->notify(new NewActivity(
-                Auth::user()->name . " replied to your comment.",
-                route('question.show', $answer->question_id),
-                'reply'
-            ));
+            if ($userToNotify && $userToNotify->id !== Auth::id()) {
+                $userToNotify->notify(new NewActivity(
+                    Auth::user()->name . " replied to your comment.",
+                    route('question.show', $answer->question_id),
+                    'reply'
+                ));
+            }
         }
 
-        return redirect()->back()->with('success', $message);
+        // [FIX] Return warning if pending
+        $flashType = $reply->status === 'published' ? 'success' : 'warning';
+        return redirect()->back()->with($flashType, $message);
     }
 
     public function rateAnswer(Request $request, $id) {
