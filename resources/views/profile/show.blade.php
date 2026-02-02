@@ -4,13 +4,16 @@
             .prose p { margin-top: 0; margin-bottom: 0.5em; }
             .prose img { margin-top: 0.5em; margin-bottom: 0.5em; }
             [x-cloak] { display: none !important; }
+            /* Hide scrollbar for tabs */
+            .no-scrollbar::-webkit-scrollbar { display: none; }
+            .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         </style>
     @endpush
 
     @push('scripts')
     @endpush
 
-    <div class="max-w-6xl mx-auto w-full mt-8 px-4 pb-12 flex-grow">
+    <div class="max-w-6xl mx-auto w-full mt-4 lg:mt-8 px-0 lg:px-4 pb-12 flex-grow">
         
         @if(session('status') === 'profile-updated')
             <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)" 
@@ -20,27 +23,27 @@
         @endif
 
         @if(session('success'))
-            <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
+            <div class="mx-4 lg:mx-0 bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center">
                 <i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') }}
             </div>
         @endif
 
-        <div class="flex flex-col lg:flex-row gap-8">
+        <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
 
-            {{-- LEFT SIDEBAR --}}
-            <div class="w-full lg:w-1/3 flex-shrink-0">
+            {{-- LEFT SIDEBAR (Profile Info) --}}
+            <div class="w-full lg:w-1/3 flex-shrink-0 px-4 lg:px-0">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
                     
                     {{-- Avatar Section --}}
                     <div class="text-center mb-6" x-data="{ avatarPreview: '{{ $user->avatar ? asset('storage/' . $user->avatar) : '' }}' }">
                         <div class="relative inline-block">
                             @if($user->avatar)
-                                <img :src="avatarPreview" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md mx-auto" alt="{{ $user->name }}">
+                                <img :src="avatarPreview" class="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-md mx-auto" alt="{{ $user->name }}">
                             @else
-                                <div x-show="!avatarPreview" class="w-32 h-32 rounded-full bg-gray-100 border-4 border-white flex items-center justify-center text-maroon-700 text-4xl font-bold shadow-md mx-auto">
+                                <div x-show="!avatarPreview" class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gray-100 border-4 border-white flex items-center justify-center text-maroon-700 text-3xl md:text-4xl font-bold shadow-md mx-auto">
                                     {{ substr($user->name, 0, 1) }}
                                 </div>
-                                <img x-show="avatarPreview" :src="avatarPreview" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md mx-auto" style="display:none;">
+                                <img x-show="avatarPreview" :src="avatarPreview" class="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-md mx-auto" style="display:none;">
                             @endif
                             
                             @auth
@@ -56,15 +59,15 @@
                             @endauth
                         </div>
 
-                        <h1 class="text-2xl font-bold text-gray-900 mt-4">{{ $user->name }}</h1>
-                        <p class="text-sm text-gray-500 mt-1 flex items-center justify-center">
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-900 mt-4">{{ $user->name }}</h1>
+                        <p class="text-xs md:text-sm text-gray-500 mt-1 flex items-center justify-center">
                             <i class='bx bx-calendar mr-1'></i> Joined {{ $user->created_at->format('M Y') }}
                         </p>
                         
                         {{-- Badges --}}
                         <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
                             @if($user->is_admin)
-                                <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-maroon-100 text-maroon-800 border border-maroon-200"><i class='bx bxs-shield-alt-2 mr-1'></i> Administrator</span>
+                                <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-maroon-100 text-maroon-800 border border-maroon-200"><i class='bx bxs-shield-alt-2 mr-1'></i> Admin</span>
                             @endif
                             
                             @if ($user->hasVerifiedEmail())
@@ -85,7 +88,6 @@
                             @if($user->member_type === 'student' && $user->course)
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border cursor-help {{ $user->course->type == 'College' ? 'bg-blue-50 text-blue-700 border-blue-200' : ($user->course->type == 'SHS' ? 'bg-orange-50 text-orange-700 border-orange-200' : ($user->course->type == 'JHS' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-purple-50 text-purple-700 border-purple-200')) }}" title="{{ $user->course->name }}">{{ $user->course->acronym }}</span>
                             @elseif($user->member_type === 'teacher' && $user->departmentInfo)
-                                 {{-- FIXED: Use departmentInfo relationship for display --}}
                                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
                                     {{ $user->departmentInfo->name }}
                                  </span>
@@ -127,54 +129,72 @@
                 x-data="{ activeTab: '{{ request('tab') ? request('tab') : (request('answers_page') ? 'answers' : 'questions') }}' }"
                 x-on:switch-tab.window="activeTab = $event.detail">
                 
-                {{-- Tabs Navigation --}}
-                <div class="flex border-b border-gray-200 mb-6 overflow-x-auto bg-white rounded-t-xl px-2">
-                    <button @click="activeTab = 'questions'" class="px-6 py-4 text-sm font-bold transition whitespace-nowrap border-b-2" :class="activeTab === 'questions' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
-                        <i class='bx bx-question-mark mr-1 text-lg align-middle'></i> Questions
-                    </button>
-                    <button @click="activeTab = 'answers'" class="px-6 py-4 text-sm font-bold transition whitespace-nowrap border-b-2" :class="activeTab === 'answers' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
-                        <i class='bx bx-message-square-dots mr-1 text-lg align-middle'></i> Answers
-                    </button>
-                    @auth
-                        @if(Auth::id() === $user->id)
-                            <button @click="activeTab = 'settings'" class="px-6 py-4 text-sm font-bold transition whitespace-nowrap border-b-2" :class="activeTab === 'settings' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
-                                <i class='bx bx-cog mr-1 text-lg align-middle'></i> Settings
-                            </button>
-                        @endif
-                    @endauth
+                {{-- Sticky Tabs Navigation --}}
+                <div class="sticky top-0 z-30 bg-gray-50 lg:bg-transparent pt-2 lg:pt-0 pb-4 lg:pb-6 -mx-4 lg:mx-0 px-4 lg:px-0">
+                    <div class="flex border-b border-gray-200 overflow-x-auto bg-white rounded-xl shadow-sm px-2 no-scrollbar">
+                        <button @click="activeTab = 'questions'" class="flex-1 min-w-[100px] px-4 py-4 text-sm font-bold transition whitespace-nowrap border-b-2 text-center" :class="activeTab === 'questions' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                            <i class='bx bx-question-mark mr-1 text-lg align-middle'></i> Questions
+                        </button>
+                        <button @click="activeTab = 'answers'" class="flex-1 min-w-[100px] px-4 py-4 text-sm font-bold transition whitespace-nowrap border-b-2 text-center" :class="activeTab === 'answers' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                            <i class='bx bx-message-square-dots mr-1 text-lg align-middle'></i> Answers
+                        </button>
+                        @auth
+                            @if(Auth::id() === $user->id)
+                                <button @click="activeTab = 'settings'" class="flex-1 min-w-[100px] px-4 py-4 text-sm font-bold transition whitespace-nowrap border-b-2 text-center" :class="activeTab === 'settings' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'">
+                                    <i class='bx bx-cog mr-1 text-lg align-middle'></i> Settings
+                                </button>
+                            @endif
+                        @endauth
+                    </div>
                 </div>
 
                 {{-- QUESTIONS TAB --}}
-                <div x-show="activeTab === 'questions'" class="space-y-4" x-cloak>
+                <div x-show="activeTab === 'questions'" class="space-y-4 px-4 lg:px-0" x-cloak>
                     @forelse($questions_list as $q)
-                        <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0 mr-4">
-                                    @if($q->user->avatar)
-                                        <img src="{{ asset('storage/' . $q->user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
-                                    @else
-                                        <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-maroon-700 text-sm font-bold">{{ substr($q->user->name, 0, 1) }}</div>
-                                    @endif
-                                </div>
-                                <div class="flex-grow min-w-0">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex items-center text-xs text-gray-400 mb-1 font-light">
-                                            <span class="font-medium text-gray-600 mr-2">{{ $q->user->name }}</span>
-                                            <span class="mx-1">•</span>
-                                            <span>{{ $q->created_at->diffForHumans() }}</span>
-                                            @if($q->category) <span class="mx-2 text-gray-300">|</span> <span class="bg-gray-100 text-maroon-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-gray-200">{{ $q->category->name }}</span> @endif
-                                        </div>
-                                        @if($q->best_answer_id) <span class="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center whitespace-nowrap ml-2"><i class='bx bx-check mr-1'></i> Solved</span> @endif
+                        <div class="bg-white rounded-xl shadow-sm p-4 md:p-5 border border-gray-100 hover:shadow-md transition duration-200 hover:border-maroon-200 group relative">
+                            
+                            {{-- Header --}}
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 mr-3">
+                                        @if($q->user->avatar)
+                                            <img src="{{ asset('storage/' . $q->user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                                        @else
+                                            <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-maroon-700 text-sm font-bold">{{ substr($q->user->name, 0, 1) }}</div>
+                                        @endif
                                     </div>
-                                    <a href="{{ route('question.show', $q->id) }}" class="block group-hover:text-maroon-700 transition-colors mb-2">
-                                        <h3 class="text-lg font-normal text-gray-800 leading-tight">{{ $q->title }}</h3>
-                                    </a>
-                                    <div class="prose prose-sm prose-stone text-gray-500 line-clamp-3">{!! $q->content !!}</div>
-                                    <div class="mt-4 flex items-center justify-between">
-                                        <div class="flex items-center space-x-4 text-sm text-gray-400 font-light">
-                                            <span class="flex items-center"><i class='bx bx-message-alt mr-1 text-base'></i> {{ $q->answers->count() }} Answers</span>
-                                            <span class="flex items-center"><i class='bx bx-show mr-1 text-lg'></i> {{ $q->views ?? 0 }} Views</span>
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-bold text-gray-700 text-sm">{{ $q->user->name }}</span>
+                                            @if($q->user->member_type === 'student' && $q->user->course)
+                                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{{ $q->user->course->acronym }}</span>
+                                            @endif
                                         </div>
+                                        <div class="flex items-center text-[11px] text-gray-400 mt-0.5 gap-2">
+                                            <span>{{ $q->created_at->diffForHumans() }}</span>
+                                            @if($q->category) 
+                                                <span class="text-gray-300">|</span> 
+                                                <span class="bg-gray-100 text-maroon-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wider border border-gray-200">{{ $q->category->acronym ?? $q->category->name }}</span> 
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                @if($q->best_answer_id) 
+                                    <span class="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center whitespace-nowrap"><i class='bx bx-check mr-1'></i> Solved</span> 
+                                @endif
+                            </div>
+
+                            {{-- Content (Indented on Desktop) --}}
+                            <div class="ml-0 md:ml-14">
+                                <a href="{{ route('question.show', $q->id) }}" class="block group-hover:text-maroon-700 transition-colors mb-2">
+                                    <h3 class="text-base md:text-lg font-bold text-gray-900 leading-tight">{{ $q->title }}</h3>
+                                </a>
+                                <div class="prose prose-sm prose-stone text-gray-600 line-clamp-3 mb-3">{!! strip_tags($q->content) !!}</div>
+                                
+                                <div class="flex items-center justify-between pt-2 border-t border-gray-50">
+                                    <div class="flex items-center space-x-4 text-sm text-gray-400 font-light">
+                                        <span class="flex items-center"><i class='bx bx-message-alt mr-1 text-base'></i> {{ $q->answers->count() }} Answers</span>
+                                        <span class="flex items-center"><i class='bx bx-show mr-1 text-lg'></i> {{ $q->views ?? 0 }} Views</span>
                                     </div>
                                 </div>
                             </div>
@@ -186,7 +206,7 @@
                 </div>
 
                 {{-- ANSWERS TAB --}}
-                <div x-show="activeTab === 'answers'" class="space-y-4" x-cloak>
+                <div x-show="activeTab === 'answers'" class="space-y-4 px-4 lg:px-0" x-cloak>
                     @forelse($answers_list as $answer)
                         @php
                             $myScore = $answer->ratings->avg('score') ?? 0;
@@ -202,23 +222,45 @@
                                 }
                             }
                         @endphp
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:border-maroon-300 transition {{ $isBest ? 'border-l-4 border-l-green-500' : '' }}">
-                            <div class="flex justify-between items-start mb-3">
-                                <div class="text-xs text-gray-500 font-light pr-4">
-                                    <span>Answered on:</span>
-                                    <a href="{{ route('question.show', $answer->question->id) }}" class="text-gray-700 hover:text-maroon-700 hover:underline font-bold block mt-0.5 text-sm leading-tight">{{ Str::limit($answer->question->title, 70) }}</a>
+                        <div class="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-gray-200 hover:border-maroon-300 transition {{ $isBest ? 'border-l-4 border-l-green-500' : '' }}">
+                            
+                            {{-- Header --}}
+                            <div class="flex items-center mb-3">
+                                <div class="flex-shrink-0 mr-3">
+                                    @if($answer->user->avatar)
+                                        <img src="{{ asset('storage/' . $answer->user->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                                    @else
+                                        <div class="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-maroon-700 text-sm font-bold">{{ substr($answer->user->name, 0, 1) }}</div>
+                                    @endif
                                 </div>
-                                <div class="flex flex-col items-end flex-shrink-0 gap-1">
-                                    <span class="text-[10px] text-gray-400 font-light">{{ $answer->created_at->diffForHumans() }}</span>
-                                    <div class="flex gap-1 justify-end flex-wrap">
-                                        @if($isBest) <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-200 flex items-center"><i class='bx bx-check mr-1'></i> Solution</span> @endif
-                                        @if($isTopRated) <span class="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-0.5 rounded border border-yellow-200 flex items-center"><i class='bx bxs-trophy mr-1'></i> Top Rated</span> @endif
+                                <div class="flex-grow min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-gray-700 text-sm">{{ $answer->user->name }}</span>
+                                            <span class="text-[10px] text-gray-400 font-light">{{ $answer->created_at->diffForHumans() }}</span>
+                                        </div>
+                                        <div class="flex gap-1">
+                                            @if($isBest) <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-200 flex items-center"><i class='bx bx-check mr-1'></i> Solution</span> @endif
+                                            @if($isTopRated) <span class="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-0.5 rounded border border-yellow-200 flex items-center"><i class='bx bxs-trophy mr-1'></i> Top Rated</span> @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="prose prose-sm prose-stone text-gray-600 mb-4 line-clamp-3">{!! $answer->content !!}</div>
-                            <div class="flex items-center">
-                                <div class="flex items-center text-xs text-yellow-600 font-bold bg-white border border-yellow-200 inline-block px-2 py-1 rounded-full shadow-sm"><i class='bx bxs-star mr-1 text-yellow-400'></i> {{ number_format($myScore, 1) }} Rating</div>
+
+                            {{-- Content (Indented) --}}
+                            <div class="ml-0 md:ml-14">
+                                <div class="text-xs text-gray-500 font-light mb-2 p-2 bg-gray-50 rounded border border-gray-100 truncate">
+                                    <span class="mr-1">Replying to:</span>
+                                    <a href="{{ route('question.show', $answer->question->id) }}" class="text-maroon-700 font-bold hover:underline">{{ $answer->question->title }}</a>
+                                </div>
+
+                                <div class="prose prose-sm prose-stone text-gray-600 mb-3 line-clamp-3">{!! strip_tags($answer->content) !!}</div>
+                                
+                                <div class="flex items-center">
+                                    <div class="flex items-center text-xs text-yellow-600 font-bold bg-white border border-yellow-200 inline-block px-2 py-1 rounded-full shadow-sm">
+                                        <i class='bx bxs-star mr-1 text-yellow-400'></i> {{ number_format($myScore, 1) }} Rating
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     @empty
@@ -227,10 +269,10 @@
                     <div class="mt-4">{{ $answers_list->appends(request()->except('answers_page'))->links('partials.pagination') }}</div>
                 </div>
 
-                {{-- SETTINGS TAB --}}
+                {{-- SETTINGS TAB (Unchanged logic, just spacing) --}}
                 @auth
                     @if(Auth::id() === $user->id)
-                        <div x-show="activeTab === 'settings'" class="space-y-6" x-cloak>
+                        <div x-show="activeTab === 'settings'" class="space-y-6 px-4 lg:px-0" x-cloak>
                             
                             {{-- 1. Profile Info --}}
                             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg border border-gray-100">
@@ -284,11 +326,8 @@
                                                 </div>
                                                 <div>
                                                     <x-input-label for="department_id" :value="__('Department / Faculty')" />
-                                                    
-                                                    {{-- FIXED: Dynamic Dropdown using 'department_id' --}}
                                                     <select id="department_id" name="department_id" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:border-maroon-700 focus:ring-maroon-700 py-3 px-4 bg-white text-gray-900">
                                                         <option value="" disabled {{ !$user->department_id ? 'selected' : '' }}>Select Department...</option>
-                                                        
                                                         @if(isset($departments))
                                                             @foreach($departments as $dept)
                                                                 <option value="{{ $dept->id }}" {{ old('department_id', $user->department_id) == $dept->id ? 'selected' : '' }}>
@@ -340,7 +379,6 @@
                                             </div>
 
                                             <div class="flex items-center gap-4">
-                                                {{-- FIXED: Changed from bg-gray-800 to Maroon --}}
                                                 <x-primary-button class="bg-maroon-700 hover:bg-maroon-800 py-3 px-6">{{ __('Save') }}</x-primary-button>
                                             </div>
                                         </form>
@@ -357,7 +395,6 @@
                                             <p class="mt-1 text-sm text-gray-600">Once your account is deleted, all of its resources and data will be permanently deleted.</p>
                                         </header>
 
-                                        {{-- FIXED: Explicitly set Red color for Delete button --}}
                                         <x-danger-button x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')" class="py-3 px-6 bg-red-600 hover:bg-red-700 text-white">{{ __('Delete Account') }}</x-danger-button>
 
                                         <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
