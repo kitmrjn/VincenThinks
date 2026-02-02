@@ -65,7 +65,7 @@
     }" class="space-y-6">
         
         {{-- Header & Search --}}
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">User Management</h2>
                 <p class="text-gray-500 text-sm">Manage student and teacher accounts.</p>
@@ -95,9 +95,9 @@
             </div>
         @endif
 
-        {{-- Filter Tabs --}}
-        <div class="border-b border-gray-200">
-            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        {{-- Filter Tabs (Scrollable on Mobile) --}}
+        <div class="border-b border-gray-200 overflow-x-auto">
+            <nav class="-mb-px flex space-x-8 min-w-max" aria-label="Tabs">
                 <a href="{{ route('admin.users') }}" class="{{ !request('role') ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">All Users</a>
                 <a href="{{ route('admin.users', ['role' => 'teacher']) }}" class="{{ request('role') == 'teacher' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Teachers</a>
                 <a href="{{ route('admin.users', ['role' => 'student']) }}" class="{{ request('role') == 'student' ? 'border-maroon-700 text-maroon-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Students</a>
@@ -107,38 +107,78 @@
         </div>
 
         {{-- Users Table --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
-            <table class="min-w-full divide-y divide-gray-200">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {{-- Added table-fixed on mobile to force width containment --}}
+            <table class="w-full divide-y divide-gray-200 table-fixed md:table-auto">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Identity</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role & ID</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        {{-- Identity: Takes remaining space on mobile --}}
+                        <th class="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-auto">User Identity</th>
+                        
+                        {{-- Hide on Mobile --}}
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell w-1/4">Role & ID</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Activity</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Status</th>
+                        
+                        {{-- Actions: Fixed width on mobile (approx 5rem) to ensure visibility --}}
+                        <th class="px-4 py-3 md:px-6 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20 md:w-auto">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($users as $user)
                         <tr class="hover:bg-gray-50 transition" x-data="{ openDropdown: false }">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10">
+                            
+                            {{-- User Identity Column --}}
+                            {{-- Removed 'whitespace-nowrap' so it respects width --}}
+                            <td class="px-4 py-4 md:px-6 align-top">
+                                <div class="flex items-start overflow-hidden"> {{-- Added overflow-hidden to contain truncated text --}}
+                                    <div class="flex-shrink-0 h-10 w-10 mt-1 mr-3">
                                         @if($user->avatar)
                                             <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/' . $user->avatar) }}" alt="">
                                         @else
-                                            <div class="h-10 w-10 rounded-full bg-maroon-100 flex items-center justify-center text-maroon-700 font-bold">
+                                            <div class="h-10 w-10 rounded-full bg-maroon-100 flex items-center justify-center text-maroon-700 font-bold text-sm">
                                                 {{ substr($user->name, 0, 1) }}
                                             </div>
                                         @endif
                                     </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-bold text-gray-900">{{ $user->name }}</div>
-                                        <div class="text-sm text-gray-500">{{ $user->email }}</div>
+                                    <div class="min-w-0 flex-1"> {{-- min-w-0 required for flex child truncation --}}
+                                        <div class="text-sm font-bold text-gray-900 truncate">{{ $user->name }}</div>
+                                        <div class="text-sm text-gray-500 truncate">{{ $user->email }}</div>
+                                        
+                                        {{-- Mobile ONLY Info (Stacked) --}}
+                                        <div class="md:hidden mt-2 space-y-1">
+                                            {{-- Role Badge --}}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                {{ $user->is_admin ? 'bg-red-100 text-red-800' : ($user->member_type == 'teacher' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800') }}">
+                                                {{ $user->is_admin ? 'Admin' : ucfirst($user->member_type) }}
+                                            </span>
+                                            
+                                            {{-- ID Number --}}
+                                            <div class="text-xs text-gray-400">
+                                                @if($user->member_type == 'student')
+                                                    {{ $user->student_number }}
+                                                @else
+                                                    {{ $user->teacher_number }}
+                                                @endif
+                                            </div>
+
+                                            {{-- Status Badge (Mobile) --}}
+                                            <div>
+                                                @if($user->is_banned)
+                                                    <span class="text-xs font-bold text-red-600">Banned</span>
+                                                @elseif($user->email_verified_at)
+                                                    <span class="text-xs font-bold text-green-600">Verified</span>
+                                                @else
+                                                    <span class="text-xs font-bold text-yellow-600">Unverified</span>
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+
+                            {{-- Role & ID (Desktop Only) --}}
+                            <td class="px-6 py-4 whitespace-nowrap hidden md:table-cell align-top">
                                 <div class="flex flex-col">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full w-fit mb-1
                                         {{ $user->is_admin ? 'bg-red-100 text-red-800' : ($user->member_type == 'teacher' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800') }}">
@@ -153,11 +193,15 @@
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+
+                            {{-- Activity (Desktop Only) --}}
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 hidden md:table-cell align-top">
                                 <span class="font-bold text-gray-800">{{ $user->questions_count }}</span> Q / 
                                 <span class="font-bold text-gray-800">{{ $user->answers_count }}</span> A
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
+
+                            {{-- Status (Desktop Only) --}}
+                            <td class="px-6 py-4 whitespace-nowrap text-center hidden md:table-cell align-top">
                                 @if($user->is_banned)
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-800 text-white">Banned</span>
                                 @elseif($user->email_verified_at)
@@ -166,7 +210,9 @@
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Unverified</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+
+                            {{-- Actions (Always Visible) --}}
+                            <td class="px-4 py-4 md:px-6 whitespace-nowrap text-right text-sm font-medium align-top">
                                 <div class="flex justify-end space-x-2">
                                     
                                     {{-- TRIGGER: Ban/Unban --}}

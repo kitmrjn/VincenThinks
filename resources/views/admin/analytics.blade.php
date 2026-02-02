@@ -1,4 +1,21 @@
 <x-admin-layout>
+    @php
+        // Helper to generate acronyms (e.g. "Bachelor of Science" -> "BS")
+        if (!function_exists('makeAcronym')) {
+            function makeAcronym($string) {
+                $ignore = ['of', 'in', 'and', 'the', 'for', 'to'];
+                $words = explode(' ', $string ?? '');
+                $acronym = '';
+                foreach ($words as $word) {
+                    if (!in_array(strtolower($word), $ignore)) {
+                        $acronym .= strtoupper(substr($word, 0, 1));
+                    }
+                }
+                return $acronym ?: 'N/A';
+            }
+        }
+    @endphp
+
     <div class="mb-10">
         {{-- Header & Range Filters --}}
         <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
@@ -121,11 +138,11 @@
                         <thead class="text-xs text-gray-400 uppercase border-b border-gray-100">
                             <tr>
                                 <th class="pb-3 font-normal">User</th>
-                                <th class="pb-3 font-normal">Role</th>
+                                {{-- HIDDEN on Mobile --}}
+                                <th class="pb-3 font-normal hidden md:table-cell">Role</th>
                                 <th class="pb-3 font-normal text-right">Answers Posted</th>
                             </tr>
                         </thead>
-                        {{-- Added ID for JS --}}
                         <tbody class="divide-y divide-gray-50" id="top-contributors-body">
                             @foreach($topContributors as $contributor)
                             <tr class="group hover:bg-gray-50">
@@ -135,11 +152,14 @@
                                     </div>
                                     <span class="text-sm font-medium text-gray-700">{{ $contributor->name }}</span>
                                 </td>
-                                <td class="py-3 text-sm text-gray-500">
+                                
+                                {{-- HIDDEN on Mobile --}}
+                                <td class="py-3 text-sm text-gray-500 hidden md:table-cell">
                                     <span class="px-2 py-1 rounded text-xs {{ $contributor->is_admin ? 'bg-purple-100 text-purple-600' : ($contributor->member_type == 'teacher' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500') }}">
                                         {{ $contributor->is_admin ? 'Admin' : ucfirst($contributor->member_type) }}
                                     </span>
                                 </td>
+
                                 <td class="py-3 text-right text-sm font-bold text-gray-700">{{ $contributor->answers_count }}</td>
                             </tr>
                             @endforeach
@@ -157,30 +177,42 @@
             <table class="w-full text-left">
                 <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
                     <tr>
-                        <th class="px-6 py-3 font-normal">Question Title</th>
-                        <th class="px-6 py-3 font-normal">Category</th>
-                        <th class="px-6 py-3 font-normal">Views</th>
-                        <th class="px-6 py-3 font-normal text-right">Date Posted</th>
+                        <th class="px-4 py-3 md:px-6 font-normal">Question Title</th>
+                        
+                        {{-- VISIBLE on mobile (Acronym), Full on Desktop --}}
+                        <th class="px-4 py-3 md:px-6 font-normal">Category</th>
+                        
+                        <th class="px-4 py-3 md:px-6 font-normal">Views</th>
+                        
+                        {{-- HIDDEN on mobile --}}
+                        <th class="px-6 py-3 font-normal text-right hidden md:table-cell">Date Posted</th>
                     </tr>
                 </thead>
-                {{-- Added ID for JS --}}
                 <tbody class="divide-y divide-gray-100" id="trending-content-body">
                     @foreach($trendingQuestions as $q)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4 md:px-6">
                             <a href="{{ route('question.show', $q->id) }}" target="_blank" class="text-maroon-700 hover:underline font-medium text-sm">
                                 {{ Str::limit($q->title, 50) }}
                             </a>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                        
+                        {{-- Category: Acronym on Mobile, Full on Desktop --}}
+                        <td class="px-4 py-4 md:px-6">
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full md:hidden" title="{{ $q->category->name ?? 'Uncategorized' }}">
+                                {{ makeAcronym($q->category->name ?? 'N/A') }}
+                            </span>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full hidden md:inline-block">
                                 {{ $q->category->name ?? 'Uncategorized' }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600 flex items-center">
+
+                        <td class="px-4 py-4 md:px-6 text-sm text-gray-600 flex items-center">
                             <i class='bx bx-show mr-2 text-gray-400'></i> {{ number_format($q->views) }}
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-500 text-right">
+                        
+                        {{-- HIDDEN on mobile --}}
+                        <td class="px-6 py-4 text-sm text-gray-500 text-right hidden md:table-cell">
                             {{ $q->created_at->format('M d, Y') }}
                         </td>
                     </tr>
@@ -195,6 +227,26 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let currentRange = 'week'; // Default
+        let currentDistLabels = []; // Store full labels for toggling
+
+        // JS Helper for Acronyms (Matches PHP Logic)
+        function getAcronym(str) {
+            if (!str) return 'N/A';
+            const ignore = ['of', 'in', 'and', 'the', 'for', 'to'];
+            return str.split(' ')
+                .filter(w => !ignore.includes(w.toLowerCase()))
+                .map(w => w.charAt(0).toUpperCase())
+                .join('');
+        }
+
+        // JS Helper to format labels based on screen size
+        function formatLabels(labels) {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+                return labels.map(label => getAcronym(label));
+            }
+            return labels;
+        }
 
         // Exposed function to change range
         window.setRange = function(range) {
@@ -236,6 +288,9 @@
             const growthData = @json($charts['growth']);
             const distData = @json($charts['distribution']);
             const resData = @json($charts['resolution']);
+            
+            // Store original labels for resizing logic
+            currentDistLabels = distData.labels;
 
             // 1. Growth Line Chart
             window.growthChart = new Chart(document.getElementById('growthChart'), {
@@ -267,7 +322,7 @@
             window.distChart = new Chart(document.getElementById('distChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: distData.labels,
+                    labels: formatLabels(distData.labels),
                     datasets: [{
                         data: distData.data,
                         backgroundColor: [
@@ -306,6 +361,14 @@
                 }
             });
 
+            // Window Resize Listener for Chart Labels
+            window.addEventListener('resize', () => {
+                if (window.distChart && currentDistLabels.length > 0) {
+                    window.distChart.data.labels = formatLabels(currentDistLabels);
+                    window.distChart.update();
+                }
+            });
+
             // --- Real-Time Polling Logic ---
             const updateInterval = 3000; // 3 seconds
             window.updateCharts = function() { 
@@ -329,7 +392,8 @@
                         }
 
                         if (window.distChart) {
-                            window.distChart.data.labels = data.charts.distribution.labels;
+                            currentDistLabels = data.charts.distribution.labels; // Update Source of Truth
+                            window.distChart.data.labels = formatLabels(currentDistLabels);
                             window.distChart.data.datasets[0].data = data.charts.distribution.data;
                             window.distChart.update();
                         }
@@ -367,7 +431,7 @@
                                     </div>
                                     <span class="text-sm font-medium text-gray-700">${user.name}</span>
                                 </td>
-                                <td class="py-3 text-sm text-gray-500">
+                                <td class="py-3 text-sm text-gray-500 hidden md:table-cell">
                                     <span class="px-2 py-1 rounded text-xs ${badgeClass}">${roleName}</span>
                                 </td>
                                 <td class="py-3 text-right text-sm font-bold text-gray-700">${user.answers_count}</td>
@@ -383,27 +447,29 @@
                     trendBody.innerHTML = '';
                     content.trendingQuestions.forEach(q => {
                         const date = new Date(q.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                        const category = q.category ? q.category.name : 'Uncategorized';
-                        // Note: Route generation in JS is tricky, we use a placeholder or data attribute if possible. 
-                        // Simplified approach: Construct URL assuming standard pattern.
+                        const categoryName = q.category ? q.category.name : 'Uncategorized';
+                        const categoryAcronym = getAcronym(categoryName);
                         const url = `/question/${q.id}`; 
 
                         const row = `
                             <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-4 md:px-6">
                                     <a href="${url}" target="_blank" class="text-maroon-700 hover:underline font-medium text-sm">
                                         ${q.title.length > 50 ? q.title.substring(0, 50) + '...' : q.title}
                                     </a>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                                        ${category}
+                                <td class="px-4 py-4 md:px-6">
+                                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full md:hidden" title="${categoryName}">
+                                        ${categoryAcronym}
+                                    </span>
+                                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full hidden md:inline-block">
+                                        ${categoryName}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600 flex items-center">
+                                <td class="px-4 py-4 md:px-6 text-sm text-gray-600 flex items-center">
                                     <i class='bx bx-show mr-2 text-gray-400'></i> ${q.views.toLocaleString()}
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-500 text-right">
+                                <td class="px-6 py-4 text-sm text-gray-500 text-right hidden md:table-cell">
                                     ${date}
                                 </td>
                             </tr>

@@ -27,11 +27,20 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-widest text-gray-500 font-medium">
-                        <th class="px-6 py-4 font-normal">Reporter</th>
-                        <th class="px-6 py-4 font-normal">Reported Question</th>
-                        <th class="px-6 py-4 font-normal">Reason</th>
-                        <th class="px-6 py-4 font-normal">Date</th>
-                        <th class="px-6 py-4 font-normal text-right">Actions</th>
+                        {{-- Reporter --}}
+                        <th class="px-4 py-3 md:px-6 font-normal">Reporter</th>
+                        
+                        {{-- Reported Question --}}
+                        <th class="px-4 py-3 md:px-6 font-normal">Reported</th>
+                        
+                        {{-- HIDE Reason on Mobile --}}
+                        <th class="px-6 py-4 font-normal hidden md:table-cell">Reason</th>
+                        
+                        {{-- HIDE Date on Mobile (We show it under the title instead) --}}
+                        <th class="px-6 py-4 font-normal hidden md:table-cell">Date</th>
+                        
+                        {{-- Actions --}}
+                        <th class="px-4 py-3 md:px-6 font-normal text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -39,47 +48,61 @@
                         <tr class="hover:bg-gray-50 transition duration-150 group">
                             
                             {{-- Column 1: Reporter --}}
-                            <td class="px-6 py-4 text-sm text-gray-800">
+                            <td class="px-4 py-4 md:px-6 text-sm text-gray-800 whitespace-nowrap align-top">
                                 <div class="flex items-center">
-                                    <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs mr-2 text-gray-600">
+                                    <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs mr-2 text-gray-600 flex-shrink-0">
                                         {{ substr($report->user->name ?? 'A', 0, 1) }}
                                     </div>
-                                    {{ $report->user->name ?? 'Unknown User' }}
+                                    <span class="truncate max-w-[80px] md:max-w-none">
+                                        {{ $report->user->name ?? 'Unknown' }}
+                                    </span>
                                 </div>
                             </td>
 
-                            {{-- Column 2: Reported Question --}}
-                            <td class="px-6 py-4 text-sm text-maroon-700 font-medium">
+                            {{-- Column 2: Reported Question (+ Date on Mobile) --}}
+                            <td class="px-4 py-4 md:px-6 text-sm text-maroon-700 font-medium align-top">
                                 @if($report->question)
-                                    <a href="{{ route('question.show', $report->question->id) }}" target="_blank" class="hover:underline flex items-center">
-                                        {{ Str::limit($report->question->title, 50) }}
-                                        <i class='bx bx-link-external ml-1 text-xs opacity-50'></i>
-                                    </a>
+                                    <div class="flex flex-col">
+                                        <a href="{{ route('question.show', $report->question->id) }}" target="_blank" class="hover:underline flex items-center">
+                                            {{-- Heavily truncate title on mobile --}}
+                                            <span class="block truncate max-w-[120px] md:max-w-xs md:whitespace-normal">
+                                                {{ $report->question->title }}
+                                            </span>
+                                            <i class='bx bx-link-external ml-1 text-xs opacity-50 flex-shrink-0 hidden md:inline'></i>
+                                        </a>
+                                        
+                                        {{-- SHOW DATE HERE ON MOBILE ONLY --}}
+                                        <span class="text-xs text-gray-400 font-light mt-1 md:hidden">
+                                            {{ $report->created_at->format('M d, Y') }}
+                                        </span>
+                                    </div>
                                 @else
-                                    <span class="text-gray-400 italic">Content Deleted</span>
+                                    <span class="text-gray-400 italic">Deleted</span>
                                 @endif
                             </td>
 
-                            {{-- Column 3: Reason --}}
-                            <td class="px-6 py-4 text-sm text-gray-600">
+                            {{-- Column 3: Reason (Hidden on Mobile) --}}
+                            <td class="px-6 py-4 text-sm text-gray-600 hidden md:table-cell align-top">
                                 <span class="px-2 py-1 bg-gray-100 rounded text-xs border border-gray-200">
                                     {{ $report->reason }}
                                 </span>
                             </td>
 
-                            {{-- Column 4: Date --}}
-                            <td class="px-6 py-4 text-sm text-gray-500">
+                            {{-- Column 4: Date (Hidden on Mobile) --}}
+                            <td class="px-6 py-4 text-sm text-gray-500 hidden md:table-cell align-top">
                                 {{ $report->created_at->format('M d, Y') }}
                             </td>
 
                             {{-- Column 5: Actions --}}
-                            <td class="px-6 py-4 text-sm text-right">
+                            <td class="px-4 py-4 md:px-6 text-sm text-right align-top">
                                 <div class="flex justify-end space-x-2">
                                     {{-- Dismiss Button --}}
                                     <form action="{{ route('admin.dismiss_report', $report->id) }}" method="POST" class="inline">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="text-gray-400 hover:text-gray-600 font-medium text-xs px-3 py-1 border border-transparent hover:border-gray-300 rounded transition">
-                                            Dismiss
+                                        {{-- Mobile: Icon Only (X) | Desktop: Text --}}
+                                        <button type="submit" class="text-gray-400 hover:text-gray-600 font-medium text-xs px-2 py-1 md:px-3 border border-transparent hover:border-gray-300 rounded transition" title="Dismiss">
+                                            <span class="hidden md:inline">Dismiss</span>
+                                            <i class='bx bx-x text-lg md:hidden'></i>
                                         </button>
                                     </form>
 
@@ -87,13 +110,16 @@
                                     @if($report->question)
                                         <form action="{{ route('admin.delete_question', $report->question->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this question? This action cannot be undone.');" class="inline">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:bg-red-50 font-medium text-xs px-3 py-1 border border-red-200 rounded transition">
-                                                Delete Content
+                                            {{-- Mobile: Icon Only (Trash) | Desktop: Text --}}
+                                            <button type="submit" class="text-red-600 hover:bg-red-50 font-medium text-xs px-2 py-1 md:px-3 border border-red-200 rounded transition" title="Delete Content">
+                                                <span class="hidden md:inline">Delete Content</span>
+                                                <i class='bx bx-trash text-lg md:hidden'></i>
                                             </button>
                                         </form>
                                     @else
                                         <button disabled class="text-gray-300 cursor-not-allowed font-medium text-xs px-3 py-1 border border-gray-100 rounded">
-                                            Deleted
+                                            <span class="hidden md:inline">Deleted</span>
+                                            <i class='bx bx-block md:hidden'></i>
                                         </button>
                                     @endif
                                 </div>
