@@ -22,8 +22,8 @@
                 transition: all 0.2s ease; 
             }
 
-            .ml-11 .prose img { max-height: 350px !important; max-width: 80%; }
-            .ml-11 .ml-11 .prose img { max-height: 200px !important; max-width: 60%; }
+            /* Responsive Image sizing for indented content */
+            .md\:ml-11 .prose img { max-height: 350px !important; max-width: 80%; }
 
             @keyframes zoom-in {
                 from { transform: scale(0.95); opacity: 0; }
@@ -89,14 +89,11 @@
         @if(session('success'))
             <div class="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6 shadow-sm flex items-center"><i class='bx bx-check-circle text-xl mr-2'></i> {{ session('success') }}</div>
         @endif
-        
-        {{-- [UPDATED] Warning Flash Message --}}
         @if(session('warning'))
             <div class="bg-yellow-50 text-yellow-800 p-4 rounded-lg border border-yellow-200 mb-6 shadow-sm flex items-center">
                 <i class='bx bx-info-circle text-xl mr-2'></i> {{ session('warning') }}
             </div>
         @endif
-        
         @if(session('error'))
             <div class="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 mb-6 shadow-sm flex items-center"><i class='bx bx-block text-xl mr-2'></i> {{ session('error') }}</div>
         @endif
@@ -104,7 +101,7 @@
 
     <div class="max-w-3xl mx-auto px-4 pb-12">
 
-        {{-- [NEW] LARGE SAFETY WARNING BANNER --}}
+        {{-- PENDING REVIEW BANNER --}}
         @if($question->status === 'pending_review')
             <div class="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 mb-6 shadow-sm flex items-center animate-pulse">
                 <i class='bx bx-lock-alt text-2xl mr-3'></i> 
@@ -116,7 +113,7 @@
         @endif
 
         {{-- QUESTION CARD --}}
-        <div class="bg-white rounded-xl shadow-sm p-8 mb-8 border {{ $question->status === 'pending_review' ? 'border-red-300 ring-2 ring-red-50' : 'border-gray-200' }} relative transition-all">
+        <div class="bg-white rounded-xl shadow-sm p-6 md:p-8 mb-8 border {{ $question->status === 'pending_review' ? 'border-red-300 ring-2 ring-red-50' : 'border-gray-200' }} relative transition-all">
             
             {{-- HEADER --}}
             <div class="flex justify-between items-start mb-6">
@@ -146,11 +143,11 @@
                             
                             @if($question->updated_at->diffInMinutes($question->created_at) > 5)
                                 <span class="mx-1">•</span>
-                                <span class="italic" title="Edited {{ $question->updated_at->diffForHumans() }}">(edited)</span>
+                                <span class="italic" title="Edited {{ $question->updated_at->diffForHumans() }}">(ed.)</span>
                             @endif
                             <span class="mx-2 text-gray-300">|</span>
                             <span class="flex items-center text-gray-400">
-                                <i class='bx bx-show mr-1'></i> {{ $question->views ?? 0 }} Views
+                                <i class='bx bx-show mr-1'></i> {{ $question->views ?? 0 }}
                             </span>
                             @if($question->category)
                                 <span class="mx-2 text-gray-300">|</span>
@@ -159,11 +156,10 @@
                                 </span>
                             @endif
 
-                            {{-- [NEW] SMALL BADGE IN HEADER --}}
                             @if($question->status === 'pending_review')
                                 <span class="mx-2 text-gray-300">|</span>
                                 <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border border-red-200 animate-pulse flex items-center">
-                                    <i class='bx bx-lock-alt mr-1'></i> Pending Review
+                                    <i class='bx bx-lock-alt mr-1'></i> Review
                                 </span>
                             @endif
                         </div>
@@ -173,7 +169,7 @@
                 <div class="flex items-center space-x-3">
                     @if($question->best_answer_id)
                         <span class="bg-green-100 text-green-700 border border-green-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center shadow-sm">
-                            <i class='bx bx-check mr-1 text-base'></i> Solved
+                            <i class='bx bx-check mr-1 text-base'></i> <span class="hidden md:inline">Solved</span>
                         </span>
                     @endif
 
@@ -201,7 +197,7 @@
 
             {{-- TITLE --}}
             <div class="mb-6">
-                <h1 class="text-3xl font-bold text-gray-900 leading-tight tracking-tight">{{ $question->title }}</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900 leading-tight tracking-tight">{{ $question->title }}</h1>
             </div>
 
             {{-- CONTENT --}}
@@ -249,12 +245,13 @@
             @endif
         </div>
 
-        {{-- ANSWERS LIST --}}
+        {{-- ANSWERS HEADER --}}
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-light text-gray-800 flex items-center"><i class='bx bx-message-alt-detail mr-2 text-maroon-700 font-thin'></i> {{ $question->answers->count() }} Answers</h3>
             <div class="h-px bg-gray-200 flex-grow ml-4"></div>
         </div>
 
+        {{-- ANSWERS LIST --}}
         <div class="space-y-8">
         @foreach($question->answers as $answer)
             @php 
@@ -263,13 +260,13 @@
                 $borderClass = $isBest ? 'border-green-500 ring-1 ring-green-500 bg-green-50/10' : ($isTopRated ? 'border-yellow-400 ring-1 ring-yellow-400' : 'border-gray-200');
             @endphp
 
-            <div class="bg-white rounded-xl shadow-sm p-6 border {{ $borderClass }} relative group transition-all mt-4">
+            <div class="bg-white rounded-xl shadow-sm p-6 md:p-6 border {{ $borderClass }} relative group transition-all mt-4">
                 
                 {{-- Badges --}}
                 <div class="absolute -top-3 left-6 flex space-x-2 z-10">
                     @if($isBest)
                         <div class="bg-green-100 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full border border-green-300 shadow-sm flex items-center">
-                            <i class='bx bx-check-circle text-base mr-1'></i> Accepted Solution
+                            <i class='bx bx-check-circle text-base mr-1'></i> Solution
                         </div>
                     @endif
                     @if($isTopRated)
@@ -279,32 +276,9 @@
                     @endif
                     @if($answer->status === 'pending_review')
                         <div class="bg-red-100 text-red-700 text-[10px] font-bold px-3 py-1 rounded-full border border-red-300 shadow-sm flex items-center animate-pulse">
-                            <i class='bx bx-error-circle text-base mr-1'></i> Pending Review (Hidden from others)
+                            <i class='bx bx-error-circle text-base mr-1'></i> Review
                         </div>
                     @endif
-                </div>
-
-                {{-- Action Buttons --}}
-                <div class="absolute top-4 right-4 flex items-center space-x-1">
-                    @auth
-                        @if(Auth::id() === $question->user_id)
-                            <form action="{{ route('answer.best', $answer->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="p-1 rounded-full transition {{ $isBest ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-gray-300 hover:text-green-600 hover:bg-gray-50' }}" title="{{ $isBest ? 'Unmark as Solution' : 'Mark as Accepted Solution' }}"><i class='bx bx-check text-2xl'></i></button>
-                            </form>
-                        @endif
-                        
-                        @if((Auth::id() === $answer->user_id || Auth::user()->is_admin) && $answer->created_at > now()->subSeconds($editLimit))
-                            <a href="{{ route('answer.edit', $answer->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit Answer"><i class='bx bx-pencil text-xl'></i></a>
-                        @endif
-                        
-                        @if(Auth::id() === $answer->user_id || Auth::user()->is_admin)
-                            <form action="{{ route('answer.destroy', $answer->id) }}" method="POST" onsubmit="return confirm('Delete answer?');" class="opacity-0 group-hover:opacity-100 transition">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="text-gray-300 hover:text-red-500 transition p-1" title="Delete Answer"><i class='bx bx-trash text-xl'></i></button>
-                            </form>
-                        @endif
-                    @endauth
                 </div>
 
                 {{-- User Info --}}
@@ -321,28 +295,56 @@
                                 @if($answer->user->member_type === 'student' && $answer->user->course)
                                     <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100" title="{{ $answer->user->course->name }}">{{ $answer->user->course->acronym }}</span>
                                 @elseif($answer->user->member_type === 'teacher' && $answer->user->departmentInfo)
-                                    <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100" title="{{ $answer->user->departmentInfo->name }}">{{ $answer->user->departmentInfo->acronym ?? $answer->user->departmentInfo->name }}</span>
+                                    <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100" title="{{ $answer->user->departmentInfo->name }}">{{ $answer->user->departmentInfo->acronym ?? 'Teacher' }}</span>
                                 @endif
                             </div>
                             <span class="text-xs text-gray-400 font-light block mt-0.5">
                                 {{ $answer->created_at->diffForHumans() }}
                                 @if($answer->updated_at->diffInMinutes($answer->created_at) > 5) 
-                                    <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(edited)</span> 
+                                    <span class="italic ml-1" title="Edited {{ $answer->updated_at->diffForHumans() }}">(ed.)</span> 
                                 @endif
                             </span>
                         </div>
                     </div>
+
+                    {{-- Answer Actions (Right aligned) --}}
+                    <div class="flex items-center space-x-1">
+                        @auth
+                            @if(Auth::id() === $question->user_id)
+                                <form action="{{ route('answer.best', $answer->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="p-1 rounded-full transition {{ $isBest ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-gray-300 hover:text-green-600 hover:bg-gray-50' }}" title="{{ $isBest ? 'Unmark as Solution' : 'Mark as Accepted Solution' }}"><i class='bx bx-check text-2xl'></i></button>
+                                </form>
+                            @endif
+                            
+                            @if((Auth::id() === $answer->user_id || Auth::user()->is_admin) && $answer->created_at > now()->subSeconds($editLimit))
+                                <a href="{{ route('answer.edit', $answer->id) }}" class="text-gray-300 hover:text-blue-600 transition p-1" title="Edit"><i class='bx bx-pencil text-xl'></i></a>
+                            @endif
+                            
+                            @if(Auth::id() === $answer->user_id || Auth::user()->is_admin)
+                                <form action="{{ route('answer.destroy', $answer->id) }}" method="POST" onsubmit="return confirm('Delete answer?');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="text-gray-300 hover:text-red-500 transition p-1" title="Delete"><i class='bx bx-trash text-xl'></i></button>
+                                </form>
+                            @endif
+                        @endauth
+                    </div>
                 </div>
                 
-                {{-- Answer Content --}}
-                <div class="prose prose-sm prose-stone mb-4 ml-11">
+                {{-- Answer Content (Mobile Optimized Indentation) --}}
+                <div class="prose prose-sm prose-stone mb-4 ml-0 md:ml-11">
                     {!! $answer->content !!}
                 </div>
                 
-                {{-- Ratings --}}
-                <div class="ml-11 flex items-center mb-4">
+                {{-- Ratings & Reply Button (Mobile Optimized Indentation) --}}
+                <div class="ml-0 md:ml-11 flex items-center mb-4">
                     <div class="flex items-center bg-gray-50 rounded-lg p-2 inline-flex border border-gray-200 mr-4">
-                        <div class="flex items-center text-yellow-500 font-bold mr-3"><i class='bx bxs-star mr-1 text-lg'></i><span class="text-gray-700">{{ number_format($answer->ratings->avg('score'), 1) }}</span></div>
+                        {{-- Average Score --}}
+                        <div class="flex items-center text-yellow-500 font-bold mr-3">
+                            <i class='bx bxs-star mr-1 text-lg'></i>
+                            <span class="text-gray-700">{{ number_format($answer->ratings->avg('score'), 1) }}</span>
+                        </div>
+                        
                         @auth
                             <div class="h-4 w-px bg-gray-300 mr-3"></div>
                             @if(Auth::id() === $answer->user_id)
@@ -352,10 +354,22 @@
                                 @if($userRating)
                                     <div class="flex items-center text-xs text-maroon-700 font-medium"><i class='bx bx-check mr-1 text-lg'></i> Rated: {{ $userRating->score }}</div>
                                 @else
+                                    {{-- RATING FORM (FIXED) --}}
                                     <form action="{{ route('answer.rate', $answer->id) }}" method="POST" class="flex items-center text-sm">
                                         @csrf
-                                        <select name="score" class="border-none bg-transparent text-gray-600 text-xs font-bold focus:ring-0 cursor-pointer mr-2 p-0"><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select>
-                                        <button type="submit" class="text-maroon-700 hover:text-maroon-900 text-xs font-bold uppercase tracking-wide">Rate</button>
+                                        
+                                        {{-- Native Select with fixed padding (No custom icon to avoid doubling) --}}
+                                        <select name="score" required 
+                                                class="bg-transparent border-none text-gray-600 text-xs font-bold focus:ring-0 cursor-pointer pr-8 pl-0 py-0 leading-tight">
+                                            <option value="" disabled selected class="text-gray-400">Rate</option>
+                                            <option value="5">5 ★</option>
+                                            <option value="4">4 ★</option>
+                                            <option value="3">3 ★</option>
+                                            <option value="2">2 ★</option>
+                                            <option value="1">1 ★</option>
+                                        </select>
+
+                                        <button type="submit" class="text-maroon-700 hover:text-maroon-900 text-xs font-bold uppercase tracking-wide">Submit</button>
                                     </form>
                                 @endif
                             @endif
@@ -364,14 +378,16 @@
                     
                     @auth
                         @if(!$question->best_answer_id)
-                            <button onclick="toggleReplyForm('main-reply-form-{{ $answer->id }}')" class="text-gray-400 hover:text-maroon-700 text-xs font-medium flex items-center transition"><i class='bx bx-reply mr-1 text-base'></i> Reply</button>
+                            <button onclick="toggleReplyForm('main-reply-form-{{ $answer->id }}')" class="text-gray-400 hover:text-maroon-700 text-xs font-medium flex items-center transition">
+                                <i class='bx bx-reply mr-1 text-base'></i> Reply
+                            </button>
                         @endif
                     @endauth
                 </div>
 
                 @auth
                     @if(!$question->best_answer_id)
-                        <form id="main-reply-form-{{ $answer->id }}" action="{{ route('reply.store', $answer->id) }}" method="POST" class="hidden ml-11 mb-6 mt-4">
+                        <form id="main-reply-form-{{ $answer->id }}" action="{{ route('reply.store', $answer->id) }}" method="POST" class="hidden ml-0 md:ml-11 mb-6 mt-4">
                             @csrf
                             <div class="space-y-3">
                                 <x-trix-editor name="content" placeholder="Write a reply..." max-images="1" />
@@ -387,8 +403,8 @@
                     @endif
                 @endauth
 
-                {{-- Threaded Replies --}}
-                <div class="ml-11 mt-4">
+                {{-- Threaded Replies (Mobile Optimized Indentation) --}}
+                <div class="ml-0 md:ml-11 mt-4">
                     @php 
                         $topLevelReplies = $answer->replies->where('parent_id', null);
                         $limit = 2; 
