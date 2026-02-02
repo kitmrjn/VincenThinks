@@ -5,13 +5,11 @@
             <p class="text-sm text-gray-500 mt-1 font-light">Review and resolve user-reported content.</p>
         </div>
         
-        <div class="flex items-center bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm">
-            <i class='bx bx-flag text-red-500 mr-3 text-xl font-thin'></i>
-            <div class="text-right leading-tight">
-                <span class="block text-xl font-bold text-gray-800">{{ $reports->count() }}</span>
-                <span class="text-[10px] uppercase tracking-wider text-gray-400">Pending</span>
+        <div class="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 flex items-center">
+                <i class='bx bx-flag text-maroon-700 mr-2 text-xl'></i>
+                <span class="text-maroon-700 font-bold text-lg leading-none">{{ $reports->count() }}</span>
+                <span class="text-gray-400 text-[10px] uppercase font-bold ml-2 tracking-widest">Pending</span>
             </div>
-        </div>
     </header>
 
     @if(session('success'))

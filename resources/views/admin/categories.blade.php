@@ -16,12 +16,10 @@
             </div>
             
             {{-- Total Count Badge --}}
-            <div class="flex items-center bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
-                <i class='bx bx-tag-alt text-maroon-700 mr-2 md:mr-3 text-lg md:text-xl font-thin'></i>
-                <div class="text-right leading-tight">
-                    <span class="block text-lg md:text-xl font-bold text-gray-800">{{ $categories->count() }}</span>
-                    <span class="text-[10px] uppercase tracking-wider text-gray-400">Total</span>
-                </div>
+            <div class="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 flex items-center">
+                <i class='bx bx-tag-alt text-maroon-700 mr-2 text-xl'></i>
+                <span class="text-maroon-700 font-bold text-lg leading-none">{{ $categories->count() }}</span>
+                <span class="text-gray-400 text-[10px] uppercase font-bold ml-2 tracking-widest">Total</span>
             </div>
         </header>
 

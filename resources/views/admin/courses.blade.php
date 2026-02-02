@@ -20,12 +20,10 @@
                 <h1 class="text-2xl md:text-3xl font-light text-gray-800">Courses & Strands</h1>
                 <p class="text-xs md:text-sm text-gray-500 mt-1 font-light">Manage academic programs</p>
             </div>
-            <div class="flex items-center bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm">
-                <i class='bx bxs-graduation text-maroon-700 mr-2 md:mr-3 text-lg md:text-xl'></i>
-                <div class="text-right leading-tight">
-                    <span class="block text-lg md:text-xl font-bold text-gray-800">{{ $courses->count() }}</span>
-                    <span class="text-[10px] uppercase tracking-wider text-gray-400">Total</span>
-                </div>
+            <div class="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 flex items-center">
+                <i class='bx bxs-graduation text-maroon-700 mr-2 text-xl'></i>
+                <span class="text-maroon-700 font-bold text-lg leading-none">{{ $courses->count() }}</span>
+                <span class="text-gray-400 text-[10px] uppercase font-bold ml-2 tracking-widest">Total</span>
             </div>
         </header>
 

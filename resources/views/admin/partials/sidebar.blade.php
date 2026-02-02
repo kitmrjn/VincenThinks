@@ -70,7 +70,7 @@
         {{-- Categories --}}
         <a href="{{ route('admin.categories') }}" 
            class="flex items-center px-4 py-3 rounded-lg transition {{ request()->routeIs('admin.categories') ? 'bg-white/10 text-white font-bold shadow-sm' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
-            <i class='bx bx-category mr-3 text-xl'></i><span class="font-medium">Categories</span>
+            <i class='bx bx-tag-alt mr-3 text-xl'></i><span class="font-medium">Categories</span>
         </a>
 
         {{-- Courses --}}
