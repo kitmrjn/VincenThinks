@@ -201,6 +201,7 @@
                     <p class="text-maroon-200 text-sm font-medium">Automated Moderation</p>
                 </div>
                 <div class="space-y-1">
+                    {{-- Dynamic Course Count --}}
                     <p class="text-4xl font-extrabold">{{ $stats['courses_count'] }}+</p>
                     <p class="text-maroon-200 text-sm font-medium">Active Courses & Strands</p>
                 </div>
@@ -224,14 +225,14 @@
             {{-- UPDATED: Grid is now 3 columns on large screens, and we have 6 items to fill it perfectly --}}
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-                {{-- Feature 1: Category Focused --}}
+                {{-- Feature 1: Category Focused [FIXED: Uses actual Category names now] --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 text-3xl mb-6">
                         <i class='bx bx-category'></i>
                     </div>
                     <h4 class="text-xl font-bold text-gray-900 mb-3">Category Focused</h4>
                     <p class="text-gray-500 leading-relaxed">
-                        Tailored for {{ $departments ?: 'various academic strands' }}. Find materials specific to your strand.
+                        Tailored for {{ $categoriesList ?: 'various academic topics' }}. Find materials specific to your strand.
                     </p>
                 </div>
 
@@ -262,22 +263,22 @@
                     <p class="text-gray-500 leading-relaxed">Study on the go. VincenThinks is fully responsive and optimized for your phone or tablet.</p>
                 </div>
 
-                {{-- [NEW] Feature 5: Reputation System --}}
+                {{-- Feature 5: Reputation System --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center text-yellow-600 text-3xl mb-6">
                         <i class='bx bx-trophy'></i>
                     </div>
                     <h4 class="text-xl font-bold text-gray-900 mb-3">Community Reputation</h4>
-                    <p class="text-gray-500 leading-relaxed">Earn recognition for helpful answers. Stand out as a top contributor in your department.</p>
+                    <p class="text-gray-500 leading-relaxed">Earn recognition for helpful answers. Stand out as a top contributor in your Course/Strand.</p>
                 </div>
 
-                {{-- [NEW] Feature 6: Instant Notifications --}}
+                {{-- Feature 6: Smart Notifications --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 text-3xl mb-6">
                         <i class='bx bx-bell'></i>
                     </div>
-                    <h4 class="text-xl font-bold text-gray-900 mb-3">Instant Alerts</h4>
-                    <p class="text-gray-500 leading-relaxed">Never miss a reply. Get real-time alerts when someone answers your question or marks it as solved.</p>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Get Notified</h4>
+                    <p class="text-gray-500 leading-relaxed">Get Notified Stay updated. Get Notifications directly when someone answers your question or marks it as solved.</p>
                 </div>
 
             </div>

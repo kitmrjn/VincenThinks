@@ -10,8 +10,8 @@ use App\Models\Reply;
 use App\Models\Report;
 use App\Models\Setting;
 use App\Models\AnalyticsEvent;
-use App\Models\Course;      // [NEW] Added for Welcome Page
-use App\Models\Department;  // [NEW] Added for Welcome Page
+use App\Models\Course;      
+use App\Models\Department;  
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\NewActivity;
 use App\Http\Requests\StoreQuestionRequest;
@@ -42,21 +42,26 @@ class ForumController extends Controller
         return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     }
 
-    // [NEW] Welcome Page Logic
+    // [UPDATED] Welcome Page Logic - Fetches specific courses/strands per level
     public function welcome() {
         if (Auth::check()) {
             return redirect()->route('feed');
         }
 
-        // Fetch dynamic stats for the landing page
         $stats = [
             'courses_count' => Course::count(),
             'analytics_count' => AnalyticsEvent::count(),
-            'education_levels' => 3 // Maintaining static as this represents structure (JHS/SHS/College)
+            'education_levels' => 3 
         ];
 
-        // Fetch department codes for the "Features" section (e.g., "BSIT, BSED...")
-        $departments = Department::pluck('acronym')->filter()->implode(', ');
+        // [UPDATED] Fetch at least 2 from College, SHS, and JHS to display
+        $college = Course::where('type', 'College')->inRandomOrder()->take(2)->pluck('acronym');
+        $shs = Course::where('type', 'SHS')->inRandomOrder()->take(2)->pluck('acronym');
+        $jhs = Course::where('type', 'JHS')->inRandomOrder()->take(2)->pluck('acronym');
+
+        // Merge them into one string (e.g., "BSIT, BSED, STEM, ABM, JHS")
+        // We reuse 'categoriesList' variable name so we don't have to change the View file
+        $categoriesList = $college->merge($shs)->merge($jhs)->implode(', ');
 
         // Fetch the most recently solved question for the "Hero" card visualization
         $latestSolved = Question::with('user')
@@ -64,7 +69,7 @@ class ForumController extends Controller
             ->latest('updated_at')
             ->first();
 
-        return view('welcome', compact('stats', 'departments', 'latestSolved'));
+        return view('welcome', compact('stats', 'categoriesList', 'latestSolved'));
     }
 
    public function index(Request $request, AnalyticsService $analyticsService) {
@@ -113,7 +118,6 @@ class ForumController extends Controller
             ]);
         }
 
-        // [FIX] Use 'warning' if pending, 'success' if published
         $flashType = $question->status === 'published' ? 'success' : 'warning';
         return redirect()->back()->with($flashType, $message);
     }
@@ -193,7 +197,6 @@ class ForumController extends Controller
             ));
         }
 
-        // [FIX] Return warning if pending
         $flashType = $answer->status === 'published' ? 'success' : 'warning';
         return redirect()->back()->with($flashType, $message);
     }
@@ -240,7 +243,6 @@ class ForumController extends Controller
             }
         }
 
-        // [FIX] Return warning if pending
         $flashType = $reply->status === 'published' ? 'success' : 'warning';
         return redirect()->back()->with($flashType, $message);
     }
