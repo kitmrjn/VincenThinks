@@ -118,23 +118,49 @@
             <div class="lg:w-1/2 relative">
                 <div class="relative rounded-2xl bg-white shadow-2xl border border-gray-200 p-2 transform rotate-2 hover:rotate-0 transition duration-500 ease-out">
                     <div class="rounded-xl overflow-hidden bg-gray-50 aspect-[4/3] flex flex-col relative group">
+                        {{-- Top Bar of the Card --}}
                         <div class="h-10 bg-white border-b border-gray-100 flex items-center px-4 gap-2">
                             <div class="w-3 h-3 rounded-full bg-red-400"></div>
                             <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
                             <div class="w-3 h-3 rounded-full bg-green-400"></div>
                         </div>
+                        
                         <div class="p-6 space-y-4">
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                                <div class="flex gap-3 mb-2">
-                                    <div class="w-8 h-8 rounded-full bg-maroon-100"></div>
-                                    <div class="space-y-1">
-                                        <div class="w-24 h-3 bg-gray-200 rounded"></div>
-                                        <div class="w-16 h-2 bg-gray-100 rounded"></div>
+                            {{-- Dynamic Content: Latest Solved Question --}}
+                            @if($latestSolved)
+                                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                    <div class="flex gap-3 mb-2">
+                                        @if($latestSolved->user->avatar)
+                                            <img src="{{ asset('storage/' . $latestSolved->user->avatar) }}" class="w-8 h-8 rounded-full object-cover">
+                                        @else
+                                            <div class="w-8 h-8 rounded-full bg-maroon-100 flex items-center justify-center text-maroon-700 text-xs font-bold">
+                                                {{ substr($latestSolved->user->name, 0, 1) }}
+                                            </div>
+                                        @endif
+                                        <div class="space-y-1">
+                                            <p class="text-sm font-bold text-gray-800">{{ $latestSolved->user->name }}</p>
+                                            <div class="w-16 h-2 bg-gray-100 rounded"></div>
+                                        </div>
                                     </div>
+                                    <p class="text-gray-600 text-sm mb-2 font-medium truncate">{{ $latestSolved->title }}</p>
+                                    <div class="w-3/4 h-2 bg-gray-100 rounded"></div>
                                 </div>
-                                <div class="w-full h-4 bg-gray-100 rounded mb-2"></div>
-                                <div class="w-3/4 h-4 bg-gray-100 rounded"></div>
-                            </div>
+                            @else
+                                {{-- Fallback if no questions exist yet --}}
+                                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                    <div class="flex gap-3 mb-2">
+                                        <div class="w-8 h-8 rounded-full bg-maroon-100"></div>
+                                        <div class="space-y-1">
+                                            <div class="w-24 h-3 bg-gray-200 rounded"></div>
+                                            <div class="w-16 h-2 bg-gray-100 rounded"></div>
+                                        </div>
+                                    </div>
+                                    <div class="w-full h-4 bg-gray-100 rounded mb-2"></div>
+                                    <div class="w-3/4 h-4 bg-gray-100 rounded"></div>
+                                </div>
+                            @endif
+
+                            {{-- Visual "Reply" representation --}}
                             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 opacity-60">
                                 <div class="flex gap-3 mb-2">
                                     <div class="w-8 h-8 rounded-full bg-blue-100"></div>
@@ -148,11 +174,11 @@
                             </div>
                         </div>
                         
+                        {{-- Solved Badge --}}
                         <div class="absolute bottom-6 right-6 bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-100 flex items-center gap-3 animate-bounce">
                             <div class="bg-green-100 p-1.5 rounded-full text-green-600"><i class='bx bx-check'></i></div>
                             <div>
                                 <p class="text-xs text-gray-400 font-bold uppercase">Status</p>
-                                {{-- UPDATED: Matches the actual 'Solved' status in your Feed --}}
                                 <p class="text-sm font-bold text-gray-800">Solved</p>
                             </div>
                         </div>
@@ -175,11 +201,11 @@
                     <p class="text-maroon-200 text-sm font-medium">Automated Moderation</p>
                 </div>
                 <div class="space-y-1">
-                    <p class="text-4xl font-extrabold">6+</p>
+                    <p class="text-4xl font-extrabold">{{ $stats['courses_count'] }}+</p>
                     <p class="text-maroon-200 text-sm font-medium">Active Courses & Strands</p>
                 </div>
                 <div class="space-y-1">
-                    <p class="text-4xl font-extrabold">3</p>
+                    <p class="text-4xl font-extrabold">{{ $stats['education_levels'] }}</p>
                     <p class="text-maroon-200 text-sm font-medium">Education Levels (JHS-Col)</p>
                 </div>
             </div>
@@ -195,18 +221,21 @@
                 <p class="text-gray-500 text-lg">We've built a platform that encourages collaboration, ensures accuracy, and rewards participation.</p>
             </div>
 
+            {{-- UPDATED: Grid is now 3 columns on large screens, and we have 6 items to fill it perfectly --}}
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-                {{-- Feature 2: Department Focused --}}
+                {{-- Feature 1: Category Focused --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 text-3xl mb-6">
                         <i class='bx bx-category'></i>
                     </div>
                     <h4 class="text-xl font-bold text-gray-900 mb-3">Category Focused</h4>
-                    <p class="text-gray-500 leading-relaxed">Tailored for BSIT, BSED, ABM, BSBA, GAS, and Criminology (BSCRIM). Find materials specific to your strand.</p>
+                    <p class="text-gray-500 leading-relaxed">
+                        Tailored for {{ $departments ?: 'various academic strands' }}. Find materials specific to your strand.
+                    </p>
                 </div>
 
-                {{-- Feature 4: AI Auto-Moderation --}}
+                {{-- Feature 2: AI Auto-Moderation --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center text-green-600 text-3xl mb-6">
                         <i class='bx bx-shield-quarter'></i>
@@ -215,6 +244,7 @@
                     <p class="text-gray-500 leading-relaxed">Our AI automatically filters inappropriate content instantly, ensuring a safe space for academic growth.</p>
                 </div>
 
+                {{-- Feature 3: Smart Search --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-pink-50 rounded-xl flex items-center justify-center text-pink-600 text-3xl mb-6">
                         <i class='bx bx-search-alt'></i>
@@ -223,6 +253,7 @@
                     <p class="text-gray-500 leading-relaxed">Don't ask the same question twice. Our powerful search helps you find existing solutions instantly.</p>
                 </div>
 
+                {{-- Feature 4: Mobile Ready --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-maroon-50 rounded-xl flex items-center justify-center text-maroon-700 text-3xl mb-6">
                         <i class='bx bx-mobile'></i>
@@ -230,6 +261,25 @@
                     <h4 class="text-xl font-bold text-gray-900 mb-3">Mobile Ready</h4>
                     <p class="text-gray-500 leading-relaxed">Study on the go. VincenThinks is fully responsive and optimized for your phone or tablet.</p>
                 </div>
+
+                {{-- [NEW] Feature 5: Reputation System --}}
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center text-yellow-600 text-3xl mb-6">
+                        <i class='bx bx-trophy'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Community Reputation</h4>
+                    <p class="text-gray-500 leading-relaxed">Earn recognition for helpful answers. Stand out as a top contributor in your department.</p>
+                </div>
+
+                {{-- [NEW] Feature 6: Instant Notifications --}}
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
+                    <div class="w-14 h-14 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 text-3xl mb-6">
+                        <i class='bx bx-bell'></i>
+                    </div>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Instant Alerts</h4>
+                    <p class="text-gray-500 leading-relaxed">Never miss a reply. Get real-time alerts when someone answers your question or marks it as solved.</p>
+                </div>
+
             </div>
         </div>
     </section>

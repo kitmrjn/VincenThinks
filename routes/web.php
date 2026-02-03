@@ -11,12 +11,8 @@ use Illuminate\Support\Facades\Auth;
 // LANDING PAGE & FEED LOGIC
 // ===========================
 
-Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('feed');
-    }
-    return view('welcome');
-})->name('landing');
+// [UPDATED] Refactored to use Controller for dynamic data
+Route::get('/', [ForumController::class, 'welcome'])->name('landing');
 
 Route::get('/feed', [ForumController::class, 'index'])->name('feed');
 Route::redirect('/home', '/feed')->name('home');

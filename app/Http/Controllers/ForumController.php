@@ -10,6 +10,8 @@ use App\Models\Reply;
 use App\Models\Report;
 use App\Models\Setting;
 use App\Models\AnalyticsEvent;
+use App\Models\Course;      // [NEW] Added for Welcome Page
+use App\Models\Department;  // [NEW] Added for Welcome Page
 use Illuminate\Support\Facades\Auth;
 use App\Notifications\NewActivity;
 use App\Http\Requests\StoreQuestionRequest;
@@ -38,6 +40,31 @@ class ForumController extends Controller
 
     private function getEditLimit() {
         return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
+    }
+
+    // [NEW] Welcome Page Logic
+    public function welcome() {
+        if (Auth::check()) {
+            return redirect()->route('feed');
+        }
+
+        // Fetch dynamic stats for the landing page
+        $stats = [
+            'courses_count' => Course::count(),
+            'analytics_count' => AnalyticsEvent::count(),
+            'education_levels' => 3 // Maintaining static as this represents structure (JHS/SHS/College)
+        ];
+
+        // Fetch department codes for the "Features" section (e.g., "BSIT, BSED...")
+        $departments = Department::pluck('acronym')->filter()->implode(', ');
+
+        // Fetch the most recently solved question for the "Hero" card visualization
+        $latestSolved = Question::with('user')
+            ->whereNotNull('best_answer_id')
+            ->latest('updated_at')
+            ->first();
+
+        return view('welcome', compact('stats', 'departments', 'latestSolved'));
     }
 
    public function index(Request $request, AnalyticsService $analyticsService) {
