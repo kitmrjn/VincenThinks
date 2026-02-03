@@ -6,7 +6,8 @@
     <title>{{ config('app.name', 'VincenThinks') }} - The Knowledge Hub</title>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:300,400,500,600,700,800&display=swap" rel="stylesheet" />
+    {{-- [UPDATED] Switched to Nunito to match tailwind.config.js --}}
+    <link href="https://fonts.bunny.net/css?family=nunito:200,300,400,500,600,700,800,900&display=swap" rel="stylesheet" />
     
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
@@ -40,7 +41,7 @@
                 <div class="hidden md:flex space-x-8 items-center">
                     <a href="#features" class="text-sm font-medium text-gray-500 hover:text-maroon-700 transition">Features</a>
                     <a href="#stats" class="text-sm font-medium text-gray-500 hover:text-maroon-700 transition">Impact</a>
-                    <a href="#departments" class="text-sm font-medium text-gray-500 hover:text-maroon-700 transition">Departments</a>
+                    <a href="#categories" class="text-sm font-medium text-gray-500 hover:text-maroon-700 transition">Categories</a>
                 </div>
 
                 <div class="hidden md:flex items-center space-x-4">
@@ -69,6 +70,7 @@
              class="md:hidden absolute top-20 left-0 w-full bg-white shadow-lg border-b border-gray-100 p-4 flex flex-col space-y-4">
             <a href="#features" @click="mobileMenuOpen = false" class="block text-base font-medium text-gray-600 hover:text-maroon-700">Features</a>
             <a href="#stats" @click="mobileMenuOpen = false" class="block text-base font-medium text-gray-600 hover:text-maroon-700">Impact</a>
+            <a href="#categories" @click="mobileMenuOpen = false" class="block text-base font-medium text-gray-600 hover:text-maroon-700">Categories</a>
             <hr class="border-gray-100">
             <a href="{{ route('login') }}" class="block text-center w-full py-3 text-gray-600 font-medium border border-gray-200 rounded-xl hover:bg-gray-50">Log in</a>
             <a href="{{ route('register') }}" class="block text-center w-full py-3 bg-maroon-700 text-white font-bold rounded-xl shadow-lg shadow-maroon-700/20">Sign Up Now</a>
@@ -118,7 +120,6 @@
             <div class="lg:w-1/2 relative">
                 <div class="relative rounded-2xl bg-white shadow-2xl border border-gray-200 p-2 transform rotate-2 hover:rotate-0 transition duration-500 ease-out">
                     <div class="rounded-xl overflow-hidden bg-gray-50 aspect-[4/3] flex flex-col relative group">
-                        {{-- Top Bar of the Card --}}
                         <div class="h-10 bg-white border-b border-gray-100 flex items-center px-4 gap-2">
                             <div class="w-3 h-3 rounded-full bg-red-400"></div>
                             <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
@@ -126,7 +127,6 @@
                         </div>
                         
                         <div class="p-6 space-y-4">
-                            {{-- Dynamic Content: Latest Solved Question --}}
                             @if($latestSolved)
                                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                                     <div class="flex gap-3 mb-2">
@@ -146,7 +146,6 @@
                                     <div class="w-3/4 h-2 bg-gray-100 rounded"></div>
                                 </div>
                             @else
-                                {{-- Fallback if no questions exist yet --}}
                                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                                     <div class="flex gap-3 mb-2">
                                         <div class="w-8 h-8 rounded-full bg-maroon-100"></div>
@@ -160,7 +159,6 @@
                                 </div>
                             @endif
 
-                            {{-- Visual "Reply" representation --}}
                             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 opacity-60">
                                 <div class="flex gap-3 mb-2">
                                     <div class="w-8 h-8 rounded-full bg-blue-100"></div>
@@ -174,7 +172,6 @@
                             </div>
                         </div>
                         
-                        {{-- Solved Badge --}}
                         <div class="absolute bottom-6 right-6 bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-100 flex items-center gap-3 animate-bounce">
                             <div class="bg-green-100 p-1.5 rounded-full text-green-600"><i class='bx bx-check'></i></div>
                             <div>
@@ -201,7 +198,6 @@
                     <p class="text-maroon-200 text-sm font-medium">Automated Moderation</p>
                 </div>
                 <div class="space-y-1">
-                    {{-- Dynamic Course Count --}}
                     <p class="text-4xl font-extrabold">{{ $stats['courses_count'] }}+</p>
                     <p class="text-maroon-200 text-sm font-medium">Active Courses & Strands</p>
                 </div>
@@ -222,10 +218,7 @@
                 <p class="text-gray-500 text-lg">We've built a platform that encourages collaboration, ensures accuracy, and rewards participation.</p>
             </div>
 
-            {{-- UPDATED: Grid is now 3 columns on large screens, and we have 6 items to fill it perfectly --}}
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-                {{-- Feature 1: Category Focused [FIXED: Uses actual Category names now] --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 text-3xl mb-6">
                         <i class='bx bx-category'></i>
@@ -236,7 +229,6 @@
                     </p>
                 </div>
 
-                {{-- Feature 2: AI Auto-Moderation --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center text-green-600 text-3xl mb-6">
                         <i class='bx bx-shield-quarter'></i>
@@ -245,7 +237,6 @@
                     <p class="text-gray-500 leading-relaxed">Our AI automatically filters inappropriate content instantly, ensuring a safe space for academic growth.</p>
                 </div>
 
-                {{-- Feature 3: Smart Search --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-pink-50 rounded-xl flex items-center justify-center text-pink-600 text-3xl mb-6">
                         <i class='bx bx-search-alt'></i>
@@ -254,7 +245,6 @@
                     <p class="text-gray-500 leading-relaxed">Don't ask the same question twice. Our powerful search helps you find existing solutions instantly.</p>
                 </div>
 
-                {{-- Feature 4: Mobile Ready --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-maroon-50 rounded-xl flex items-center justify-center text-maroon-700 text-3xl mb-6">
                         <i class='bx bx-mobile'></i>
@@ -263,24 +253,74 @@
                     <p class="text-gray-500 leading-relaxed">Study on the go. VincenThinks is fully responsive and optimized for your phone or tablet.</p>
                 </div>
 
-                {{-- Feature 5: Reputation System --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-yellow-50 rounded-xl flex items-center justify-center text-yellow-600 text-3xl mb-6">
                         <i class='bx bx-trophy'></i>
                     </div>
                     <h4 class="text-xl font-bold text-gray-900 mb-3">Community Reputation</h4>
-                    <p class="text-gray-500 leading-relaxed">Earn recognition for helpful answers. Stand out as a top contributor in your Course/Strand.</p>
+                    <p class="text-gray-500 leading-relaxed">Earn recognition for helpful answers. Stand out as a top contributor in your department.</p>
                 </div>
 
-                {{-- Feature 6: Smart Notifications --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 text-3xl mb-6">
                         <i class='bx bx-bell'></i>
                     </div>
-                    <h4 class="text-xl font-bold text-gray-900 mb-3">Get Notified</h4>
-                    <p class="text-gray-500 leading-relaxed">Get Notified Stay updated. Get Notifications directly when someone answers your question or marks it as solved.</p>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Smart Notifications</h4>
+                    <p class="text-gray-500 leading-relaxed">Stay updated. Get notified directly when someone answers your question or marks it as solved.</p>
                 </div>
+            </div>
+        </div>
+    </section>
 
+    {{-- CATEGORIES SECTION --}}
+    <section id="categories" class="py-20 bg-white border-t border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-base font-bold text-maroon-700 tracking-wide uppercase mb-2">Explore Topics</h2>
+                <h3 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Knowledge Categories</h3>
+                <p class="text-gray-500 text-lg">Browse questions by specific subjects to find the help you need.</p>
+            </div>
+
+            @php
+                $colors = [
+                    ['bg' => 'bg-orange-50', 'text' => 'text-orange-600', 'hover_bg' => 'group-hover:bg-orange-600'],
+                    ['bg' => 'bg-green-50', 'text' => 'text-green-600', 'hover_bg' => 'group-hover:bg-green-600'],
+                    ['bg' => 'bg-pink-50', 'text' => 'text-pink-600', 'hover_bg' => 'group-hover:bg-pink-600'],
+                    ['bg' => 'bg-maroon-50', 'text' => 'text-maroon-700', 'hover_bg' => 'group-hover:bg-maroon-700'],
+                    ['bg' => 'bg-yellow-50', 'text' => 'text-yellow-600', 'hover_bg' => 'group-hover:bg-yellow-600'],
+                    ['bg' => 'bg-purple-50', 'text' => 'text-purple-600', 'hover_bg' => 'group-hover:bg-purple-600'],
+                    ['bg' => 'bg-blue-50', 'text' => 'text-blue-600', 'hover_bg' => 'group-hover:bg-blue-600'],
+                    ['bg' => 'bg-teal-50', 'text' => 'text-teal-600', 'hover_bg' => 'group-hover:bg-teal-600'],
+                ];
+            @endphp
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                @foreach($allCategories as $category)
+                    @php
+                        $color = $colors[$loop->index % count($colors)];
+                    @endphp
+
+                    <a href="{{ route('feed', ['category' => $category->id]) }}" class="group block h-full">
+                        <div class="h-full bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300 relative overflow-hidden">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="w-12 h-12 rounded-xl {{ $color['bg'] }} flex items-center justify-center {{ $color['text'] }} text-xl font-bold {{ $color['hover_bg'] }} group-hover:text-white transition duration-300">
+                                    {{ substr($category->name, 0, 1) }}
+                                </div>
+                                
+                                @if($category->questions_count > 0)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 group-hover:bg-gray-200 transition">
+                                        {{ $category->questions_count }} Questions
+                                    </span>
+                                @endif
+                            </div>
+                            
+                            <h4 class="text-lg font-bold text-gray-900 mb-1 group-hover:text-maroon-700 transition">{{ $category->name }}</h4>
+                            @if($category->acronym)
+                                <p class="text-sm text-gray-500 font-medium">{{ $category->acronym }}</p>
+                            @endif
+                        </div>
+                    </a>
+                @endforeach
             </div>
         </div>
     </section>

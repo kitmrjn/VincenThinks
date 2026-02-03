@@ -42,7 +42,7 @@ class ForumController extends Controller
         return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     }
 
-    // [UPDATED] Welcome Page Logic - Fetches specific courses/strands per level
+    // [UPDATED] Welcome Page Logic
     public function welcome() {
         if (Auth::check()) {
             return redirect()->route('feed');
@@ -54,22 +54,26 @@ class ForumController extends Controller
             'education_levels' => 3 
         ];
 
-        // [UPDATED] Fetch at least 2 from College, SHS, and JHS to display
-        $college = Course::where('type', 'College')->inRandomOrder()->take(2)->pluck('acronym');
-        $shs = Course::where('type', 'SHS')->inRandomOrder()->take(2)->pluck('acronym');
-        $jhs = Course::where('type', 'JHS')->inRandomOrder()->take(2)->pluck('acronym');
+        // 1. Generate the text for the "Category Focused" Feature Card.
+        // We keep using Courses/Strands here (BSIT, STEM) because it shows the academic range better.
+        $courses = Course::all()->groupBy('type');
+        $collegeSample = $courses->get('College', collect())->shuffle()->take(2)->pluck('acronym');
+        $shsSample = $courses->get('SHS', collect())->shuffle()->take(2)->pluck('acronym');
+        $jhsSample = $courses->get('JHS', collect())->take(1)->pluck('acronym');
+        
+        $categoriesList = $collegeSample->merge($shsSample)->merge($jhsSample)->implode(', ');
 
-        // Merge them into one string (e.g., "BSIT, BSED, STEM, ABM, JHS")
-        // We reuse 'categoriesList' variable name so we don't have to change the View file
-        $categoriesList = $college->merge($shs)->merge($jhs)->implode(', ');
+        // 2. [NEW] Fetch actual Categories for the bottom grid section
+        // e.g., "Programming, Science, Mathematics"
+        $allCategories = Category::withCount('questions')->orderBy('name')->get();
 
-        // Fetch the most recently solved question for the "Hero" card visualization
+        // 3. Fetch latest solved question
         $latestSolved = Question::with('user')
             ->whereNotNull('best_answer_id')
             ->latest('updated_at')
             ->first();
 
-        return view('welcome', compact('stats', 'categoriesList', 'latestSolved'));
+        return view('welcome', compact('stats', 'allCategories', 'categoriesList', 'latestSolved'));
     }
 
    public function index(Request $request, AnalyticsService $analyticsService) {
