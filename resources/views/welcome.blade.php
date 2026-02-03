@@ -94,7 +94,7 @@
                     </span>
                 </h1>
                 <p class="text-lg text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                    Bridge the gap between JHS, SHS, and College. Connect with Verified Faculty and peers in a secure, moderated environment when face-to-face consultation isn't possible.
+                    Bridge the gap between JHS, SHS, and College. Connect with Faculty and Students in a secure, moderated environment when face-to-face consultation isn't possible.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                     <a href="{{ route('feed') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white bg-maroon-700 rounded-2xl hover:bg-maroon-800 transition shadow-xl shadow-maroon-700/20 transform hover:-translate-y-1">
@@ -111,7 +111,7 @@
                         <div class="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600">S</div>
                         <div class="w-8 h-8 rounded-full bg-gray-400 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600">C</div>
                     </div>
-                    <p>Connecting <strong>BSIT, ABM, & Criminology</strong> students.</p>
+                    <p>Connecting <strong>JHS, SHS, & College</strong> students.</p>
                 </div>
             </div>
 
@@ -176,7 +176,7 @@
                 </div>
                 <div class="space-y-1">
                     <p class="text-4xl font-extrabold">6+</p>
-                    <p class="text-maroon-200 text-sm font-medium">Active Departments</p>
+                    <p class="text-maroon-200 text-sm font-medium">Active Courses & Strands</p>
                 </div>
                 <div class="space-y-1">
                     <p class="text-4xl font-extrabold">3</p>
@@ -196,31 +196,14 @@
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {{-- Feature 1: Verified Faculty --}}
-                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
-                    <div class="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 text-3xl mb-6">
-                        <i class='bx bx-badge-check'></i>
-                    </div>
-                    <h4 class="text-xl font-bold text-gray-900 mb-3">Verified Faculty</h4>
-                    <p class="text-gray-500 leading-relaxed">Your efficient alternative to face-to-face consultation. Get verified answers from registered faculty members.</p>
-                </div>
 
                 {{-- Feature 2: Department Focused --}}
                 <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
                     <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600 text-3xl mb-6">
                         <i class='bx bx-category'></i>
                     </div>
-                    <h4 class="text-xl font-bold text-gray-900 mb-3">Department Focused</h4>
+                    <h4 class="text-xl font-bold text-gray-900 mb-3">Category Focused</h4>
                     <p class="text-gray-500 leading-relaxed">Tailored for BSIT, BSED, ABM, BSBA, GAS, and Criminology (BSCRIM). Find materials specific to your strand.</p>
-                </div>
-
-                {{-- Feature 3: Gamification --}}
-                <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300">
-                    <div class="w-14 h-14 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 text-3xl mb-6">
-                        <i class='bx bx-trophy'></i>
-                    </div>
-                    <h4 class="text-xl font-bold text-gray-900 mb-3">Gamification</h4>
-                    <p class="text-gray-500 leading-relaxed">Earn reputation points by helping others. Climb the leaderboard and get recognized as a top contributor.</p>
                 </div>
 
                 {{-- Feature 4: AI Auto-Moderation --}}
