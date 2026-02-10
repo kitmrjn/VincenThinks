@@ -117,65 +117,90 @@
                 </div>
             </div>
 
+            {{-- [UPDATED] Floating Card Container with Rich Media Support --}}
             <div class="lg:w-1/2 relative">
                 <div class="relative rounded-2xl bg-white shadow-2xl border border-gray-200 p-2 transform rotate-2 hover:rotate-0 transition duration-500 ease-out">
-                    <div class="rounded-xl overflow-hidden bg-gray-50 aspect-[4/3] flex flex-col relative group">
+                    
+                    <div class="rounded-xl overflow-hidden bg-gray-50 min-h-[340px] flex flex-col relative group">
                         <div class="h-10 bg-white border-b border-gray-100 flex items-center px-4 gap-2">
                             <div class="w-3 h-3 rounded-full bg-red-400"></div>
                             <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
                             <div class="w-3 h-3 rounded-full bg-green-400"></div>
                         </div>
                         
-                        <div class="p-6 space-y-4">
+                        <div class="p-6">
                             @if($latestSolved)
-                                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                                    <div class="flex gap-3 mb-2">
+                                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 relative">
+                                    <div class="flex gap-3 mb-3 items-center">
                                         @if($latestSolved->user->avatar)
-                                            <img src="{{ asset('storage/' . $latestSolved->user->avatar) }}" class="w-8 h-8 rounded-full object-cover">
+                                            <img src="{{ asset('storage/' . $latestSolved->user->avatar) }}" class="w-9 h-9 rounded-full object-cover border border-gray-100">
                                         @else
-                                            <div class="w-8 h-8 rounded-full bg-maroon-100 flex items-center justify-center text-maroon-700 text-xs font-bold">
+                                            <div class="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-xs font-bold ring-2 ring-white">
                                                 {{ substr($latestSolved->user->name, 0, 1) }}
                                             </div>
                                         @endif
-                                        <div class="space-y-1">
-                                            <p class="text-sm font-bold text-gray-800">{{ $latestSolved->user->name }}</p>
-                                            <div class="w-16 h-2 bg-gray-100 rounded"></div>
+                                        <div>
+                                            <p class="text-sm font-bold text-gray-900 leading-none">{{ $latestSolved->user->name }}</p>
+                                            <p class="text-xs text-gray-500 mt-1">{{ $latestSolved->created_at->diffForHumans() }}</p>
                                         </div>
                                     </div>
-                                    <p class="text-gray-600 text-sm mb-2 font-medium truncate">{{ $latestSolved->title }}</p>
-                                    <div class="w-3/4 h-2 bg-gray-100 rounded"></div>
+
+                                    <h3 class="text-gray-900 font-bold text-sm leading-tight mb-2 line-clamp-2">
+                                        {{ $latestSolved->title }}
+                                    </h3>
+
+                                    <div class="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed">
+                                        {{ Str::limit(strip_tags($latestSolved->content), 90) }}
+                                    </div>
+
+                                    @if($latestSolved->questionImages && $latestSolved->questionImages->count() > 0)
+                                        <div class="grid grid-cols-2 gap-2 mt-3">
+                                            @foreach($latestSolved->questionImages->take(2) as $image)
+                                                <div class="aspect-square rounded-lg overflow-hidden border border-gray-100 relative bg-gray-100">
+                                                    <img src="{{ asset('storage/' . $image->image_path) }}" 
+                                                         class="w-full h-full object-cover hover:scale-110 transition duration-500">
+                                                    
+                                                    @if($loop->last && $latestSolved->questionImages->count() > 2)
+                                                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">
+                                                            +{{ $latestSolved->questionImages->count() - 2 }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="w-full h-24 bg-gray-50 rounded-lg border border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                                            <span>No attachments</span>
+                                        </div>
+                                    @endif
                                 </div>
                             @else
-                                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                                    <div class="flex gap-3 mb-2">
-                                        <div class="w-8 h-8 rounded-full bg-maroon-100"></div>
-                                        <div class="space-y-1">
-                                            <div class="w-24 h-3 bg-gray-200 rounded"></div>
+                                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 animate-pulse">
+                                    <div class="flex gap-3 mb-4">
+                                        <div class="w-9 h-9 rounded-full bg-gray-200"></div>
+                                        <div class="space-y-2 flex-1 py-1">
+                                            <div class="w-24 h-2 bg-gray-200 rounded"></div>
                                             <div class="w-16 h-2 bg-gray-100 rounded"></div>
                                         </div>
                                     </div>
-                                    <div class="w-full h-4 bg-gray-100 rounded mb-2"></div>
-                                    <div class="w-3/4 h-4 bg-gray-100 rounded"></div>
-                                </div>
-                            @endif
-
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 opacity-60">
-                                <div class="flex gap-3 mb-2">
-                                    <div class="w-8 h-8 rounded-full bg-blue-100"></div>
-                                    <div class="space-y-1">
-                                        <div class="w-20 h-3 bg-gray-200 rounded"></div>
-                                        <div class="w-12 h-2 bg-gray-100 rounded"></div>
+                                    <div class="space-y-2 mb-4">
+                                        <div class="w-full h-3 bg-gray-200 rounded"></div>
+                                        <div class="w-5/6 h-3 bg-gray-200 rounded"></div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="aspect-square bg-gray-100 rounded-lg"></div>
+                                        <div class="aspect-square bg-gray-100 rounded-lg"></div>
                                     </div>
                                 </div>
-                                <div class="w-full h-4 bg-gray-100 rounded mb-2"></div>
-                                <div class="w-1/2 h-4 bg-gray-100 rounded"></div>
-                            </div>
+                            @endif
                         </div>
                         
-                        <div class="absolute bottom-6 right-6 bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-100 flex items-center gap-3 animate-bounce">
-                            <div class="bg-green-100 p-1.5 rounded-full text-green-600"><i class='bx bx-check'></i></div>
+                        <div class="absolute bottom-6 right-6 bg-white pl-2 pr-4 py-2 rounded-xl shadow-xl border border-green-100 flex items-center gap-3 z-20 animate-[bounce_3s_infinite]">
+                            <div class="bg-green-100 p-2 rounded-full text-green-600 text-lg">
+                                <i class='bx bx-check'></i>
+                            </div>
                             <div>
-                                <p class="text-xs text-gray-400 font-bold uppercase">Status</p>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Status</p>
                                 <p class="text-sm font-bold text-gray-800">Solved</p>
                             </div>
                         </div>
@@ -272,7 +297,7 @@
         </div>
     </section>
 
-    {{-- CATEGORIES SECTION --}}
+    {{-- [UPDATED] CATEGORIES SECTION - Mobile Optimized --}}
     <section id="categories" class="py-20 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
@@ -294,30 +319,40 @@
                 ];
             @endphp
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {{-- Mobile: 1 col, Desktop: 4 cols --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                 @foreach($allCategories as $category)
                     @php
                         $color = $colors[$loop->index % count($colors)];
                     @endphp
 
                     <a href="{{ route('feed', ['category' => $category->id]) }}" class="group block h-full">
-                        <div class="h-full bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300 relative overflow-hidden">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="w-12 h-12 rounded-xl {{ $color['bg'] }} flex items-center justify-center {{ $color['text'] }} text-xl font-bold {{ $color['hover_bg'] }} group-hover:text-white transition duration-300">
+                        <div class="h-full bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition duration-300 relative overflow-hidden flex flex-col justify-between">
+                            
+                            {{-- Card Top: Icon & Badge --}}
+                            <div class="flex items-start justify-between mb-2 sm:mb-4">
+                                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl {{ $color['bg'] }} flex items-center justify-center {{ $color['text'] }} text-lg sm:text-xl font-bold {{ $color['hover_bg'] }} group-hover:text-white transition duration-300">
                                     {{ substr($category->name, 0, 1) }}
                                 </div>
                                 
                                 @if($category->questions_count > 0)
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 group-hover:bg-gray-200 transition">
-                                        {{ $category->questions_count }} Questions
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 group-hover:bg-gray-200 transition">
+                                        {{ $category->questions_count }}
+                                        <span class="hidden sm:inline ml-1">Questions</span>
+                                        <span class="sm:hidden ml-1">Qs</span>
                                     </span>
                                 @endif
                             </div>
                             
-                            <h4 class="text-lg font-bold text-gray-900 mb-1 group-hover:text-maroon-700 transition">{{ $category->name }}</h4>
-                            @if($category->acronym)
-                                <p class="text-sm text-gray-500 font-medium">{{ $category->acronym }}</p>
-                            @endif
+                            {{-- Card Bottom: Title & Acronym --}}
+                            <div>
+                                <h4 class="text-base sm:text-lg font-bold text-gray-900 group-hover:text-maroon-700 transition line-clamp-2 leading-tight">
+                                    {{ $category->name }}
+                                </h4>
+                                @if($category->acronym)
+                                    <p class="text-xs sm:text-sm text-gray-500 font-medium mt-1">{{ $category->acronym }}</p>
+                                @endif
+                            </div>
                         </div>
                     </a>
                 @endforeach
