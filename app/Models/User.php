@@ -8,8 +8,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Question;
 use App\Models\Answer;
+use App\Notifications\CustomVerifyEmail; // [NEW] Import your custom notification
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail // [UPDATED] Added "implements MustVerifyEmail"
 {
     use HasFactory, Notifiable;
 
@@ -87,5 +88,13 @@ class User extends Authenticatable
     public function departmentInfo()
     {
         return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    /**
+     * [NEW] Send the custom email verification notification.
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new CustomVerifyEmail);
     }
 }

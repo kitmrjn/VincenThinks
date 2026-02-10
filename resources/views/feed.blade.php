@@ -338,15 +338,6 @@
                         </ul>
                     </div>
                 @endif
-
-                {{-- Links --}}
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Quick Links</h3>
-                    <ul class="space-y-3 text-sm text-gray-600">
-                        <li><a href="#" class="hover:text-maroon-700 flex items-center transition"><i class='bx bx-help-circle mr-2 text-lg'></i> Help Center</a></li>
-                        <li><a href="#" class="hover:text-maroon-700 flex items-center transition"><i class='bx bx-info-circle mr-2 text-lg'></i> Guidelines</a></li>
-                    </ul>
-                </div>
             </div>
         </aside>
 
