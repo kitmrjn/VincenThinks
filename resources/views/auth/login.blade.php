@@ -6,11 +6,44 @@
         <p class="text-gray-500 mt-2 text-sm">Please enter your details to sign in.</p>
     </div>
 
-    {{-- x-data handles the toggling label text --}}
-    <form method="POST" action="{{ route('login') }}" x-data="{ loginType: 'student' }">
+    {{-- 
+        x-data: Combined your 'loginType' logic with the Validation logic.
+        - validateLogin(): Checks if the input is a valid Email OR a valid ID (AY format).
+    --}}
+    <form method="POST" action="{{ route('login') }}" 
+          x-data="{ 
+              loginType: 'student',
+              login: '{{ old('login') }}',
+              password: '',
+              isLoginValid: null,
+              isPasswordFilled: false,
+
+              validateLogin() {
+                  if (!this.login) { this.isLoginValid = null; return; }
+
+                  // Regex 1: Standard Email
+                  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                  
+                  // Regex 2: ID Format (AYxxxx-xxxxx) - Case Insensitive
+                  const idRegex = /^AY\d{4}-\d{5}$/i;
+
+                  // Valid if it matches EITHER Email OR ID
+                  this.isLoginValid = emailRegex.test(this.login) || idRegex.test(this.login);
+              },
+
+              checkPassword() {
+                  this.isPasswordFilled = this.password.length > 0;
+              },
+
+              get isFormValid() {
+                  return this.isLoginValid === true && this.isPasswordFilled === true;
+              }
+          }"
+          x-init="validateLogin(); $watch('password', () => checkPassword())"
+    >
         @csrf
 
-        {{-- Role Selector --}}
+        {{-- Role Selector (KEPT EXACTLY AS REQUIRED) --}}
         <div class="mb-4">
             <x-input-label for="login_type" :value="__('I am a...')" />
             <select id="login_type" name="login_type" x-model="loginType" class="block mt-1 w-full p-3 border-gray-300 focus:border-maroon-700 focus:ring-maroon-700 rounded-lg shadow-sm bg-white text-gray-900">
@@ -19,19 +52,63 @@
             </select>
         </div>
 
+        {{-- Login Field (Email or ID) --}}
         <div>
-            {{-- Dynamic Label based on selection --}}
+            {{-- Dynamic Label --}}
             <x-input-label for="login" x-text="loginType === 'teacher' ? 'Email or Teacher Number' : 'Email or Student Number'" />
-            <x-text-input id="login" class="block mt-1 w-full p-3 border-gray-300 focus:border-maroon-700 focus:ring-maroon-700 rounded-lg" type="text" name="login" :value="old('login')" required autofocus autocomplete="username" />
+            
+            <div class="relative mt-1">
+                <x-text-input 
+                    id="login" 
+                    class="block w-full p-3 pr-10 rounded-lg shadow-sm border-2 transition-colors duration-200 outline-none"
+                    x-bind:class="{
+                        'border-gray-300 focus:border-maroon-700 focus:ring-maroon-700': isLoginValid === null,
+                        'border-green-500 text-green-700 focus:border-green-500 focus:ring-green-500': isLoginValid === true,
+                        'border-red-500 text-red-700 focus:border-red-500 focus:ring-red-500': isLoginValid === false
+                    }"
+                    type="text" 
+                    name="login" 
+                    x-model="login" 
+                    @input="validateLogin()" 
+                    required 
+                    autofocus 
+                    autocomplete="username" 
+                />
+
+                {{-- Status Icons --}}
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <i x-show="isLoginValid === null" class='bx bx-user text-gray-400 text-xl'></i>
+                    <i x-show="isLoginValid === true" class='bx bx-check text-green-600 text-2xl animate-bounce' style="animation-iteration-count: 1;"></i>
+                    <i x-show="isLoginValid === false" class='bx bx-x text-red-600 text-2xl animate-pulse'></i>
+                </div>
+            </div>
+
+            {{-- Validation Error Message --}}
+            <p x-show="isLoginValid === false" class="text-red-500 text-xs mt-1" style="display: none;">
+                Must be a valid Email or ID (AYxxxx-xxxxx).
+            </p>
             <x-input-error :messages="$errors->get('login')" class="mt-2" />
         </div>
 
+        {{-- Password Field --}}
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full p-3 border-gray-300 focus:border-maroon-700 focus:ring-maroon-700 rounded-lg"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+            <div class="relative mt-1">
+                <x-text-input 
+                    id="password" 
+                    class="block w-full p-3 pr-10 rounded-lg shadow-sm border-2 border-gray-300 focus:border-maroon-700 focus:ring-maroon-700 transition-colors duration-200 outline-none"
+                    type="password" 
+                    name="password" 
+                    x-model="password" 
+                    @input="checkPassword()" 
+                    required 
+                    autocomplete="current-password" 
+                />
+                {{-- Lock Icon --}}
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <i class='bx bx-lock-alt text-gray-400 text-xl'></i>
+                </div>
+            </div>
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
@@ -48,10 +125,19 @@
             @endif
         </div>
 
+        {{-- Submit Button (Disabled until valid) --}}
         <div class="mt-8">
-            <x-primary-button class="w-full justify-center py-3 bg-maroon-700 hover:bg-maroon-800 text-white font-bold rounded-lg transition-all text-base">
+            <button 
+                type="submit"
+                x-bind:disabled="!isFormValid"
+                class="w-full justify-center py-3 text-white font-bold rounded-lg transition-all text-base"
+                :class="{
+                    'bg-maroon-700 hover:bg-maroon-800 cursor-pointer': isFormValid,
+                    'bg-gray-400 cursor-not-allowed opacity-50': !isFormValid
+                }"
+            >
                 {{ __('Log in') }}
-            </x-primary-button>
+            </button>
         </div>
 
         <div class="mt-6 text-center text-sm text-gray-500">
