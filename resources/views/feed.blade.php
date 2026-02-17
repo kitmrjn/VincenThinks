@@ -468,6 +468,9 @@
                         <div class="w-px h-4 bg-gray-200"></div>
                         <a href="{{ route('feed', ['filter' => 'solved']) }}" class="px-3 py-1.5 rounded-md text-xs font-bold transition {{ request('filter') == 'solved' ? 'bg-maroon-50 text-maroon-700' : 'text-gray-500 hover:bg-gray-50' }}">Solved</a>
                         <a href="{{ route('feed', ['filter' => 'unsolved']) }}" class="px-3 py-1.5 rounded-md text-xs font-bold transition {{ request('filter') == 'unsolved' ? 'bg-maroon-50 text-maroon-700' : 'text-gray-500 hover:bg-gray-50' }}">Unsolved</a>
+                        
+                        {{-- FIX: Added Missing 'No Answers' Filter for Desktop --}}
+                        <a href="{{ route('feed', ['filter' => 'no_answers']) }}" class="px-3 py-1.5 rounded-md text-xs font-bold transition {{ request('filter') == 'no_answers' ? 'bg-maroon-50 text-maroon-700' : 'text-gray-500 hover:bg-gray-50' }}">No Answers</a>
                     </div>
                 </div>
             </div>
