@@ -6,10 +6,9 @@
 
     {{-- 
         STRONG CLIENT-SIDE VALIDATION LOGIC
-        - isFormValid: A computed property that checks if ALL fields are green.
-        - Button Binding: The submit button is disabled unless isFormValid is true.
+        - Added hasDocument to ensure the user uploads an ID
     --}}
-    <form method="POST" action="{{ route('register') }}" 
+    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data"
           x-data="{ 
               role: '{{ old('member_type', 'student') }}', 
               
@@ -18,8 +17,6 @@
               isNameValid: null,
               validateName() {
                   if (!this.name) { this.isNameValid = null; return; }
-                  // Rule: Starts with letters/dots, followed by at least one space and more letters/dots
-                  // e.g., 'John Doe' matches. 'John' does not.
                   const regex = /^[a-zA-Z\.]+(?:\s+[a-zA-Z\.]+)+$/;
                   this.isNameValid = regex.test(this.name.trim());
               },
@@ -29,7 +26,6 @@
               isEmailValid: null,
               validateEmail() {
                   if (!this.email) { this.isEmailValid = null; return; }
-                  // Standard W3C Email Regex
                   const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
                   this.isEmailValid = regex.test(this.email);
               },
@@ -39,7 +35,6 @@
               isStudentNumberValid: null,
               validateStudentNumber() {
                   if (!this.studentNumber) { this.isStudentNumberValid = null; return; }
-                  // Auto-capitalize input for better UX
                   this.studentNumber = this.studentNumber.toUpperCase();
                   const regex = /^AY\d{4}-\d{5}$/; 
                   this.isStudentNumberValid = regex.test(this.studentNumber);
@@ -59,7 +54,6 @@
               isPasswordValid: null,
               validatePassword() {
                   if (!this.password) { this.isPasswordValid = null; return; }
-                  // Rule: 8+ chars, 1 Uppercase, 1 Lowercase, 1 Number, 1 Special Char
                   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
                   this.isPasswordValid = regex.test(this.password);
                   this.validateConfirmPassword();
@@ -72,10 +66,17 @@
                   this.isConfirmValid = (this.password === this.passwordConfirmation);
               },
 
+              // --- DOCUMENT UPLOAD ---
+              hasDocument: false,
+              validateDocument(event) {
+                  this.hasDocument = event.target.files.length > 0;
+              },
+
               // --- THE GATEKEEPER ---
               get isFormValid() {
                   const commonValid = this.isNameValid === true && this.isEmailValid === true && 
-                                      this.isPasswordValid === true && this.isConfirmValid === true;
+                                      this.isPasswordValid === true && this.isConfirmValid === true &&
+                                      this.hasDocument === true;
                   
                   if (this.role === 'student') {
                       return commonValid && this.isStudentNumberValid === true;
@@ -88,9 +89,9 @@
     >
         @csrf
 
-        {{-- 1. FULL NAME (Updated Validation) --}}
+        {{-- 1. FULL NAME --}}
         <div>
-            <x-input-label for="name" :value="__('Full Name')" />
+            <x-input-label for="name" :value="__('Full Name (Must match your ID)')" />
             <div class="relative mt-1">
                 <x-text-input 
                     id="name" 
@@ -109,7 +110,6 @@
                     <i x-show="isNameValid === false" class='bx bx-x text-red-600 text-2xl animate-pulse'></i>
                 </div>
             </div>
-            {{-- Updated Error Message --}}
             <p x-show="isNameValid === false" class="text-red-500 text-xs mt-1" style="display: none;">
                 Must be at least 2 words (e.g. First & Last Name).
             </p>
@@ -239,7 +239,23 @@
             </div>
         </div>
 
-        {{-- 5. PASSWORD (Strong) --}}
+        {{-- 5. UPLOAD ID DOCUMENT (AI Verification) --}}
+        <div class="mt-6 p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+            <x-input-label for="id_document" :value="__('Upload School ID or Registration Form')" class="text-maroon-700 font-bold" />
+            <p class="text-xs text-gray-500 mb-2">Our AI will verify your Name and ID number automatically. This image is not saved.</p>
+            <input 
+                type="file" 
+                id="id_document" 
+                name="id_document" 
+                accept="image/jpeg, image/png, image/jpg"
+                @change="validateDocument"
+                class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white focus:outline-none p-2"
+                required
+            >
+            <x-input-error :messages="$errors->get('id_document')" class="mt-2" />
+        </div>
+
+        {{-- 6. PASSWORD (Strong) --}}
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
             <div class="relative mt-1">
@@ -266,7 +282,7 @@
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
-        {{-- 6. CONFIRM PASSWORD --}}
+        {{-- 7. CONFIRM PASSWORD --}}
         <div class="mt-4">
             <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
             <div class="relative mt-1">
@@ -301,7 +317,7 @@
                     'bg-gray-400 cursor-not-allowed opacity-50': !isFormValid
                 }"
             >
-                {{ __('Register') }}
+                {{ __('Register & Verify') }}
             </button>
         </div>
 
