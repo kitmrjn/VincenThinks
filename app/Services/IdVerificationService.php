@@ -7,20 +7,19 @@ use Illuminate\Support\Facades\Log;
 
 class IdVerificationService
 {
-    public static function verifyDocument(string $imagePath, string $inputName, string $inputIdNumber): bool
+    public static function verifyDocument(string $imagePath, string $inputName, string $inputIdNumber): array
     {
         $apiKey = env('GEMINI_API_KEY');
         
         if (!$apiKey) {
             Log::error('IdVerificationService: GEMINI_API_KEY is missing.');
-            return false;
+            return ['success' => false, 'message' => 'System configuration error.'];
         }
 
         try {
             $imageData = base64_encode(file_get_contents($imagePath));
             $mimeType = mime_content_type($imagePath);
 
-            // Dynamically get the current year so the AI is always up-to-date
             $currentYear = date('Y');
             $previousYear = $currentYear - 1;
             $nextYear = $currentYear + 1;
@@ -70,14 +69,14 @@ EOT;
 
             if ($response->failed()) {
                 Log::error('ID Verification AI HTTP Error: ' . $response->body());
-                return false;
+                return ['success' => false, 'message' => 'AI Service connection failed.'];
             }
 
             $aiText = $response->json('candidates.0.content.parts.0.text');
             
             if (!$aiText) {
-                Log::error('ID Verification AI Error: No text returned. Possible safety block. Response: ' . $response->body());
-                return false;
+                Log::error('ID Verification AI Error: No text returned.');
+                return ['success' => false, 'message' => 'Image was flagged by safety filters.'];
             }
 
             $cleanJson = preg_replace('/```json/i', '', $aiText);
@@ -88,11 +87,14 @@ EOT;
 
             Log::info('ID Verification AI Output: ' . $cleanJson);
 
-            return $result['verified'] ?? false;
+            return [
+                'success' => $result['verified'] ?? false,
+                'message' => $result['reason'] ?? 'Could not read the document. Please provide a clearer photo.'
+            ];
 
         } catch (\Exception $e) {
             Log::error("IdVerificationService Exception: " . $e->getMessage());
-            return false;
+            return ['success' => false, 'message' => 'Internal server error during verification.'];
         }
     }
 }

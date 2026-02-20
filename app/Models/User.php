@@ -21,12 +21,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'student_number',
         'teacher_number',
         'course_id',
-        'member_type', 
-        'department_id', 
+        'member_type',
+        'department_id',
         'is_admin',
-        'avatar', 
+        'avatar',
         'is_banned',
-        'is_id_verified' // [NEW] Added for AI verification tracking
+        'is_id_verified',
+        'email_verification_code',
+        'email_verification_code_expires_at',
     ];
 
     protected $hidden = [
@@ -41,16 +43,43 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'is_admin' => 'boolean',
             'is_banned' => 'boolean',
-            'is_id_verified' => 'boolean', // [NEW]
+            'is_id_verified' => 'boolean',
+            'email_verification_code_expires_at' => 'datetime',
         ];
     }
 
-    public function questions() { return $this->hasMany(Question::class); }
-    public function answers() { return $this->hasMany(Answer::class); }
-    public function course() { return $this->belongsTo(Course::class); }
-    public function departmentInfo() { return $this->belongsTo(Department::class, 'department_id'); }
-    
-    public function sendEmailVerificationNotification() {
+    public function questions()
+    {
+        return $this->hasMany(Question::class);
+    }
+
+    public function answers()
+    {
+        return $this->hasMany(Answer::class);
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function departmentInfo()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function sendEmailVerificationNotification()
+    {
         $this->notify(new CustomVerifyEmail);
+    }
+
+    /**
+     * Generate a 6-digit OTP for email verification.
+     */
+    public function generateOtp()
+    {
+        $this->email_verification_code = sprintf("%06d", mt_rand(100000, 999999));
+        $this->email_verification_code_expires_at = now()->addMinutes(10);
+        $this->save();
     }
 }
