@@ -4,9 +4,34 @@
         <p class="text-gray-500 mt-2 text-sm">Join the discussion today. It's free and easy.</p>
     </div>
 
+    {{-- [NEW] Global Error Banner so users instantly know something went wrong --}}
+    @if ($errors->any())
+        <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+            <div class="flex items-center">
+                <i class='bx bx-error-circle text-red-500 text-2xl mr-3'></i>
+                <h3 class="text-red-800 font-bold">Registration Failed</h3>
+            </div>
+            <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{-- [NEW] Calculate the starting step based on errors --}}
+    @php
+        $initialStep = 1;
+        if ($errors->has('password') || $errors->has('terms')) {
+            $initialStep = 3;
+        } elseif ($errors->has('id_document') || $errors->has('student_number') || $errors->has('teacher_number') || $errors->has('course_id') || $errors->has('department_id')) {
+            $initialStep = 2;
+        }
+    @endphp
+
     <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data"
           x-data="{ 
-              step: 1, // [NEW] Track current step
+              step: {{ $initialStep }}, // [UPDATED] Track current step dynamically based on errors
               
               role: '{{ old('member_type', 'student') }}', 
               course: '{{ old('course_id') }}',
