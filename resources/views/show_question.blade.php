@@ -357,10 +357,7 @@
                                     {{-- RATING FORM (FIXED) --}}
                                     <form action="{{ route('answer.rate', $answer->id) }}" method="POST" class="flex items-center text-sm">
                                         @csrf
-                                        
-                                        {{-- Native Select with fixed padding (No custom icon to avoid doubling) --}}
-                                        <select name="score" required 
-                                                class="bg-transparent border-none text-gray-600 text-xs font-bold focus:ring-0 cursor-pointer pr-8 pl-0 py-0 leading-tight">
+                                        <select name="score" required class="bg-transparent border-none text-gray-600 text-xs font-bold focus:ring-0 cursor-pointer pr-8 pl-0 py-0 leading-tight">
                                             <option value="" disabled selected class="text-gray-400">Rate</option>
                                             <option value="5">5 ★</option>
                                             <option value="4">4 ★</option>
@@ -368,7 +365,6 @@
                                             <option value="2">2 ★</option>
                                             <option value="1">1 ★</option>
                                         </select>
-
                                         <button type="submit" class="text-maroon-700 hover:text-maroon-900 text-xs font-bold uppercase tracking-wide">Submit</button>
                                     </form>
                                 @endif
@@ -387,7 +383,8 @@
 
                 @auth
                     @if(!$question->best_answer_id)
-                        <form id="main-reply-form-{{ $answer->id }}" action="{{ route('reply.store', $answer->id) }}" method="POST" class="hidden ml-0 md:ml-11 mb-6 mt-4">
+                        {{-- [NEW] Added onsubmit rule to disable button immediately --}}
+                        <form id="main-reply-form-{{ $answer->id }}" action="{{ route('reply.store', $answer->id) }}" method="POST" class="hidden ml-0 md:ml-11 mb-6 mt-4" onsubmit="let btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = 'Processing...';">
                             @csrf
                             <div class="space-y-3">
                                 <x-trix-editor name="content" placeholder="Write a reply..." max-images="1" />
@@ -439,7 +436,8 @@
                     @if(Auth::id() !== $question->user_id)
                         <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                             <h3 class="text-lg font-normal text-gray-800 mb-4 flex items-center"><i class='bx bx-edit mr-2 text-maroon-700 font-thin'></i> Post your Answer</h3>
-                            <form action="{{ route('answer.store', $question->id) }}" method="POST">
+                            {{-- [NEW] Added onsubmit rule to disable button immediately --}}
+                            <form action="{{ route('answer.store', $question->id) }}" method="POST" onsubmit="let btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = '<i class=\'bx bx-loader-alt bx-spin mr-2\'></i> Processing...';">
                                 @csrf
                                 <div class="mb-4">
                                     <x-trix-editor name="content" placeholder="Write a helpful answer..." max-images="1" />
@@ -489,7 +487,6 @@
             open: false, 
             imgSrc: '', 
             init() {
-                // Attach click listeners to all post images
                 document.querySelectorAll('.prose img').forEach(img => {
                     img.addEventListener('click', () => {
                         this.imgSrc = img.src;

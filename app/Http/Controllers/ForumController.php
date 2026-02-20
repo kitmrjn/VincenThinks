@@ -42,7 +42,6 @@ class ForumController extends Controller
         return (int) (Setting::where('key', 'edit_time_limit')->value('value') ?? 150);
     }
 
-    // [UPDATED] Welcome Page Logic
     public function welcome() {
         if (Auth::check()) {
             return redirect()->route('feed');
@@ -54,8 +53,6 @@ class ForumController extends Controller
             'education_levels' => 3 
         ];
 
-        // 1. Generate the text for the "Category Focused" Feature Card.
-        // We keep using Courses/Strands here (BSIT, STEM) because it shows the academic range better.
         $courses = Course::all()->groupBy('type');
         $collegeSample = $courses->get('College', collect())->shuffle()->take(2)->pluck('acronym');
         $shsSample = $courses->get('SHS', collect())->shuffle()->take(2)->pluck('acronym');
@@ -63,11 +60,8 @@ class ForumController extends Controller
         
         $categoriesList = $collegeSample->merge($shsSample)->merge($jhsSample)->implode(', ');
 
-        // 2. [NEW] Fetch actual Categories for the bottom grid section
-        // e.g., "Programming, Science, Mathematics"
         $allCategories = Category::withCount('questions')->orderBy('name')->get();
 
-        // 3. Fetch latest solved question
         $latestSolved = Question::with('user')
             ->whereNotNull('best_answer_id')
             ->latest('updated_at')
@@ -93,7 +87,8 @@ class ForumController extends Controller
             'user_id' => Auth::id(),
             'title' => $request->title,
             'content' => $request->content,
-            'category_id' => $request->category_id
+            'category_id' => $request->category_id,
+            'status' => 'pending_review' // Set safe default immediately
         ]);
 
         if ($request->hasFile('images')) {
@@ -106,24 +101,20 @@ class ForumController extends Controller
             'meta_data' => ['user_id' => Auth::id(), 'question_id' => $question->id]
         ]);
 
-        // Run synchronously so user sees result immediately
-        CheckContentSafety::dispatchSync($question);
-        $question->refresh(); 
+        // Push to background queue, don't make the user wait
+        CheckContentSafety::dispatch($question);
 
-        $message = $question->status === 'published' 
-            ? 'Question posted successfully!' 
-            : 'Your post is under review and will appear shortly.';
+        $message = 'Question posted successfully! It is undergoing a quick safety review and will appear shortly.';
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => $question->status
+                'status' => 'pending_review'
             ]);
         }
 
-        $flashType = $question->status === 'published' ? 'success' : 'warning';
-        return redirect()->back()->with($flashType, $message);
+        return redirect()->back()->with('success', $message);
     }
 
     public function show($id) {
@@ -177,7 +168,8 @@ class ForumController extends Controller
         $answer = Answer::create([
             'user_id' => Auth::id(),
             'question_id' => $id,
-            'content' => $request->content
+            'content' => $request->content,
+            'status' => 'pending_review' // Set safe default
         ]);
 
         AnalyticsEvent::create([
@@ -186,23 +178,10 @@ class ForumController extends Controller
             'meta_data' => ['user_id' => Auth::id(), 'question_id' => $id, 'answer_id' => $answer->id]
         ]);
 
-        CheckContentSafety::dispatchSync($answer);
-        $answer->refresh();
+        // Push to background queue
+        CheckContentSafety::dispatch($answer);
 
-        $message = $answer->status === 'published'
-            ? 'Answer posted!'
-            : 'Answer posted! It is being processed.';
-
-        if ($answer->status === 'published' && $question->user_id !== Auth::id()) {
-            $question->user->notify(new NewActivity(
-                Auth::user()->name . " answered your question.",
-                route('question.show', $question->id),
-                'answer'
-            ));
-        }
-
-        $flashType = $answer->status === 'published' ? 'success' : 'warning';
-        return redirect()->back()->with($flashType, $message);
+        return redirect()->back()->with('success', 'Answer posted! It is being processed by our safety AI.');
     }
 
     public function storeReply(StoreReplyRequest $request, $answerId) {
@@ -210,7 +189,8 @@ class ForumController extends Controller
             'user_id' => Auth::id(),
             'answer_id' => $answerId,
             'content' => $request->content,
-            'parent_id' => $request->parent_id
+            'parent_id' => $request->parent_id,
+            'status' => 'pending_review' // Set safe default
         ]);
 
         AnalyticsEvent::create([
@@ -219,36 +199,20 @@ class ForumController extends Controller
             'meta_data' => ['user_id' => Auth::id(), 'answer_id' => $answerId, 'reply_id' => $reply->id]
         ]);
 
-        CheckContentSafety::dispatchSync($reply);
-        $reply->refresh();
+        // Push to background queue
+        CheckContentSafety::dispatch($reply);
 
-        $message = $reply->status === 'published'
-            ? 'Reply posted!'
-            : 'Reply posted! It is being processed.';
+        $message = 'Reply posted! It is being processed by our safety AI.';
         
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'status' => $reply->status
+                'status' => 'pending_review'
             ]);
         }
 
-        if ($reply->status === 'published') {
-            $answer = Answer::findOrFail($answerId);
-            $userToNotify = $request->parent_id ? Reply::find($request->parent_id)->user : $answer->user;
-
-            if ($userToNotify && $userToNotify->id !== Auth::id()) {
-                $userToNotify->notify(new NewActivity(
-                    Auth::user()->name . " replied to your comment.",
-                    route('question.show', $answer->question_id),
-                    'reply'
-                ));
-            }
-        }
-
-        $flashType = $reply->status === 'published' ? 'success' : 'warning';
-        return redirect()->back()->with($flashType, $message);
+        return redirect()->back()->with('success', $message);
     }
 
     public function rateAnswer(Request $request, $id) {
