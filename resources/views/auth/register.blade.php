@@ -4,15 +4,10 @@
         <p class="text-gray-500 mt-2 text-sm">Join the discussion today. It's free and easy.</p>
     </div>
 
-    {{-- 
-        STRONG CLIENT-SIDE VALIDATION LOGIC
-        - Added hasDocument to ensure the user uploads an ID
-    --}}
     <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data"
           x-data="{ 
               role: '{{ old('member_type', 'student') }}', 
               
-              // --- NAME (At least 2 Words) ---
               name: '{{ old('name') }}',
               isNameValid: null,
               validateName() {
@@ -21,7 +16,6 @@
                   this.isNameValid = regex.test(this.name.trim());
               },
 
-              // --- EMAIL ---
               email: '{{ old('email') }}',
               isEmailValid: null,
               validateEmail() {
@@ -30,7 +24,6 @@
                   this.isEmailValid = regex.test(this.email);
               },
 
-              // --- IDS (Auto-Caps Enabled) ---
               studentNumber: '{{ old('student_number') }}',
               isStudentNumberValid: null,
               validateStudentNumber() {
@@ -49,7 +42,6 @@
                   this.isTeacherNumberValid = regex.test(this.teacherNumber);
               },
 
-              // --- PASSWORD (Strong) ---
               password: '',
               isPasswordValid: null,
               validatePassword() {
@@ -66,13 +58,11 @@
                   this.isConfirmValid = (this.password === this.passwordConfirmation);
               },
 
-              // --- DOCUMENT UPLOAD ---
               hasDocument: false,
               validateDocument(event) {
                   this.hasDocument = event.target.files.length > 0;
               },
 
-              // --- THE GATEKEEPER ---
               get isFormValid() {
                   const commonValid = this.isNameValid === true && this.isEmailValid === true && 
                                       this.isPasswordValid === true && this.isConfirmValid === true &&
@@ -83,11 +73,57 @@
                   } else {
                       return commonValid && this.isTeacherNumberValid === true;
                   }
+              },
+
+              // [NEW] Loading Screen Logic
+              isSubmitting: false,
+              loadingText: 'Securely uploading your document...',
+              startLoading() {
+                  // Only show loading screen if the form is actually valid and submitting
+                  if(this.isFormValid) {
+                      this.isSubmitting = true;
+                      
+                      // Cycle through messages to keep the user engaged while waiting for AI
+                      let step = 0;
+                      const messages = [
+                          'Securely uploading your document...',
+                          'Our AI is reading your ID card...',
+                          'Cross-checking Name and ID Number...',
+                          'Verifying school year validity...',
+                          'Almost done, finalizing registration...'
+                      ];
+                      
+                      setInterval(() => {
+                          step++;
+                          if(step < messages.length) {
+                              this.loadingText = messages[step];
+                          }
+                      }, 2500); // Change text every 2.5 seconds
+                  }
               }
           }"
           x-init="validateName(); validateEmail(); validateStudentNumber(); validateTeacherNumber();" 
+          @submit="startLoading()"
     >
         @csrf
+
+        {{-- [NEW] FULL SCREEN LOADING OVERLAY --}}
+        <div x-show="isSubmitting" 
+             style="display: none;" 
+             class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm transition-opacity duration-300">
+            
+            {{-- Spinner Icon --}}
+            <i class='bx bx-loader-alt bx-spin text-maroon-700 text-7xl mb-6'></i>
+            
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Verifying Identity</h3>
+            
+            {{-- Dynamic Loading Text --}}
+            <p class="text-lg text-gray-600 font-medium animate-pulse" x-text="loadingText"></p>
+            
+            <p class="text-sm text-gray-400 mt-6 max-w-sm text-center">
+                Please do not refresh or close this page. This process usually takes 5-10 seconds.
+            </p>
+        </div>
 
         {{-- 1. FULL NAME --}}
         <div>
@@ -239,7 +275,7 @@
             </div>
         </div>
 
-        {{-- 5. UPLOAD ID DOCUMENT (AI Verification) --}}
+        {{-- 5. UPLOAD ID DOCUMENT --}}
         <div class="mt-6 p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
             <x-input-label for="id_document" :value="__('Upload School ID or Registration Form')" class="text-maroon-700 font-bold" />
             <p class="text-xs text-gray-500 mb-2">Our AI will verify your Name and ID number automatically. This image is not saved.</p>
@@ -255,7 +291,7 @@
             <x-input-error :messages="$errors->get('id_document')" class="mt-2" />
         </div>
 
-        {{-- 6. PASSWORD (Strong) --}}
+        {{-- 6. PASSWORD --}}
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />
             <div class="relative mt-1">
@@ -311,13 +347,14 @@
             <button 
                 type="submit"
                 x-bind:disabled="!isFormValid"
-                class="w-full justify-center py-3 text-white font-bold rounded-lg transition-all text-base"
+                class="w-full justify-center py-3 text-white font-bold rounded-lg transition-all text-base relative"
                 :class="{
-                    'bg-maroon-700 hover:bg-maroon-800 cursor-pointer': isFormValid,
-                    'bg-gray-400 cursor-not-allowed opacity-50': !isFormValid
+                    'bg-maroon-700 hover:bg-maroon-800 cursor-pointer': isFormValid && !isSubmitting,
+                    'bg-gray-400 cursor-not-allowed opacity-50': !isFormValid || isSubmitting
                 }"
             >
-                {{ __('Register & Verify') }}
+                <span x-show="!isSubmitting">{{ __('Register & Verify') }}</span>
+                <span x-show="isSubmitting" style="display: none;">Processing...</span>
             </button>
         </div>
 
