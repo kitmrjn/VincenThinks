@@ -9,16 +9,18 @@ use Illuminate\Http\Request;
 class EmailVerificationNotificationController extends Controller
 {
     /**
-     * Send a new email verification notification.
+     * Send a new email verification notification (Resend OTP).
      */
     public function store(Request $request): RedirectResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('dashboard', absolute: false));
+            return redirect()->intended(route('home', absolute: false));
         }
 
+        // Generates the new 6-digit OTP and emails it
         $request->user()->sendEmailVerificationNotification();
 
-        return back()->with('status', 'verification-link-sent');
+        // [UPDATED] Instead of refreshing the feed/profile, send them directly to the OTP input page!
+        return redirect()->route('verification.notice')->with('status', 'verification-link-sent');
     }
 }

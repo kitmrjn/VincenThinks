@@ -29,22 +29,26 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(\App\Http\Requests\ProfileUpdateRequest $request): \Illuminate\Http\RedirectResponse
     {
-        $user = $request->user();
-        $user->fill($request->validated());
+        $request->user()->fill($request->validated());
 
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
-            $user->save();
-            $user->sendEmailVerificationNotification();
-        } else {
-            $user->save();
+        // Check if the user actually changed their email address
+        $emailChanged = $request->user()->isDirty('email');
+
+        if ($emailChanged) {
+            $request->user()->email_verified_at = null;
         }
 
-        // --- FIXED: Redirect to the Public Profile 'Settings' tab instead of the generic edit page ---
-        return Redirect::route('user.profile', ['id' => $user->id, 'tab' => 'settings'])
-                        ->with('status', 'profile-updated');
+        $request->user()->save();
+
+        // [NEW] If the email was changed, generate a new OTP and redirect to the OTP page
+        if ($emailChanged) {
+            $request->user()->sendEmailVerificationNotification();
+            return redirect()->route('verification.notice')->with('status', 'verification-link-sent');
+        }
+
+        return \Illuminate\Support\Facades\Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**
