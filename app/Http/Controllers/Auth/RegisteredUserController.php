@@ -41,6 +41,9 @@ class RegisteredUserController extends Controller
 
             'teacher_number' => ['nullable', 'required_if:member_type,teacher', 'string', 'max:20', 'unique:users', 'regex:/^AY\d{4}-\d{5}$/'],
             'department_id' => ['nullable', 'required_if:member_type,teacher', 'exists:departments,id'],
+            
+            // [NEW] Enforce Terms and Conditions acceptance on the server
+            'terms' => ['accepted', 'required'],
 
         ], [
             'name.regex' => 'The name can only contain letters, spaces, and dots.',
@@ -49,6 +52,7 @@ class RegisteredUserController extends Controller
             'department_id.required_if' => 'Please select your specific Department or Faculty.',
             'department_id.exists' => 'The selected department is invalid.',
             'id_document.required' => 'Please upload a photo of your school ID or registration form.',
+            'terms.accepted' => 'You must accept the Terms and Conditions to register.', // Custom error message
         ]);
 
         // 1. Temporary File Storage

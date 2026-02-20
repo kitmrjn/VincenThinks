@@ -63,10 +63,15 @@
                   this.hasDocument = event.target.files.length > 0;
               },
 
+              terms: false,
+              
+              // [NEW] Modal State Variable
+              showTermsModal: false,
+
               get isFormValid() {
                   const commonValid = this.isNameValid === true && this.isEmailValid === true && 
                                       this.isPasswordValid === true && this.isConfirmValid === true &&
-                                      this.hasDocument === true;
+                                      this.hasDocument === true && this.terms === true;
                   
                   if (this.role === 'student') {
                       return commonValid && this.isStudentNumberValid === true;
@@ -75,15 +80,12 @@
                   }
               },
 
-              // [NEW] Loading Screen Logic
               isSubmitting: false,
               loadingText: 'Securely uploading your document...',
               startLoading() {
-                  // Only show loading screen if the form is actually valid and submitting
                   if(this.isFormValid) {
                       this.isSubmitting = true;
                       
-                      // Cycle through messages to keep the user engaged while waiting for AI
                       let step = 0;
                       const messages = [
                           'Securely uploading your document...',
@@ -98,7 +100,7 @@
                           if(step < messages.length) {
                               this.loadingText = messages[step];
                           }
-                      }, 2500); // Change text every 2.5 seconds
+                      }, 2500);
                   }
               }
           }"
@@ -107,22 +109,57 @@
     >
         @csrf
 
-        {{-- [NEW] FULL SCREEN LOADING OVERLAY --}}
+        {{-- FULL SCREEN LOADING OVERLAY --}}
         <div x-show="isSubmitting" 
              style="display: none;" 
              class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm transition-opacity duration-300">
-            
-            {{-- Spinner Icon --}}
             <i class='bx bx-loader-alt bx-spin text-maroon-700 text-7xl mb-6'></i>
-            
             <h3 class="text-2xl font-bold text-gray-900 mb-2">Verifying Identity</h3>
-            
-            {{-- Dynamic Loading Text --}}
             <p class="text-lg text-gray-600 font-medium animate-pulse" x-text="loadingText"></p>
-            
             <p class="text-sm text-gray-400 mt-6 max-w-sm text-center">
                 Please do not refresh or close this page. This process usually takes 5-10 seconds.
             </p>
+        </div>
+
+        {{-- [NEW] TERMS AND CONDITIONS MODAL --}}
+        <div x-show="showTermsModal" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity">
+            <div @click.away="showTermsModal = false" class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden transform transition-all">
+                
+                <div class="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="text-xl font-bold text-gray-900">Terms and Conditions</h3>
+                    <button type="button" @click="showTermsModal = false" class="text-gray-400 hover:text-maroon-700 text-2xl font-bold focus:outline-none transition-colors">&times;</button>
+                </div>
+                
+                <div class="p-6 overflow-y-auto flex-1 text-sm text-gray-600 space-y-5 leading-relaxed">
+                    <p>Welcome to <strong>VincenThinks</strong>. By registering for an account, you agree to comply with and be bound by the following terms and conditions, which govern your use of this web application in conjunction with the official policies of St. Vincent College of Cabuyao.</p>
+                    
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-base mb-1">1. Data Privacy and Identity Verification</h4>
+                        <p>To ensure a secure academic environment, we require identity verification. The identification document (School ID or Registration Form) you upload is processed securely by an AI system strictly to verify your name and student/teacher number. <strong>Your uploaded document is permanently deleted from our servers immediately after verification.</strong> We do not store or retain copies of your IDs.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-base mb-1">2. Acceptable Use and Community Guidelines</h4>
+                        <p>VincenThinks is an academic web application. You agree to interact respectfully with peers and faculty. The web application utilizes an automated AI moderation system. Content containing hate speech, harassment, explicit material, or academic dishonesty will be automatically flagged, blocked, and may result in disciplinary action or account suspension.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-base mb-1">3. Institutional Rules</h4>
+                        <p>All activities on this platform are considered an extension of the campus. Therefore, the rules, regulations, and sanctions outlined in the official St. Vincent College of Cabuyao Student and Faculty Handbooks fully apply to your conduct here.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-base mb-1">4. Account Security</h4>
+                        <p>You are responsible for maintaining the confidentiality of your account password and OTP codes. You agree to notify administrators immediately of any unauthorized use of your account.</p>
+                    </div>
+                </div>
+                
+                <div class="p-5 border-t border-gray-200 bg-gray-50 flex justify-end">
+                    <button type="button" @click="showTermsModal = false; terms = true" class="px-6 py-2.5 bg-maroon-700 text-white font-bold rounded-lg hover:bg-maroon-800 transition-colors shadow-sm">
+                        I Understand and Agree
+                    </button>
+                </div>
+            </div>
         </div>
 
         {{-- 1. FULL NAME --}}
@@ -342,6 +379,22 @@
             <p x-show="isConfirmValid === false" class="text-red-500 text-xs mt-1" style="display: none;">Passwords do not match.</p>
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
+
+        {{-- 8. TERMS AND CONDITIONS --}}
+        <div class="mt-6 flex items-start">
+            <div class="flex items-center h-5">
+                <input id="terms" type="checkbox" name="terms" x-model="terms" required class="w-4 h-4 text-maroon-600 bg-white border-gray-300 rounded focus:ring-maroon-700 transition duration-150 ease-in-out cursor-pointer">
+            </div>
+            <div class="ml-3 text-sm text-gray-600">
+                I agree to the 
+                {{-- [UPDATED] Separated the button from the label so it triggers the modal, not the checkbox --}}
+                <button type="button" @click.prevent="showTermsModal = true" class="text-maroon-700 font-bold hover:underline focus:outline-none">
+                    Terms and Conditions
+                </button>, 
+                acknowledging that my data will be used securely for system operations and that the official rules and regulations of St. Vincent College of Cabuyao strictly apply within this platform.
+            </div>
+        </div>
+        <x-input-error :messages="$errors->get('terms')" class="mt-2" />
 
         <div class="mt-8">
             <button 
