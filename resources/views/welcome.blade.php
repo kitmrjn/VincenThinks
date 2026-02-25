@@ -153,16 +153,16 @@
                                         {{ Str::limit(strip_tags($latestSolved->content), 90) }}
                                     </div>
 
-                                    @if($latestSolved->questionImages && $latestSolved->questionImages->count() > 0)
+                                    @if($latestSolved->images && $latestSolved->images->count() > 0)
                                         <div class="grid grid-cols-2 gap-2 mt-3">
-                                            @foreach($latestSolved->questionImages->take(2) as $image)
+                                            @foreach($latestSolved->images->take(2) as $image)
                                                 <div class="aspect-square rounded-lg overflow-hidden border border-gray-100 relative bg-gray-100">
                                                     <img src="{{ asset('storage/' . $image->image_path) }}" 
                                                          class="w-full h-full object-cover hover:scale-110 transition duration-500">
                                                     
-                                                    @if($loop->last && $latestSolved->questionImages->count() > 2)
+                                                    @if($loop->last && $latestSolved->images->count() > 2)
                                                         <div class="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-bold">
-                                                            +{{ $latestSolved->questionImages->count() - 2 }}
+                                                            +{{ $latestSolved->images->count() - 2 }}
                                                         </div>
                                                     @endif
                                                 </div>

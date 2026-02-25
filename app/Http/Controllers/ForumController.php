@@ -62,7 +62,7 @@ class ForumController extends Controller
 
         $allCategories = Category::withCount('questions')->orderBy('name')->get();
 
-        $latestSolved = Question::with('user')
+        $latestSolved = Question::with('user','images')
             ->whereNotNull('best_answer_id')
             ->latest('updated_at')
             ->first();
