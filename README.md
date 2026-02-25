@@ -1,59 +1,110 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# VincenThinks
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+VincenThinks is a collaborative, academic Q&A platform built with Laravel. Designed for students and educators, it provides a safe, interactive environment to ask questions, share knowledge, and find solutions. 
 
-## About Laravel
+A standout feature of VincenThinks is its **Automated AI Content Moderation**, which utilizes Google's Gemini AI to scan both text and images for unsafe content, ensuring the community remains focused and respectful.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Key Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+* **Interactive Q&A Forum:** Ask questions, post answers, and engage in threaded replies.
+* **Reputation & Gamification:** Upvote/rate helpful answers and allow authors to mark the "Best Answer."
+* **AI-Powered Safety Moderation:** Integrates with the Gemini API to automatically queue and scan new questions, answers, and images for inappropriate content before they are published.
+* **Role-Based Access Control:** Distinct roles for Students, Teachers, and Administrators.
+* **Department & Course Filtering:** Categorize and filter questions by academic departments and specific courses.
+* **Admin Dashboard:** Comprehensive tools for managing users, tracking analytics, reviewing reported content, and managing banned words.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🛠️ Tech Stack
 
-## Learning Laravel
+* **Backend:** PHP 8.2+, Laravel 12.x
+* **Frontend:** Blade Templates, Tailwind CSS, Vite
+* **Database:** MySQL / SQLite
+* **AI Integration:** Google Gemini API (gemini-2.5-flash)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 📋 Prerequisites
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Before you begin, ensure you have the following installed on your local machine:
+* PHP >= 8.2
+* Composer
+* Node.js & npm
+* A supported database (MySQL, PostgreSQL, or SQLite)
 
-## Laravel Sponsors
+## ⚙️ Installation & Setup
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+**1. Clone the repository**
+```bash
+git clone [https://github.com/your-username/vincenthinks.git](https://github.com/your-username/vincenthinks.git)
+cd vincenthinks
+```
 
-### Premium Partners
+**2. Install dependencies**
+```bash
+composer install
+npm install
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+**3. Environment Configuration**
+Copy the example environment file and generate an application key:
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## Contributing
+**4. Configure your `.env` file**
+Open the `.env` file and set up your database connection. **Crucially, you must add your Gemini API key for the moderation queue to function:**
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=vincenthinks
+DB_USERNAME=root
+DB_PASSWORD=
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# AI Moderation Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+```
 
-## Code of Conduct
+**5. Run Migrations and Seeders**
+Set up your database tables and populate them with initial data (Categories, Courses, etc.):
+```bash
+php artisan migrate --seed
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+**6. Link Storage**
+Link the storage directory to allow local image uploads for questions:
+```bash
+php artisan storage:link
+```
 
-## Security Vulnerabilities
+## 🏃‍♂️ Running the Application
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+To run the application locally, you will need to start three separate processes:
 
-## License
+**1. Start the local PHP server:**
+```bash
+php artisan serve
+```
+
+**2. Start the Vite development server (for Tailwind CSS/JS compilation):**
+```bash
+npm run dev
+```
+
+**3. Start the Queue Worker:**
+VincenThinks relies on background jobs to process the AI content moderation without slowing down the user experience. You must run the queue worker:
+```bash
+php artisan queue:listen
+```
+*(Alternatively, you can use the built-in `composer run dev` script if configured to run concurrently).*
+
+## 🛡️ Content Moderation Workflow
+
+1. A user posts a Question, Answer, or Reply.
+2. The content is saved with a `pending_review` status.
+3. A background job (`CheckContentSafety`) is dispatched.
+4. The system first checks against a local database of banned words.
+5. If it passes, the text and attached images are sent to the **Gemini AI API**.
+6. If flagged as unsafe, the content remains hidden, and admins are notified. If safe, the status updates to `published` and notifications are sent to relevant users.
+
+## 📄 License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
